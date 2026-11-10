@@ -61,7 +61,7 @@ local S = {
     chunk_amber = 0, bird_bites = 0, bird_hits = 0, fast_state = 0, fast_sent = 0, fast_hits = 0, norm_sent = 0, norm_hits = 0, pace_fast_now = false, cur_cd = 0.7, last_bite_t = 0,
     drink_anywhere = 0, found = {}, failed = {}, quest_tried = {}, herd_i = 0, chunk_t = -1000, toured = false, manual = false, manual_gen = 0,
     held = false, was_held = false, escaping = false, last_bitten = -1000, last_kill = "-", walk_set = false, patched_sp = false, face_m = false,
-    face_until = 0, leaping = false, leap_target = false, release_ok = false, afk_up_now = false, afk_under_now = false, underground = false, speed_cap = 99, travel_cap = 999, lead_i = 1, last_input_t = 0, fish_bad_school = {}, self_moved_t = 0, gait_set = false, trot_press_t = 0, goal_sent = 0, starve_note_t = -100, nostam_set = false, last_sq_t = 0, clamp_prey = false, latch_sent = 0, latch_hits = 0, last_under_t = -100, last_surface = false, water_burst = false, hold_chase = false, chase_speed = 60, avoid = false, snaps = 0, snap_t = -100, last_pace = 100, trot_now = 1, hopping = false, hop_due = false, afk_pos = false, afk_name = false, afk_back = false, target = false, quests = false, rew = false, rew_t = 0, rejoining = false, last_err = "", paint_errs = {}, amber0 = 0,
+    face_until = 0, leaping = false, leap_target = false, release_ok = false, afk_up_now = false, afk_under_now = false, underground = false, speed_cap = 99, travel_cap = 999, lead_i = 1, last_input_t = 0, noclip = false, fish_bad_school = {}, self_moved_t = 0, gait_set = false, trot_press_t = 0, goal_sent = 0, starve_note_t = -100, nostam_set = false, last_sq_t = 0, clamp_prey = false, latch_sent = 0, latch_hits = 0, last_under_t = -100, last_surface = false, water_burst = false, hold_chase = false, chase_speed = 60, avoid = false, snaps = 0, snap_t = -100, last_pace = 100, trot_now = 1, hopping = false, hop_due = false, afk_pos = false, afk_name = false, afk_back = false, target = false, quests = false, rew = false, rew_t = 0, rejoining = false, last_err = "", paint_errs = {}, amber0 = 0,
 }
 local SETTING_KEYS = { "ui_size", "boot_anim", "hide_key",
     "farm", "hunt", "prey", "bite_speed", "auto_lunge", "latch_bite", "auto_squeeze", "eat_kills", "auto_eat", "eat_at", "auto_drink", "drink_at",
@@ -556,7 +556,8 @@ track(RunService.Heartbeat:Connect(function(dt)
     -- [[ not where we put you last frame: the server pulled you back (see the snap-back guard) ]] --
     -- [[ sideways only: underground, the ground pushes you up every frame, and that isn't the server (run 7: 146 ]] --
     -- [[ false pull-backs in 7 minutes dropped the tween speed to 30)                                          ]] --
-    if S.last_hold_pos and flat(r.Position - S.last_hold_pos).Magnitude > 10 and S.on_snap then S.on_snap(true) end
+    local was_under = S.underground or os.clock() - S.last_under_t < 1
+    if not was_under and S.last_hold_pos and flat(r.Position - S.last_hold_pos).Magnitude > 10 and S.on_snap then S.on_snap(true) end
     S.self_moved_t = os.clock()
     -- [[ chasing (hunting, leap, follow, attack): you run after it at a chase speed, never jump onto it ]] --
     if S.hold_chase then
@@ -769,6 +770,24 @@ go(function()
         local r, h = root_part(), hum()
         if r and h and h.Health > 0 then
             if S.underground then S.last_under_t = os.clock() end
+            local c = me.Character
+            local ghost = S.underground or os.clock() - S.last_under_t < 0.3
+            if c and ghost ~= S.noclip then
+                S.noclip = ghost
+                for _, part in ipairs(c:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        if ghost then
+                            if part.CanCollide then
+                                part:SetAttribute("SobrietyCollide", true)
+                                part.CanCollide = false
+                            end
+                        elseif part:GetAttribute("SobrietyCollide") then
+                            part:SetAttribute("SobrietyCollide", nil)
+                            part.CanCollide = true
+                        end
+                    end
+                end
+            end
             if not S.hold then
                 local g = down(r.Position.X, r.Position.Z, false)
                 local below = g ~= nil and r.Position.Y < g.Position.Y - 0.5
@@ -1068,7 +1087,8 @@ function S.on_snap(travelling)
     S.snap_t = os.clock()
     S.snaps += 1
     if travelling then
-        S.travel_cap = math.max(45, math.min(S.travel_cap, S.last_pace or 100) * 0.85)
+        local floor = math.max(45, (me.Character and top_speed(me.Character, true) or 60) * 1.15)
+        S.travel_cap = math.max(floor, math.min(S.travel_cap, S.last_pace or 100) * 0.85)
         logf("MOVE", ("the server pulled you back while travelling: travel pace lowered to %.0f"):format(S.travel_cap))
     else
         S.speed_cap = math.max(1, math.min(S.speed_cap, S.speed_info.mult or 1) * 0.85)
@@ -1838,7 +1858,7 @@ local function chase_speed(m)
     local tr = m and (m:FindFirstChild("HumanoidRootPart") or m.PrimaryPart)
     local theirs = tr and flat(tr.AssemblyLinearVelocity).Magnitude or 0
     local mine = me.Character and top_speed(me.Character, true) or 60
-    return math.min(math.max(theirs * 1.25, mine * 1.1, 30), S.travel_cap)
+    return math.min(math.max(theirs * 1.3, mine * 1.1, 30), math.max(S.travel_cap, theirs * 1.35, mine * 1.15))
 end
 S.chase_speed_of = chase_speed
 local LEADS = { 1, 0.5, 0, 1.6 }
