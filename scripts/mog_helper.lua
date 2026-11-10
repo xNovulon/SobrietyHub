@@ -3,30 +3,12 @@
 -- If you use this work to make a new script or an updated version, I'd appreciate a credit.
 -- Loader: loadstring(game:HttpGet("https://raw.githubusercontent.com/xNovulon/SobrietyHub/main/hub.lua"))()
 
--- Sobriety Hub: Mog to Steal an Egg
--- The clicking fight runs on your own game, which then tells the server who won (Eggs.Resolve).
---   Always win:  the guard can't push your bar back and every click counts 10x, so the game's own fight is won.
---   Force win:   if a fight is lost anyway, the result sent to the server says you won, and you don't get flung.
---   Auto mog:    turns on the game's own Auto Mog on your side (auto clicks in fights, auto mogs eggs next to you).
---   Auto farm:   steals eggs (instant ones too), takes each pet that hatches, and brings it into the safe zone,
---                where the server puts it in your inventory. Event and Titanic eggs are taken first.
---                Up to 12 eggs hatch at once while it keeps stealing. Built to run overnight (no idle rejoin).
--- Right Alt (or the round S button) hides / shows the window. Running it again restarts it.
---
--- Map of the file, top to bottom:
---   state and settings  ->  the game's code and hooks  ->  helpers (moving, ground, streaming)  ->  stages and eggs
---   ->  mogging (steal)  ->  pets (hatch book, taking, banking, gifting)  ->  the farm (farm_step)  ->  treadmill,
---   ghost walk, fly  ->  protection (ragdoll, bat thieves)  ->  pets advisor, auto sell, grow babies  ->  menus
---   ->  logs and reports  ->  reconnect  ->  server hop  ->  the window (Sobriety Hub)  ->  unload, auto progress,
---   the farm loop and the watchdog.
 local env = (typeof(getgenv) == "function" and getgenv()) or _G
 local fenv = getfenv()
 local function exec(name) return env[name] or fenv[name] end
 local hookmetamethod, getnamecallmethod = exec("hookmetamethod"), exec("getnamecallmethod")
 local fireproximityprompt, getconnections = exec("fireproximityprompt"), exec("getconnections")
 if env.mog_helper_stop then pcall(env.mog_helper_stop) end
--- [[ this run's token: if another copy starts while this one is still loading (two queued reloads, autoexec ]] --
--- [[ plus a reload), the older one sees it isn't the newest and quits before it starts anything             ]] --
 local RUN = {}
 env.mog_helper_run = RUN
 
@@ -40,8 +22,6 @@ local me = Players.LocalPlayer
 local function notify(text)
     pcall(function() game:GetService("StarterGui"):SetCore("SendNotification", { Title = "Sobriety Hub", Text = text, Duration = 5 }) end)
 end
-
----------------------------------------------------------------- the game's own code
 
 local Controllers = me:WaitForChild("PlayerScripts"):WaitForChild("Client"):WaitForChild("Controllers")
 local okM, MogController = pcall(require, Controllers:WaitForChild("MogController"))
@@ -57,11 +37,8 @@ if not (okZ and type(SafeZoneUtil) == "table") then SafeZoneUtil = nil end
 local Remotes = RS:WaitForChild("Remotes")
 local Eggs = Remotes:WaitForChild("Eggs")
 
-local MAX_HATCHING, GLIDE_SPEED, INSTANT_RATIO = 12, 650, 2 -- the game has no hatch limit; pets last 45s on the ground
--- [[ where each stage is (the map runs along X from the safe zone), used when a stage isn't loaded around you ]] --
+local MAX_HATCHING, GLIDE_SPEED, INSTANT_RATIO = 12, 650, 2
 local STAGE_X = { Stage1 = -716, Stage2 = -830, Stage3 = -972, Stage4 = -1159, Stage5 = -1406, Stage6 = -1714, Stage7 = -2143, Stage8 = -2661, Stage9 = -3179 }
--- [[ the stage list comes from the game's own ZoneConfig plus the stage folders in the map, so new stages ]] --
--- [[ (Stage 10 and anything after) show up by themselves. Falls back to Stage 1-9 if neither can be read.  ]] --
 local STAGE_NAMES = {}
 do
     local seen = {}
@@ -103,7 +80,7 @@ local S = {
     grow_babies = true, grow_hours = 72, grow_fail = {}, grow_note = "-", grow_swaps = 0, last_grow = 0, grow_full = false,
     hop_mode = "Off", hop_note = "-", hop_min = 0.5, hop_max = 1, fly_speed = 100, walk_speed = 60,
     skip_junk = true, take_others = true, auto_daily = true, skipped = {}, skipped_count = 0, free_count = 0, sell_floor = true, wanted = {}, let_go = {}, speed_first = true,
-    mill_mog = true, farm_mode = "Normal", mode_backup = {}, gate_off_since = 0, boot_anim = true, ui_size = 1, hide_key = "RightAlt",
+    mill_mog = true, farm_mode = "Normal", mode_backup = {}, gate_off_since = 0, boot_anim = true, ui_size = 1, hide_key = "RightAlt", hop_every = 0,
     auto_rejoin = true, rejoin_mins = 20, rejoin_due = false, rejoin_note = "-", rejoin_going = false,
     auto_aura = true, auto_mill_upgrade = true, always_events = true, mill_tried = setmetatable({}, { __mode = "k" }), last_bank_t = 0, last_knock_t = 0,
     stages = {}, pick = "Best", travel = "Teleport", click_mult = 10, status = "Ready",
@@ -111,7 +88,6 @@ local S = {
     resolve = Eggs:WaitForChild("Resolve"), flung = Eggs:WaitForChild("Flung"),
 }
 local function track(c) table.insert(S.conns, c) return c end
--- [[ every background job the helper starts is written down here, so Unload can stop each one mid-way ]] --
 local function go(fn, ...)
     local th = task.spawn(fn, ...)
     if #S.threads > 40 then
@@ -124,8 +100,6 @@ local function go(fn, ...)
 end
 if env.mog_helper_run ~= RUN then return end
 env.mog_helper_state = S
--- [[ a stop that works from here on, so a newer copy can always shut this one down (the full Unload, which ]] --
--- [[ also puts the game's code back, replaces it once everything is loaded)                                ]] --
 env.mog_helper_stop = function()
     S.alive, S.farm = false, false
     local here = coroutine.running()
@@ -135,8 +109,6 @@ env.mog_helper_stop = function()
     for _, c in ipairs(S.conns) do pcall(function() c:Disconnect() end) end
 end
 
--- [[ the recorder: everything worth knowing in the morning (errors, the farm turning on/off and why, hits,  ]] --
--- [[ falls, treadmill, banked pets...). Kept in memory, shown in the Logs tab, saved to MogHub_Log.txt.     ]] --
 S.log, S.status_log, S.session_start = {}, {}, os.clock()
 local function logf(kind, text)
     local line = ("[%s +%dm] %s: %s"):format(os.date("%H:%M:%S"), math.floor((os.clock() - S.session_start) / 60), kind, tostring(text))
@@ -146,19 +118,16 @@ local function logf(kind, text)
 end
 logf("START", "Sobriety Hub loaded (Mog to Steal an Egg)")
 
--- [[ your settings are remembered in MogHub_Settings.json (Potassium's workspace folder) and loaded next time ]] --
 local HttpService = game:GetService("HttpService")
 local SETTING_KEYS = { "always_win", "force_win", "skip_fight", "fast_mog", "parallel_mog", "auto_mog", "farm", "equip_best", "auto_mutate", "treadmill",
     "anti_ragdoll", "anti_void", "carry_drop", "bat_thieves", "gift", "gift_min", "stages", "pick", "travel",
     "auto_ascend", "auto_rebirth", "auto_pen", "auto_coach", "auto_index", "decline_battles",
-    "auto_aura", "auto_mill_upgrade", "always_events", "auto_sell", "sell_ratio", "sell_old", "auto_reconnect", "grow_babies", "grow_hours", "hop_mode", "hop_min", "hop_max", "fly_speed", "walk_speed", "hide_key",
+    "auto_aura", "auto_mill_upgrade", "always_events", "auto_sell", "sell_ratio", "sell_old", "auto_reconnect", "grow_babies", "grow_hours", "hop_mode", "hop_min", "hop_max", "fly_speed", "walk_speed", "hide_key", "hop_every",
     "skip_junk", "take_others", "auto_daily", "sell_floor", "speed_first", "mill_mog", "farm_mode", "mode_backup", "boot_anim", "ui_size",
     "auto_rejoin", "rejoin_mins" }
 local function settings_json()
     local t = {}
     for _, k in ipairs(SETTING_KEYS) do t[k] = S[k] end
-    -- [[ a switch that turned itself off (the server said no a few times) is saved as on: it only stays off for ]] --
-    -- [[ this session, and the next one tries again                                                            ]] --
     for k in pairs(S.auto_off) do
         if t[k] == false then t[k] = true end
     end
@@ -181,8 +150,6 @@ if S.hop_mode ~= "Bigger" and S.hop_mode ~= "Grab" and S.hop_mode ~= "Boosts" an
 if S.farm_mode ~= "Treadmill" then S.farm_mode = "Normal" end
 if S.ui_size ~= 0.85 and S.ui_size ~= 1 and S.ui_size ~= 1.15 then S.ui_size = 1 end
 if S.rejoin_mins ~= 10 and S.rejoin_mins ~= 20 and S.rejoin_mins ~= 30 and S.rejoin_mins ~= 60 then S.rejoin_mins = 20 end
--- [[ Farm mode. Treadmill farm saves the settings it needs to change, then sets them: farm on, Auto treadmill on, ]] --
--- [[ Speed first on, Always events on, Server hop on Event chase. Normal farm puts every one of them back.          ]] --
 S.set_farm_mode = function(mode)
     if mode == S.farm_mode then return end
     local keys = { "farm", "treadmill", "speed_first", "hop_mode", "always_events" }
@@ -204,12 +171,8 @@ S.set_farm_mode = function(mode)
     if S.hop_reset then S.hop_reset() end
 end
 S.hop_min, S.hop_max = math.min(S.hop_min, S.hop_max), math.max(S.hop_min, S.hop_max)
--- [[ while server hopping, every server would start a new hatch book file ]] --
 if S.hop_mode ~= "Off" then S.hatch_file = "MogHub_Hatched_hopping.txt" end
 
--- [[ update check: what the game has (stages, remotes, configs, menus, map folders) is written to          ]] --
--- [[ MogHub_GameInfo.json. Next time, anything new is listed in the Logs tab (UPDATE lines) and shown when ]] --
--- [[ the helper starts. New stages are added to the window by themselves; for the rest, paste the log.     ]] --
 do
     local read_f, write_f, is_f = exec("readfile"), exec("writefile"), exec("isfile")
     local now = { version = game.PlaceVersion, stages = STAGE_NAMES, remotes = {}, configs = {}, menus = {}, map = {} }
@@ -249,7 +212,6 @@ do
     if typeof(write_f) == "function" then pcall(function() write_f("MogHub_GameInfo.json", HttpService:JSONEncode(now)) end) end
 end
 
--- [[ Always win: the guard the game builds for each fight gets no push, and your clicks count more ]] --
 local original_resolve = env.mog_helper_resolve_original or MogController.ResolveEnemy
 env.mog_helper_resolve_original = original_resolve
 MogController.ResolveEnemy = function(...)
@@ -264,10 +226,6 @@ MogController.ResolveEnemy = function(...)
     return enemy
 end
 
--- [[ Skip fights: instant mog is decided by the server (egg appeal x2 must be at or below yours), so it can't be   ]] --
--- [[ forced. But a fight's result comes from your game, and the server only wants it to last 3 seconds          ]] --
--- [[ (EggConfig.Challenge.MinWinSeconds). So for egg fights the guard doesn't walk over, there's no countdown or ]] --
--- [[ clicking, and the win is reported after 3.4s. Fights against players (MogBattle) are left alone.            ]] --
 local original_ready = env.mog_helper_ready_original or MogController.GetReady
 local original_approach = env.mog_helper_approach_original or MogController.Approach
 local original_start = env.mog_helper_start_original or MogController.Start
@@ -290,8 +248,6 @@ MogController.Start = function(enemy, options, ...)
     return original_start(enemy, options, ...)
 end
 
--- [[ Force win: the fight result sent to the server always says won, and the fling for losing isn't sent. ]] --
--- [[ The hook only compares and forwards: calling any method in it would replace the call being made.     ]] --
 if not env.mog_helper_hooked and typeof(hookmetamethod) == "function" and typeof(getnamecallmethod) == "function" then
     env.mog_helper_hooked = true
     pcall(function()
@@ -309,15 +265,12 @@ if not env.mog_helper_hooked and typeof(hookmetamethod) == "function" and typeof
     end)
 end
 
--- [[ Auto mog: the game's own Auto Mog reads this attribute on your side ]] --
 local auto_original = me:GetAttribute("AutoMog")
 local function set_auto(on)
     S.auto_mog = on
     me:SetAttribute("AutoMog", on and true or auto_original)
 end
 
--- [[ No idle rejoin: the game sends you to a new server after 18 minutes without input, which would stop   ]] --
--- [[ the farm. Its idle handler is paused while this runs, and a tiny click resets Roblox's own idle timer. ]] --
 local paused_idle = {}
 if typeof(getconnections) == "function" then
     pcall(function()
@@ -334,8 +287,6 @@ track(me.Idled:Connect(function(seconds)
         vu:ClickButton2(Vector2.zero)
     end)
 end))
-
----------------------------------------------------------------- helpers
 
 local SUFFIX = { "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc" }
 local function short(n)
@@ -371,10 +322,6 @@ local function down()
     return not hum or hum.Health <= 0 or char:GetAttribute("Ragdolled") == true
 end
 local function busy() return EggController.IsBusy() or MogController.IsFighting() end
--- [[ After a hit the server takes over your character (the game's Ragdoll.Fling: SetNetworkOwner(nil)) until it ]] --
--- [[ stands you back up, then puts you where IT thinks you are. Anti ragdoll only fixes your screen, so moves  ]] --
--- [[ made in that time never reach the server: the pet "goes home" on your screen but stays by the guard, who   ]] --
--- [[ kicks again. So after a hit, nothing moves until the server gives your character back.                    ]] --
 local isnetworkowner = exec("isnetworkowner")
 local function own_body()
     local root = root_part()
@@ -394,7 +341,6 @@ local function wait_body(why)
     logf("HIT", ("the server held your character for %.1fs after the hit (%s)"):format(os.clock() - t, why))
 end
 
--- [[ finds the floor under a spot (only solid parts), so you stand on it instead of falling ]] --
 local ray_params = RaycastParams.new()
 ray_params.FilterType = Enum.RaycastFilterType.Exclude
 ray_params.RespectCanCollide = true
@@ -408,7 +354,6 @@ local function floor_below(pos)
     ray_params.FilterDescendantsInstances = { me.Character }
     return workspace:Raycast(pos + Vector3.new(0, 4, 0), Vector3.new(0, -150, 0), ray_params)
 end
--- [[ is there room to stand here (no wall / rock / egg inside your body)? ]] --
 local overlap = OverlapParams.new()
 overlap.FilterType = Enum.RaycastFilterType.Exclude
 overlap.RespectCanCollide = true
@@ -417,8 +362,6 @@ local function free_spot(pos, also_ignore)
     local ok, parts = pcall(function() return workspace:GetPartBoundsInBox(CFrame.new(pos), Vector3.new(2.5, 4.5, 2.5), overlap) end)
     return not ok or #parts == 0
 end
--- [[ the nearest spot around `pos` (up to 14 studs away, about the same height) with floor under it and room ]] --
--- [[ to stand, for when a jump lands you inside a wall or a rock                                              ]] --
 local function unstick(pos)
     ray_params.FilterDescendantsInstances = { me.Character }
     for _, r in ipairs({ 0, 5, 9, 14 }) do
@@ -439,9 +382,6 @@ local function freeze(root, cf)
     root.AssemblyLinearVelocity = Vector3.zero
     root.AssemblyAngularVelocity = Vector3.zero
 end
--- [[ asks the game to load the map around a spot, on the side: the jump never waits for it. Waiting here is  ]] --
--- [[ what left you standing next to the guard with a pet in your hands until he knocked it loose.           ]] --
--- [[ hold_until_ground keeps you in place at the new spot until its floor is in.                            ]] --
 local function stream_around(pos, timeout)
     task.spawn(function()
         local t = os.clock()
@@ -452,9 +392,6 @@ local function stream_around(pos, timeout)
     end)
 end
 
--- [[ the map only loads around where you are, so right after a long jump there's no floor yet. This holds you  ]] --
--- [[ in place (every frame, so the server sees you there and loads it) until the floor under you is in, then  ]] --
--- [[ sets you down on it. Holding by position instead of Anchored, because an anchored you stops replicating. ]] --
 local function hold_until_ground(cf, max_wait)
     local start = os.clock()
     local hit = floor_below(cf.Position)
@@ -464,8 +401,6 @@ local function hold_until_ground(cf, max_wait)
         freeze(root, cf)
         RunService.Heartbeat:Wait()
         hit = floor_below(cf.Position)
-        -- [[ the map is loaded here but no floor shows under you: you're inside a rock or a wall (a ray that ]] --
-        -- [[ starts inside a part can't see it), so step out to the nearest clear spot instead of waiting      ]] --
         if not hit and os.clock() - start > 0.3 then
             local okL, near = pcall(function() return workspace:GetPartBoundsInRadius(cf.Position, 30, overlap) end)
             if okL and #near > 0 then
@@ -478,7 +413,6 @@ local function hold_until_ground(cf, max_wait)
             end
         end
     end
-    -- [[ floor found but you'd be standing inside a wall: step out too ]] --
     if hit and not free_spot(cf.Position) then
         local spot = unstick(cf.Position)
         if spot then cf = CFrame.new(spot) * cf.Rotation end
@@ -493,10 +427,9 @@ local function hold_until_ground(cf, max_wait)
     return cf
 end
 
--- [[ moves you: Teleport is instant; Glide flies there fast in a short arc. Either way it waits for the ground. ]] --
-local before_travel = nil -- set further down: steps you off the treadmill first
-local mount, train_for, admin_step -- the treadmill and admin abuse, further down
-local find_thief, bat_thief -- protection, further down
+local before_travel = nil
+local mount, train_for, admin_step
+local find_thief, bat_thief
 local function travel(pos, look)
     if not S.alive then return false end
     if before_travel then before_travel() end
@@ -529,9 +462,6 @@ local function travel(pos, look)
     return true
 end
 
--- [[ Anti void (always on unless switched off): if you drop below the map, you're held at a safe height right ]] --
--- [[ there; if the floor under you loads within 2.5s you're set down on it. If it doesn't (you were flung off  ]] --
--- [[ the map), you're taken back to your spawn, and the farm is restarted from a clean start.                 ]] --
 do
     local rescue, since = nil, 0
     local function spawn_spot()
@@ -556,7 +486,6 @@ do
         end
         S.void_hold = false
         logf("VOID", "back at your spawn" .. (S.farm and ", farm restarted" or ""))
-        -- [[ the farm loop also runs Auto treadmill with the farm off, so it's always started again ]] --
         if S.restart_farm then S.restart_farm() end
     end
     track(RunService.Heartbeat:Connect(function()
@@ -587,15 +516,10 @@ do
     end))
 end
 
----------------------------------------------------------------- stages and eggs
-
 local function game_folder(name)
     local g = workspace:FindFirstChild("Game")
     return g and g:FindFirstChild(name)
 end
--- [[ where a stage is: its Hitbox when loaded; otherwise the middle of its boss's patrol (the boss model stays ]] --
--- [[ in the map even far away, so this also finds new stages); otherwise the known spots; otherwise a guess   ]] --
--- [[ past the last known stage (the map runs along -X).                                                       ]] --
 local function stage_center(name)
     local stage = game_folder("Stages") and game_folder("Stages"):FindFirstChild(name)
     local box = stage and stage:FindFirstChild("Hitbox")
@@ -618,10 +542,7 @@ local function stage_center(name)
     return nil
 end
 
--- [[ every egg in the world, as it loads in around you ]] --
 local all_eggs = setmetatable({}, { __mode = "k" })
--- [[ the game's list of normal eggs (EggConfig.Eggs). An egg that isn't on it (and isn't the Titanic egg) was ]] --
--- [[ spawned by an admin or a new event: it's treated as an event egg, so it's taken before anything else.     ]] --
 local KNOWN_EGGS = {}
 pcall(function()
     local ok, ec = pcall(require, RS:WaitForChild("Shared"):WaitForChild("Configs"):WaitForChild("EggConfig", 10))
@@ -655,9 +576,7 @@ local function stage_of(egg)
     while m and folder and m.Parent ~= folder and m ~= workspace do m = m.Parent end
     return (m and folder and m.Parent == folder) and m.Name or nil
 end
--- [[ event eggs: the Titanic egg (GiantEgg), or anything spawned outside the normal stages ]] --
 local function is_event(egg) return egg:GetAttribute("GiantEgg") == true or stage_of(egg) == nil or is_special(egg) end
--- [[ the stages you picked: any mix of Events and the stages (none picked = any stage) ]] --
 local function picked_stages(all_if_none)
     local list = {}
     for i = #STAGE_NAMES, 1, -1 do
@@ -683,21 +602,12 @@ local function stages_text()
 end
 local function appeal_of(egg) return tonumber(egg:GetAttribute("RecommendedAppeal")) or 0 end
 local function is_instant(egg) return not is_event(egg) and appeal_of(egg) * INSTANT_RATIO <= power() end
--- [[ how much an egg is worth going for: event eggs above everything, then the highest stage. Not appeal: in a  ]] --
--- [[ stage, appeal only follows egg size, and your logs show small eggs hatch the same pets (all 3 good pets in ]] --
--- [[ 253 eggs came from the smallest ones). So within a stage the nearest egg goes first: less travel.         ]] --
 local function egg_rank(egg) return is_event(egg) and math.huge or stage_num(stage_of(egg) or egg:GetAttribute("Stage")) end
--- [[ an egg's size: EggScale is rolled from 0.5 to 1 when it spawns (big ones are rare) and a bigger egg hatches a ]] --
--- [[ bigger pet. Used for the biggest egg record and the server hop.                                              ]] --
 S.egg_info = function(egg)
     return { name = tostring(egg:GetAttribute("DisplayName") or egg.Name), scale = tonumber(egg:GetAttribute("EggScale")),
         stage = stage_of(egg) or tostring(egg:GetAttribute("Stage") or "?"), rarity = tostring(egg:GetAttribute("Rarity") or "?"),
         luck = tonumber(egg:GetAttribute("Luck")), event = is_event(egg) }
 end
--- [[ A fight left open (the helper was run again in the middle of one, or it broke): the server keeps you      ]] --
--- [[ "AlreadyBusy" until it gets that fight's result, so no egg can be mogged, not even with the game's own     ]] --
--- [[ prompt. Any loaded egg still "Challenged" by you while no fight runs here gets its result sent (won), the  ]] --
--- [[ same message the game sends at the end of a fight.                                                       ]] --
 S.resolve_stuck = function()
     if S.fights > 0 or EggController.IsBusy() or MogController.IsFighting() then return 0 end
     local n = 0
@@ -713,9 +623,7 @@ S.resolve_stuck = function()
     end
     return n
 end
-local waiting_rank -- further down: how good the best pet of yours lying on the ground is (-1 = none)
--- [[ eggs outside your stages (another stage, or outside the map) are taken too when they're higher than, or at ]] --
--- [[ least 80% of, the best egg you're getting (from your stages right now, or the last one stolen)              ]] --
+local waiting_rank
 local DETOUR_RATIO = 0.8
 local function free_eggs()
     local list, others, now = {}, {}, os.clock()
@@ -758,7 +666,6 @@ local function pick_egg()
     return list[1]
 end
 
--- [[ stands you next to the egg, facing it, close enough for its MOG! prompt ]] --
 local function go_to_egg(egg, prompt)
     local cf, size = egg:GetBoundingBox()
     local reach = math.max(math.min(math.max(size.X, size.Z) / 2 + 2, prompt.MaxActivationDistance - 2), 2)
@@ -776,7 +683,6 @@ local function go_to_egg(egg, prompt)
     return travel(spot, cf.Position)
 end
 
--- [[ one steal: goes to the egg and lets the game's own code mog it (instant, or a fight you always win) ]] --
 local function steal_core(egg, forced)
     local prompt = egg:FindFirstChild("EggPrompt", true) or egg:FindFirstChildWhichIsA("ProximityPrompt", true)
     local id = egg:GetAttribute("EggId")
@@ -788,11 +694,7 @@ local function steal_core(egg, forced)
     S.last_spot = egg_pos
     S.status = ("%s %s (%s appeal)"):format(is_instant(egg) and "Instant mog:" or "Mogging", egg:GetAttribute("DisplayName") or egg.Name, short(appeal_of(egg)))
     if not go_to_egg(egg, prompt) then return false end
-    -- [[ the server needs a moment to see you next to the egg after a jump, or it says you're too far ]] --
     task.wait(0.35)
-    -- [[ highest first: right before mogging, if a higher egg showed up (or a good pet is lying on the ground), ]] --
-    -- [[ this one is left for later and the farm goes for that instead. Never for an event egg (it's contested,  ]] --
-    -- [[ and gone if you leave it) or the server hop's egg.                                                     ]] --
     if S.pick ~= "Nearest" and not forced and not is_event(egg) then
         local top = pick_egg()
         local pet_waiting = waiting_rank and waiting_rank() or -1
@@ -811,13 +713,9 @@ local function steal_core(egg, forced)
         logf("DETOUR", ("%s (%s appeal) in %s is outside your stages but worth it, mogging it"):format(egg.Name,
             short(appeal_of(egg)), stage_of(egg) or "no stage (outside the map)"))
     end
-    -- [[ Fast mog: asks the server directly (the same Eggs.Challenge the game uses) instead of playing the game's ]] --
-    -- [[ walk-up and win animations, so you stand at the egg only as long as the server needs: no time at all for ]] --
-    -- [[ an instant mog, 3.15s for a fight (the server's minimum is 3s). Falls back to the game's own mog if the  ]] --
-    -- [[ server keeps saying no.                                                                                   ]] --
     local challenge_remote = Eggs:FindFirstChild("Challenge")
     if S.fast_mog and S.skip_fight and challenge_remote and challenge_remote:IsA("RemoteFunction") then
-        local gap = 1.05 - (os.clock() - S.last_challenge) -- the server allows one challenge a second
+        local gap = 1.05 - (os.clock() - S.last_challenge)
         if gap > 0 then task.wait(gap) end
         S.last_challenge = os.clock()
         local ok, res = pcall(function() return challenge_remote:InvokeServer(id) end)
@@ -828,19 +726,13 @@ local function steal_core(egg, forced)
             task.wait(0.5)
             S.last_challenge = os.clock()
             ok, res = pcall(function() return challenge_remote:InvokeServer(id) end)
-            -- [[ the retry's answer is the one that counts (Mog from the treadmill reads it) ]] --
             reason = ok and type(res) == "table" and tostring(res.Reason or ""):lower() or ""
             S.last_challenge_reason = reason
         end
         if ok and type(res) == "table" and res.Success then
             S.fast_fail, S.busy_first, S.parallel_reject, S.last_challenge_reason = 0, nil, 0, ""
-            -- [[ an instant mog gets finished like any other: the game sends its result (won) right after it, and ]] --
-            -- [[ until that arrives the server keeps the egg "Challenged" and you "AlreadyBusy"                   ]] --
             if res.Instant then pcall(function() S.resolve:FireServer(id, true) end) end
             if not res.Instant and S.parallel_mog and not is_event(egg) then
-                -- [[ Move on during fights: the 3s the server wants runs in the background and the win is sent from ]] --
-                -- [[ wherever you are; the farm goes straight to the next egg. If the server doesn't accept that   ]] --
-                -- [[ (2 eggs lost this way in a row), it switches itself off and waits at the egg again.            ]] --
                 S.fights += 1
                 local name, rank, appeal = tostring(egg:GetAttribute("DisplayName") or egg.Name), egg_rank(egg), appeal_of(egg)
                 go(function()
@@ -875,7 +767,6 @@ local function steal_core(egg, forced)
                 pcall(function() S.resolve:FireServer(id, true) end)
             end
         elseif S.fights > 0 then
-            -- [[ refused while another fight is still running: the server allows one fight at a time ]] --
             S.tried[id] = os.clock() + 2
             S.parallel_reject += 1
             logf("STEAL", ("the server wouldn't start %s while another fight runs: %s"):format(egg.Name,
@@ -889,8 +780,6 @@ local function steal_core(egg, forced)
         else
             local why = ok and (type(res) == "table" and tostring(res.Reason) or tostring(res)) or ("error " .. tostring(res))
             if why:lower():find("busy") then
-                -- [[ the server still has you in a fight (one left open): not fast mog's fault, finish that fight. ]] --
-                -- [[ A gap of 15s+ since the last AlreadyBusy starts the count over (it must be a minute straight)  ]] --
                 if not S.busy_first or os.clock() - (S.busy_last or 0) > 15 then S.busy_first = os.clock() end
                 S.busy_last = os.clock()
                 S.tried[id] = os.clock() + 2
@@ -908,13 +797,9 @@ local function steal_core(egg, forced)
                 logf("STEAL", "fast mog turned off after 4 refusals in a row, using the game's own mog")
                 notify("Fast mog was refused 4 times in a row, so it's off. The farm uses the game's own mog now.")
             end
-            -- [[ a refusal: the egg was never challenged, so there's nothing to wait for (and it mustn't count ]] --
-            -- [[ against Skip fights below)                                                                    ]] --
             return false
         end
     else
-        -- [[ the game's own mog. Its fight only clicks by itself with Auto Mog on, which the farm keeps off, so ]] --
-        -- [[ Auto Mog is on for this fight (S.own_fight); a fight still open after 75s is ended                  ]] --
         S.own_fight = true
         pcall(function() me:SetAttribute("AutoMog", true) end)
         task.spawn(EggController.Challenge, prompt)
@@ -927,11 +812,9 @@ local function steal_core(egg, forced)
         end
         S.own_fight = false
     end
-    -- [[ it's yours once it starts hatching; up to 12 hatch at the same time ]] --
     local wait_hatch, nudged = os.clock(), false
     while egg.Parent and egg:GetAttribute("EggState") ~= "Hatching" and os.clock() - wait_hatch < 2 do
         task.wait(0.05)
-        -- [[ still "Challenged" by you a second later and no fight running: the result didn't land, send it again ]] --
         if not nudged and os.clock() - wait_hatch > 1 and egg:GetAttribute("EggState") == "Challenged" and egg:GetAttribute("EggHolder") == me.UserId
             and not (EggController.IsBusy() or MogController.IsFighting()) then
             nudged = true
@@ -946,7 +829,6 @@ local function steal_core(egg, forced)
         if skipped then S.skip_fail = 0 end
         S.busy_first = nil
         logf("STEAL", ("won %s (%s appeal)%s"):format(tostring(egg:GetAttribute("DisplayName") or egg.Name), short(appeal_of(egg)), is_event(egg) and ", EVENT egg" or ""))
-        -- [[ an event egg's pet can be taken by anyone, so the farm stays with it until it hatches ]] --
         if is_event(egg) then
             S.event_hatch = { pos = egg_pos, until_t = os.clock() + 60, name = egg:GetAttribute("DisplayName") or egg.Name }
             if S.event_won then pcall(S.event_won, egg) end
@@ -955,8 +837,6 @@ local function steal_core(egg, forced)
     end
     logf("STEAL", ("didn't get %s (state %s, holder %s)"):format(egg.Name, tostring(egg.Parent and egg:GetAttribute("EggState") or "gone"),
         tostring(egg.Parent and egg:GetAttribute("EggHolder") or "-")))
-    -- [[ if the server turns down skipped fights twice in a row, it goes back to real (always won) fights. Only    ]] --
-    -- [[ counts when the egg is still free (nobody else took it) and isn't an event egg (those fight differently) ]] --
     local still_free = egg.Parent and (egg:GetAttribute("EggState") == nil or egg:GetAttribute("EggState") == "Idle")
         and (tonumber(egg:GetAttribute("EggHolder")) or 0) == 0
     if skipped and still_free and not is_event(egg) then
@@ -969,17 +849,12 @@ local function steal_core(egg, forced)
     end
     return false
 end
--- [[ Mog from the treadmill: while the treadmill holds you it anchors your character, and moves made while     ]] --
--- [[ anchored aren't sent to the server, so to the server you're still training (speed keeps coming) while you ]] --
--- [[ mog an egg somewhere else; then you're put straight back on the treadmill. It turns itself off if the     ]] --
--- [[ treadmill stops paying while you're away, or the server says you're too far from the egg.                 ]] --
 local function steal(egg, forced)
     local root = root_part()
-    -- [[ only with Fast mog and Skip fights: the game's own mog (walk-up, fight screen) can't run from afar ]] --
     local desync = S.mill_mog and S.fast_mog and S.skip_fight and root and root.Anchored and S.on_treadmill and S.on_treadmill()
     if not desync then return steal_core(egg, forced) end
     local home, t0 = root.CFrame, os.clock()
-    local paying = t0 - (S.last_step_t or -100) < 1 -- steps were coming in right before
+    local paying = t0 - (S.last_step_t or -100) < 1
     S.keep_mill, S.last_challenge_reason = true, nil
     local ok, res = pcall(steal_core, egg, forced)
     S.keep_mill = false
@@ -1007,17 +882,12 @@ local function steal(egg, forced)
     return res
 end
 
----------------------------------------------------------------- pets: hatching, taking, bringing home
-
--- [[ where your pets come out: the server tells you when your egg hatches ]] --
 local function connect(path, fn)
     local remote = Remotes
     for _, name in ipairs(path) do remote = remote and remote:FindFirstChild(name) end
     if remote and remote:IsA("RemoteEvent") then track(remote.OnClientEvent:Connect(function(...) pcall(fn, ...) end)) end
 end
 local function its_me(name) return name == me.DisplayName or name == me.Name end
--- [[ the hatch book: every pet that comes out of your eggs (farm or by hand), with everything the game says ]] --
--- [[ about it, and what happened to it afterwards (banked, gifted, lost, taken by someone).                 ]] --
 local function hatch_record(pet, how)
     local r = { time = os.date("%H:%M:%S"), how = how, outcome = "hatched, not taken yet", pet = pet }
     table.insert(S.hatched, r)
@@ -1031,8 +901,6 @@ local function hatch_note(id, field, value)
     r[field] = value
     S.hatch_dirty = true
 end
--- [[ matches a hatch to one of the eggs you stole (the nearest one, so two of your eggs hatching out of order ]] --
--- [[ don't swap their sizes in the egg book); other people's hatches are ignored                              ]] --
 local function claim_hatch(pos, radius)
     local best_i, best_d = nil, radius
     for i, h in ipairs(S.hatching) do
@@ -1041,10 +909,6 @@ local function claim_hatch(pos, radius)
     end
     return best_i and table.remove(S.hatching, best_i) or nil
 end
--- [[ Egg book: every egg the farm wins and the pet that came out of it, one line each in MogHub_EggBook.csv (kept ]] --
--- [[ across sessions): the egg's name, rarity, stage, size (EggScale), appeal and luck, then the pet's name,      ]] --
--- [[ rarity, mutation, size, size tier, weight and luck. With enough lines it shows whether big eggs really give  ]] --
--- [[ better or bigger pets.                                                                                       ]] --
 local function egg_book(info, pet, ap)
     local append, write, isf, read = exec("appendfile"), exec("writefile"), exec("isfile"), exec("readfile")
     if typeof(write) ~= "function" then return end
@@ -1073,13 +937,11 @@ connect({ "Eggs", "Hatch" }, function(data)
         rec.egg, rec.egg_ap = by_farm.info, by_farm.ap
         pcall(egg_book, by_farm.info, pet, by_farm.ap)
     end
-    -- [[ your event egg (not a Titanic, those have their own message) hatched: the farm stops waiting at it ]] --
     if by_farm and S.event_hatch and (S.event_hatch.pos - data.Position).Magnitude < 80 then S.event_hatch = nil end
     if by_farm then
         if pet.Id then S.my_pets[pet.Id] = true end
         table.insert(S.pending, { id = pet.Id, pos = data.Position, name = tostring(pet.Name), until_t = os.clock() + 50, misses = 0,
             appeal = by_farm.appeal or 0 })
-        -- [[ which egg gave which pet (and its size), for working out which eggs are worth it ]] --
         logf("HATCHED", ("%s %s%s from %s (%s appeal)"):format(tostring(pet.Rarity or "?"), pet.Mutation and (tostring(pet.Mutation) .. " ") or "",
             tostring(pet.Name), tostring(by_farm.egg or "an egg"), by_farm.ap and short(by_farm.ap) or "?")
             .. ((pet.Tier or pet.SizeTier) and (" | " .. tostring(pet.Tier or pet.SizeTier)) or ""))
@@ -1087,7 +949,6 @@ connect({ "Eggs", "Hatch" }, function(data)
 end)
 connect({ "Titanic", "Event" }, function(data)
     if type(data) ~= "table" then return end
-    -- [[ zone: the stage ("Stage10") when the game sends it, else the zone's display name ]] --
     if data.Phase == "Spawned" and typeof(data.Position) == "Vector3" then
         S.titanic = { pos = data.Position, until_t = os.clock() + 290, zone = tostring(data.Stage or data.Zone or "") }
         logf("EVENT", "Titanic egg spawned in " .. S.titanic.zone)
@@ -1105,12 +966,9 @@ connect({ "Titanic", "Event" }, function(data)
         S.titanic = nil
     end
 end)
--- [[ a Titanic egg that was already up when the helper started (after a hop, a reconnect or running it again): ]] --
--- [[ the server also writes it on the map (TitanicActive / TitanicPosition / TitanicZone), so the farm knows   ]] --
 do
     local function read_titanic()
         if workspace:GetAttribute("TitanicActive") ~= true then
-            -- [[ it's over (expired, or someone hatched it): stop going for it ]] --
             if S.titanic then logf("EVENT", "the Titanic egg is gone") end
             S.titanic = nil
             return
@@ -1139,7 +997,6 @@ connect({ "Loot", "Delivered" }, function(data)
         S.titanic_record.pet = pet
         S.hatch_dirty = true
     else
-        -- [[ any other pet that reaches your inventory gets recorded too ]] --
         hatch_record(pet, "got it").outcome = "banked (in your inventory)"
     end
     local matched = false
@@ -1157,8 +1014,6 @@ connect({ "Loot", "Delivered" }, function(data)
 end)
 
 local function loot_folder() return game_folder("Loot") end
--- [[ is this the pet from your Titanic egg? Near where it hatched, and (when the game said which animal it ]] --
--- [[ was) that animal, so other pets lying around there aren't treated as it                             ]] --
 local function near_titanic_spot(pos, m)
     for _, p in ipairs(S.pending) do
         if p.titanic and pos and (pos - p.pos).Magnitude < 150 then
@@ -1169,16 +1024,10 @@ local function near_titanic_spot(pos, m)
     end
     return false
 end
--- [[ how good a pet on the ground is: event pets above all, then what it could earn on your plot (loot_value) ]] --
 local function pet_rank(m, pos)
     if near_titanic_spot(pos, m) then return math.huge end
     return (S.loot_value and S.loot_value(m)) or 0
 end
--- [[ pets on the ground worth taking, best first (then nearest): yours (a pet you hatched stays yours even after ]] --
--- [[ a thief carried it), and with Take others' good pets, good ones anyone dropped (the game lets anyone take    ]] --
--- [[ them). With Leave worthless pets, one that couldn't beat your weakest plot pet even as an Ancient Diamond    ]] --
--- [[ stays on the ground: that's exactly what auto sell would delete, and carrying it home took half the farm's  ]] --
--- [[ time.                                                                                                        ]] --
 local function my_loot()
     local folder = loot_folder()
     local server_now = workspace:GetServerTimeNow()
@@ -1207,10 +1056,9 @@ local function my_loot()
                 end
             end
             local wanted = id and not S.gifted[id] and ((own and worth) or (S.take_others and not own and floor > 0 and rank > floor))
-            if wanted and not own then S.wanted[id] = true end -- if someone grabs it first, Bat thieves goes after it
+            if wanted and not own then S.wanted[id] = true end
             if wanted and (not expires or expires > server_now + 0.5) and os.clock() >= (S.loot_fail[id] or 0) then
                 local d = dist_to(pos)
-                -- [[ one just knocked out of a thief's hands goes first, before they grab it again ]] --
                 if os.clock() - (S.won_back[id] or -100) < 30 then rank = math.huge end
                 if rank > best_rank or (rank == best_rank and d < best_d) then best, best_d, best_rank = m, d, rank end
             end
@@ -1221,7 +1069,7 @@ end
 waiting_rank = function()
     local loot, rank = my_loot()
     local id = loot and loot:GetAttribute("LootId")
-    if id and os.clock() - (S.guarded[id] or -100) < 6 then return -1 end -- a guard is on it: mog meanwhile
+    if id and os.clock() - (S.guarded[id] or -100) < 6 then return -1 end
     return loot and rank or -1
 end
 local function prune_pending()
@@ -1238,10 +1086,6 @@ local function prune_pending()
     end
 end
 
--- [[ The game hides every prompt (ProximityPromptService off) while you fight, mog an egg or lie knocked down     ]] --
--- [[ (its PromptGate), and a hidden prompt can't be taken: that's how pets got skipped while a fight ran in the   ]] --
--- [[ background. There's no "take" remote (the server only listens to the prompt), so taking a pet switches the  ]] --
--- [[ prompts on for the moment it takes, then puts them back the way the game wants them.                        ]] --
 local PromptService = game:GetService("ProximityPromptService")
 local PromptGate = nil
 pcall(function()
@@ -1262,8 +1106,6 @@ local function fire(prompt, try)
         PromptService.Enabled = false
     end
 end
--- [[ the loot's prompt; a pet that just dropped (or one far away that hasn't streamed in) can be missing it for a ]] --
--- [[ moment, so it's waited for instead of skipping the pet                                                      ]] --
 local function loot_prompt(loot, wait_for)
     local t = os.clock()
     repeat
@@ -1275,8 +1117,6 @@ local function loot_prompt(loot, wait_for)
     return nil
 end
 
--- [[ walks up to your pet and takes it (the game's own Take prompt) ]] --
--- [[ the stage guard (boss) standing next to a spot, if any. Its reach grows with its size. ]] --
 local function guard_near(pos)
     local stages = game_folder("Stages")
     for _, st in ipairs(stages and stages:GetChildren() or {}) do
@@ -1298,7 +1138,6 @@ local function take(loot)
     local anchor = prompt and where(prompt.Parent) or where(loot)
     if not (id and anchor) then return false end
     if not prompt then
-        -- [[ no prompt yet: go to the pet first (that streams it in), then give the prompt a second to show up ]] --
         travel(ground(anchor + Vector3.new(0, 0, 3)), anchor)
         prompt = loot_prompt(loot, 1.5)
         if not prompt then
@@ -1309,9 +1148,6 @@ local function take(loot)
         anchor = where(prompt.Parent) or anchor
     end
     wait_body("before taking a pet")
-    -- [[ the guard kicks whoever picks a pet up right next to it (it starts chasing 1.5s after a take). If it's ]] --
-    -- [[ standing on the pet, wait for it to walk off (it goes back to its patrol after laughing), unless the   ]] --
-    -- [[ pet is about to disappear.                                                                            ]] --
     local guard = guard_near(anchor)
     local expires = tonumber(loot:GetAttribute("ExpiresAt"))
     local left = expires and (expires - workspace:GetServerTimeNow()) or 45
@@ -1331,7 +1167,6 @@ local function take(loot)
     S.carry_is_event, S.carry_name, S.carry_id, S.carry_hand = near_titanic_spot(anchor, loot), loot.Name, id, false
     S.carry_rank = pet_rank(loot, anchor)
     local from_other = loot:GetAttribute("OwnerUserId") ~= me.UserId and not S.my_pets[id] and not S.carry_is_event
-    -- [[ a pet just won back from a thief keeps its top rank in your hands too, so nothing makes you drop it ]] --
     if os.clock() - (S.won_back[id] or -100) < 30 then S.carry_rank = math.huge end
     S.carry_income = tonumber(loot:GetAttribute("IncomePerSecond")) or -1
     if S.carry_income >= 0 then hatch_note(id, "income", S.carry_income) end
@@ -1347,19 +1182,17 @@ local function take(loot)
         repeat task.wait(0.05) until carrying() or os.clock() - t > 1
     end
     if not carrying() then
-        -- [[ someone else grabbed it first: no long wait, so batting them and taking it back can go on right away ]] --
         local st = loot.Parent and loot:GetAttribute("LootState")
         S.loot_fail[id] = os.clock() + ((st ~= nil and st ~= "Ground") and 0.5 or 8)
         logf("TAKE", ("couldn't take %s (state %s)"):format(loot.Name, tostring(st or "gone")))
     elseif from_other then
-        S.my_pets[id] = true -- yours now: Bat thieves defends it like your own
+        S.my_pets[id] = true
         S.free_count += 1
         logf("FREE", ("took a %s someone else left on the ground (could make $%s/s on your plot)"):format(loot.Name, short(S.carry_rank)))
     end
     return carrying()
 end
 
--- [[ the safe zone: your plot's spawn if it's inside it, otherwise the middle of the zone ]] --
 local function home_spots()
     local spots = {}
     local plot = game_folder("Plots") and game_folder("Plots"):FindFirstChild(tostring(me:GetAttribute("Plot")))
@@ -1390,7 +1223,6 @@ local function deliver()
             logf("HIT", "hit while bringing the pet home: waiting until the game lets go of you, then trying again")
         end
     end
-    -- [[ knocked loose before reaching home: say so, and the next farm step goes straight back to take it again ]] --
     if not carrying() and S.last_knock_t >= started and S.last_bank_t < started then
         S.status = "Got hit and dropped the pet, going back for it"
         logf("LOST", ("dropped %s on the way home (hit), going back for it"):format(tostring(S.carry_name or "the pet")))
@@ -1403,26 +1235,15 @@ local function deliver()
     return not carrying()
 end
 
--- [[ Gift mode: instead of banking, the pet is carried to Stage 1 and dropped there (the game's own Drop) for ]] --
--- [[ other players to take. Dropped pets are marked as gifts, so the farm never takes them back and Bat       ]] --
--- [[ thieves leaves whoever picks them up alone. Event (Titanic) pets still go home.                          ]] --
 local drop_remote = Remotes:FindFirstChild("Loot") and Remotes.Loot:FindFirstChild("Drop")
--- [[ Carry timeout: banking takes about a second, so a pet held for 6s without reaching home means something ]] --
--- [[ is wrong (usually the server still has you next to the guard). The pet is dropped to break the loop; the ]] --
--- [[ farm picks it up again once the guard has walked off.                                                    ]] --
 track(me:GetAttributeChangedSignal("CarryingLoot"):Connect(function()
     S.carry_since = carrying() and os.clock() or 0
 end))
 go(function()
     while S.alive do
         task.wait(0.25)
-        -- [[ no safe-zone exception: banking takes about a second, so still holding it after 6s means the server ]] --
-        -- [[ never saw you get home (usually it still has you ragdolled next to the guard), even if your screen   ]] --
-        -- [[ shows you at spawn                                                                                    ]] --
         if S.carry_drop and S.farm and drop_remote and carrying() and S.carry_since > 0 and os.clock() - S.carry_since > 6 then
             local id = me:GetAttribute("CarryingLoot")
-            -- [[ the game refuses Drop while you're ragdolled, so it's sent every 0.3s until the pet really leaves ]] --
-            -- [[ your hands (up to 12s), the same as spamming the Drop button                                    ]] --
             local t, tries = os.clock(), 0
             repeat
                 tries += 1
@@ -1467,11 +1288,7 @@ local function gift_pet()
     end
     return true
 end
--- [[ with a gift limit set, only pets earning less than it are given away; better ones (and ones whose  ]] --
--- [[ income isn't known) go home. Limit 0 = give everything away.                                       ]] --
 local function finish_carry()
-    -- [[ a pet you picked up yourself (not the one the farm took): what the farm knows is about another pet, so ]] --
-    -- [[ it's read from the pet itself, never swapped or gifted, just banked                                   ]] --
     local carried = me:GetAttribute("CarryingLoot")
     if carried ~= S.carry_id then
         S.carry_id, S.carry_hand, S.carry_is_event, S.carry_name, S.carry_income, S.carry_rank = carried, true, false, nil, -1, math.huge
@@ -1484,11 +1301,7 @@ local function finish_carry()
             end
         end
     end
-    -- [[ a pet from a higher egg is on the ground: this one is dropped right here (it stays yours on the ground) ]] --
-    -- [[ and the better one is taken and banked first; the farm comes back for this one after                    ]] --
     local better, rank = my_loot()
-    -- [[ only for a pet worth at least 1.5x this one, and at most one swap every 10s, so two pets can never keep ]] --
-    -- [[ swapping places                                                                                        ]] --
     if better and drop_remote and not S.carry_is_event and rank > S.carry_rank * 1.5 and os.clock() - (S.last_carry_swap or -100) > 10 then
         S.last_carry_swap = os.clock()
         local low = tostring(S.carry_name or "the pet")
@@ -1510,7 +1323,6 @@ local function finish_carry()
     end
     return deliver()
 end
--- [[ reads amounts like "50B", "1.5T", "$200M/s", "750000" ]] --
 local function parse_amount(text)
     local SCALE = { [""] = 1, K = 1e3, M = 1e6, B = 1e9, T = 1e12, QA = 1e15, QI = 1e18 }
     local clean = tostring(text):upper()
@@ -1521,13 +1333,10 @@ local function parse_amount(text)
     return n * SCALE[suffix]
 end
 
--- [[ picks up your hatched pets one by one and banks each; goes back for ones that are far away ]] --
 local function collect_once()
     prune_pending()
     if carrying() then finish_carry() return true end
     local loot = my_loot()
-    -- [[ while your event egg hatches, only pets right there are taken: its pet comes out any moment and anyone ]] --
-    -- [[ can take it, so the farm doesn't fly off to bank a normal pet meanwhile                                 ]] --
     local e = S.event_hatch
     if loot and e then
         local lp = where(loot)
@@ -1543,7 +1352,6 @@ local function collect_once()
         return true
     end
     for _, p in ipairs(S.pending) do
-        -- [[ while an event egg is still hatching, don't leave it for a normal pet somewhere else ]] --
         if S.event_hatch and not p.titanic then continue end
         if dist_to(p.pos) > 200 then
             S.status = "Going back for " .. p.name
@@ -1556,12 +1364,8 @@ local function collect_once()
     return false
 end
 
----------------------------------------------------------------- the farm
-
--- [[ goes through your picked stages one by one (highest first) looking for free eggs ]] --
 local function scout()
     local list = picked_stages(true)
-    -- [[ only the highest stage's eggs can make your plot (Leave worthless on): no trips to the lower stages ]] --
     local only = S.only_stage and S.only_stage()
     if only then list = { only } end
     if #list == 0 then return end
@@ -1569,7 +1373,6 @@ local function scout()
     local name = list[S.scout_i]
     local center = stage_center(name)
     if not center then return end
-    -- [[ mogging from the treadmill: load the stage around you instead of flying there (that would get you off) ]] --
     if S.mill_hold and S.mill_hold() then
         S.status = "Loading the eggs in " .. name .. " from the treadmill"
         stream_around(center, 3)
@@ -1584,14 +1387,13 @@ end
 local function go_titanic()
     local t = S.titanic
     if not t or os.clock() > t.until_t then S.titanic = nil return false end
-    -- [[ a Titanic egg in a lower stage hatches a pet that can't make your plot (Leave worthless on): skip it ]] --
     local only = (S.farm_mode == "Treadmill" and S.top_stage and S.top_stage()) or (S.only_stage and S.only_stage())
     if only and tostring(t.zone):match("^Stage%d+$") and t.zone ~= only then
         logf("SKIP", ("Titanic egg in %s skipped: pets from there can't make your plot"):format(t.zone))
         S.titanic = nil
         return false
     end
-    S.resolve_stuck() -- a Titanic fight left open blocks every mog until it's finished
+    S.resolve_stuck()
     for egg in pairs(all_eggs) do
         if egg.Parent and egg:GetAttribute("GiantEgg") == true and egg:GetAttribute("EggState") == "Idle" and (egg:GetPivot().Position - t.pos).Magnitude < 200 then
             local st = stage_of(egg) or egg:GetAttribute("Stage")
@@ -1600,8 +1402,6 @@ local function go_titanic()
                 logf("SKIP", ("Titanic egg in %s skipped: pets from there can't make your plot"):format(tostring(st)))
                 return false
             end
-            -- [[ forced (nothing else may pull the farm away from it), and only forgotten once it's won: a steal ]] --
-            -- [[ that didn't go through tries again while the egg is still free                                    ]] --
             if steal(egg, true) then S.titanic = nil else task.wait(0.3) end
             return true
         end
@@ -1628,17 +1428,12 @@ local function farm_step()
     end
     if busy() then task.wait(0.2) return end
     if S.hop_mode ~= "Off" and S.hop_step and S.hop_step() then return end
-    -- [[ someone ran off with a pet you hatched: bat them so they drop it and take it straight back. This comes ]] --
-    -- [[ before your other pets, since a thief who gets home with it keeps it                                   ]] --
     if S.bat_thieves and not carrying() then
         local thief, loot = find_thief()
         if thief and bat_thief(thief, loot) then return end
     end
     if collect_once() then return end
-    -- [[ admin abuse (a spawned treadmill, or a big speed boost): train while it lasts. A Titanic or your event ]] --
-    -- [[ egg hatching still comes first                                                                         ]] --
     if admin_step and not S.titanic and not S.event_hatch and admin_step() then return end
-    -- [[ an event egg of yours is hatching: wait right there, take its pet first, bank it, then carry on ]] --
     local e = S.event_hatch
     if e then
         if os.clock() > e.until_t then
@@ -1651,8 +1446,6 @@ local function farm_step()
         end
     end
     if S.titanic and (S.always_events or S.stages.Events or any_stage()) and go_titanic() then return end
-    -- [[ Auto rejoin is due: no new normal eggs. Everything still hatching or on the ground is taken and banked ]] --
-    -- [[ above, rare eggs (events) are still taken here, and then the rejoin goes                                ]] --
     if S.rejoin_due then
         local ev = S.rare_egg and S.rare_egg()
         if ev then
@@ -1664,13 +1457,6 @@ local function farm_step()
         task.wait(0.3)
         return
     end
-    -- [[ Speed first: rebirths turn speed into money (+0.5x each), and the treadmill only pays while you stand on ]] --
-    -- [[ it (one step every 0.3s, set by the server). So the farm trains, and only leaves the treadmill for what's ]] --
-    -- [[ worth more: event eggs, good pets on the ground, thieves with your good pets, and Luck / Mutation boost   ]] --
-    -- [[ windows (it mogs those). Pets still hatching from before are collected first.                             ]] --
-    -- [[ With Mog from the treadmill working, it doesn't have to choose: it stands on the treadmill and farms from ]] --
-    -- [[ there (speed keeps coming in). Only a pet worth taking makes it get off (picking up is checked up close); ]] --
-    -- [[ it banks it and gets right back on. Treadmill farm only takes event eggs in the top stage.                ]] --
     local treadmill_farm = S.farm_mode == "Treadmill"
     local boosted = S.boost_now and S.boost_now()
     if (S.speed_first or treadmill_farm) and not S.event_hatch then
@@ -1681,7 +1467,6 @@ local function farm_step()
             steal(ev)
             return
         end
-        -- [[ (boost windows too: it mogs all out, from the treadmill) ]] --
         if S.mill_mog and not treadmill_farm then
             local root = root_part()
             if not S.on_treadmill() then
@@ -1691,14 +1476,11 @@ local function farm_step()
                     return
                 end
             elseif root and not root.Anchored then
-                task.wait(0.2) -- the treadmill holds you (anchors you) a moment after you step on
+                task.wait(0.2)
                 return
             end
-            -- [[ on the treadmill: carry on with the normal farm below, mogging from here ]] --
         elseif boosted and not treadmill_farm then
-            -- [[ a boost window without Mog from the treadmill: mog all out (the normal farm below) ]] --
         elseif not carrying() then
-            -- [[ pets still hatching don't hold this up: a good one stops the training as soon as it's on the ground ]] --
             train_for(10, function()
                 return not (S.farm and (S.speed_first or S.farm_mode == "Treadmill")) or S.titanic ~= nil
                     or (S.boost_now and S.boost_now() ~= nil and S.farm_mode ~= "Treadmill")
@@ -1715,7 +1497,6 @@ local function farm_step()
         return
     end
     local hatching = #S.hatching + S.fights
-    -- [[ 12 eggs already hatching, but a free egg beats every one of them: that one is taken anyway ]] --
     if hatching >= MAX_HATCHING and S.pick ~= "Nearest" then
         local top = pick_egg()
         local best_hatching = -1
@@ -1728,9 +1509,6 @@ local function farm_step()
             return
         end
     end
-    -- [[ every 90s, a quick look at the stages above the ones you picked: their eggs are higher, and free_eggs ]] --
-    -- [[ takes them once they're loaded in                                                                      ]] --
-    -- [[ (not with Leave worthless pets on: then only the top stage's eggs count, and higher ones are taken anyway) ]] --
     if hatching < MAX_HATCHING and S.pick ~= "Nearest" and not any_stage() and not carrying() and os.clock() - S.last_peek > 90
         and not (S.mill_hold and S.mill_hold()) and not (S.only_stage and S.only_stage()) then
         S.last_peek = os.clock()
@@ -1756,7 +1534,6 @@ local function farm_step()
         end
     end
     if hatching < MAX_HATCHING then
-        -- [[ on Any stage it goes back to where it last stole, instead of whatever is loaded near the safe zone ]] --
         if any_stage() and S.last_spot and dist_to(S.last_spot) > 600 and not (S.mill_hold and S.mill_hold()) then
             S.status = "Heading back to the eggs"
             travel(ground(S.last_spot + Vector3.new(0, 0, 12)), S.last_spot)
@@ -1771,7 +1548,6 @@ local function farm_step()
         end
         if not events_only() then
             S.empty_runs += 1
-            -- [[ looked through every picked stage and every egg is taken: train until they respawn ]] --
             if S.treadmill and hatching == 0 and S.empty_runs > math.max(2, #picked_stages(true)) and not (S.boost_now and S.boost_now()) then
                 S.empty_runs = 0
                 train_for(20, function()
@@ -1795,7 +1571,6 @@ end
 local equip_remote = Remotes:FindFirstChild("Pets") and Remotes.Pets:FindFirstChild("EquipBest")
 local function maybe_equip()
     if not S.equip_best then return end
-    -- [[ Grow babies (further down) handles a full plot itself; the game's Equip Best would take the babies off ]] --
     if S.grow_step then
         local ok, full = pcall(S.grow_step)
         if not ok then
@@ -1812,9 +1587,6 @@ local function maybe_equip()
     task.spawn(function() pcall(function() equip_remote:InvokeServer() end) end)
 end
 
--- [[ Auto mutate: whenever you own 3 of the same pet (not mutated yet), they go in the Mutate Machine (Mutate.Fuse). ]] --
--- [[ It picks like the game's own Auto Fill: your heaviest one (the one you keep, now Golden or Diamond) plus the  ]] --
--- [[ two lightest. The machine allows one fuse a second; this does one every 2 seconds at most.                   ]] --
 local function find_module(path)
     local m = RS
     for _, name in ipairs(path) do m = m and m:FindFirstChild(name) end
@@ -1847,7 +1619,6 @@ local function fuse_pick()
     local recs = { pick_list[1], pick_list[#pick_list], pick_list[#pick_list - 1] }
     return pick_name, { recs[1].Id, recs[2].Id, recs[3].Id }, recs
 end
--- [[ pets standing on your plot (equipped) have a Placed spot in your data; the machine needs them off first ]] --
 local unequip_remote = Remotes:FindFirstChild("Pets") and Remotes.Pets:FindFirstChild("Unequip")
 local function maybe_mutate()
     if not (S.auto_mutate and fuse_remote) or S.fusing or os.clock() - S.last_fuse < 2 then return end
@@ -1855,7 +1626,6 @@ local function maybe_mutate()
     if not name then return end
     S.fusing, S.last_fuse = true, os.clock()
     go(function()
-        -- [[ any of the 3 standing on your plot is taken off first (the game's own Unequip), then put back after ]] --
         local placed = 0
         for _, rec in ipairs(recs) do
             if is_placed(rec) and unequip_remote then
@@ -1870,11 +1640,9 @@ local function maybe_mutate()
         end
         local ok, answer = pcall(function() return fuse_remote:InvokeServer(ids) end)
         if placed > 0 and S.grow_babies and S.grow_step then
-            -- [[ Grow babies fills the plot itself (the game's Equip Best would take its babies off again) ]] --
             S.need_equip, S.last_grow = true, 0
             logf("MUTATE", "your plot gets refilled by Grow babies")
         elseif placed > 0 and equip_remote then
-            -- [[ puts your best pets (now including the mutated one) back on your plot ]] --
             task.wait(1)
             for _ = 1, 4 do
                 local okE, res = pcall(function() return equip_remote:InvokeServer() end)
@@ -1898,9 +1666,6 @@ local function maybe_mutate()
     end)
 end
 
--- [[ Auto treadmill. The probe showed the server only gives speed while you really stand on your treadmill    ]] --
--- [[ (not from far away, not faster by spamming, and it stops the moment you step off), about 40M speed a     ]] --
--- [[ second. So this stands you on it: all the time when the farm is off, and while the farm has nothing to do. ]] --
 local TreadmillUtil = load_module({ "Shared", "Utilities", "TreadmillUtil" })
 local okT, TreadmillCtl = pcall(require, Controllers:WaitForChild("TreadmillController", 5))
 if not (okT and type(TreadmillCtl) == "table") then TreadmillCtl = nil end
@@ -1910,7 +1675,6 @@ local function on_treadmill()
     return ok and active == true
 end
 S.on_treadmill = on_treadmill
--- [[ on the treadmill and held by it (anchored), with Mog from the treadmill on: moves now stay on your screen ]] --
 S.mill_hold = function()
     local root = root_part()
     return S.mill_mog and root ~= nil and root.Anchored and on_treadmill()
@@ -1930,7 +1694,6 @@ local function treadmill_stand()
     end
     return spot.CFrame * CFrame.new(0, deck + hum.HipHeight + root.Size.Y / 2, 1)
 end
--- [[ gets off the way you would: a Space press (the game then stops training and frees you) ]] --
 local function dismount()
     S.on_mill = false
     if not on_treadmill() then return end
@@ -1951,20 +1714,18 @@ local function dismount()
     end
 end
 before_travel = function()
-    -- [[ Mog from the treadmill: stay on it (anchored) while the farm goes to mog an egg ]] --
     if S.keep_mill then
         local root = root_part()
         if root and root.Anchored then return end
     end
     if S.on_mill or on_treadmill() then dismount() end
 end
--- [[ goes to your base and steps on; the game starts training by itself once you're on it ]] --
 mount = function()
     if on_treadmill() then S.on_mill = true return true end
     if carrying() or busy() or down() then return false end
     local plot = game_folder("Plots") and game_folder("Plots"):FindFirstChild(tostring(me:GetAttribute("Plot")))
     if not (plot and plot:FindFirstChild("TreadmillSpot")) then
-        travel(S.safe_center or SAFE_FALLBACK) -- your base loads in, then the treadmill can be found
+        travel(S.safe_center or SAFE_FALLBACK)
         task.wait(0.5)
     end
     local stand = treadmill_stand()
@@ -1978,19 +1739,11 @@ mount = function()
     logf("TREADMILL", on_treadmill() and "got on, training" or "stood on it but the game didn't start training")
     return true
 end
--- [[ Admin abuse. Watched all the time:                                                                        ]] --
--- [[  * a treadmill spawned outside the plots (a "4x / 10x treadmill"): the farm stands on it and trains there   ]] --
--- [[    while the server sends speed steps; if none come in 6s it's logged and left                              ]] --
--- [[  * your speed multiplier jumping 3x or more within a minute (a server-wide boost): the farm trains on your   ]] --
--- [[    own treadmill while it lasts (30 min at most)                                                            ]] --
--- [[ Pets on the ground, thieves and event / admin eggs still come first. Anything new that spawns in the map is ]] --
--- [[ written to the log (SPAWNED lines), so the exact setup can be added after the first time it happens.        ]] --
 do
     local step_remote = Remotes:FindFirstChild("Treadmill") and Remotes.Treadmill:FindFirstChild("Step")
     if step_remote and step_remote:IsA("RemoteEvent") then
         track(step_remote.OnClientEvent:Connect(function(...)
             S.last_step_t = os.clock()
-            -- [[ how much speed a step gives (for the speed / rebirth estimate in the Speed tab) ]] --
             for _, v in ipairs({ ... }) do
                 local n = tonumber(v) or (type(v) == "table" and tonumber(v.Gain or v.Amount or v.Speed or v.Step))
                 if n and n > 0 then
@@ -2009,8 +1762,6 @@ do
     local function spawned(d)
         if not d.Parent or not (d:IsA("Model") or d:IsA("BasePart") or d:IsA("Folder")) or Players:GetPlayerFromCharacter(d) then return end
         local plots = game_folder("Plots")
-        -- [[ only whole treadmill models; the game's own deck / spot / runner parts (it adds a TreadmillDeck to the ]] --
-        -- [[ map each time you step on your own treadmill) and ones already tried are ignored                      ]] --
         if d:IsA("Model") and d.Name:lower():find("treadmill") and not GAME_MILL_PARTS[d.Name] and not (plots and d:IsDescendantOf(plots))
             and not S.mill_tried[d] then
             local pos = where(d)
@@ -2057,7 +1808,6 @@ admin_step = function()
             end)
             travel(ok and (cf.Position + Vector3.new(0, size.Y / 2 + 3, 0)) or (pos + Vector3.new(0, 5, 0)))
         end
-        -- [[ (also when you were already standing next to it: a dead treadmill is left after 6s either way) ]] --
         m.arrived = m.arrived or os.clock()
         if train_remote and os.clock() - S.last_step_t > 1.5 then pcall(function() train_remote:FireServer(true) end) end
         if m.arrived and os.clock() - m.arrived > 6 and os.clock() - S.last_step_t > 6 then
@@ -2070,7 +1820,6 @@ admin_step = function()
         task.wait(0.5)
         return true
     end
-    -- [[ a server-wide speed boost: the multiplier is compared with what it was about a minute ago ]] --
     local mult = tonumber(me:GetAttribute("SpeedMultiplier")) or 0
     if mult <= 0 then return false end
     if S.base_mult <= 0 or (not S.boosted and os.clock() - S.mult_t > 60) then S.base_mult, S.mult_t = mult, os.clock() end
@@ -2091,8 +1840,6 @@ admin_step = function()
     return false
 end
 train_for = function(seconds, stop_if, text)
-    -- [[ a reason to stop that's already true (a Titanic it can't go for, a thief it won't bat) mustn't make the ]] --
-    -- [[ farm spin every frame without training: it waits a moment and the farm decides again                    ]] --
     if stop_if and stop_if() then
         task.wait(0.25)
         return
@@ -2108,11 +1855,6 @@ train_for = function(seconds, stop_if, text)
     end
 end
 
--- [[ Walk around while training: the server only gives treadmill speed while your real character stands on it  ]] --
--- [[ (tested: 60 studs away = nothing), so your body stays on the treadmill and you walk around as a ghost copy ]] --
--- [[ only you can see; the camera follows it (WASD, Space to jump). The ghost can look around but can't mog,    ]] --
--- [[ take or bank anything. The game takes you off the treadmill on any jump (UserInputService.JumpRequest), so ]] --
--- [[ that's paused while the ghost is out. It ends by itself if your body leaves the treadmill.                ]] --
 do
     local ghost, render, paused_jump = nil, nil, {}
     local function pause_jump_exit()
@@ -2133,7 +1875,6 @@ do
         if hum then pcall(function() workspace.CurrentCamera.CameraSubject = hum end) end
         if why then logf("TREADMILL", "walking around ended: " .. tostring(why)) end
     end
-    -- [[ the on-screen joystick (phones and tablets): the game's own PlayerModule move vector, x = right, z = back ]] --
     S.stick = function()
         local ok, v = pcall(function()
             local pm: any = me:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule")
@@ -2166,7 +1907,7 @@ do
         ghum.WalkSpeed, ghum.UseJumpPower, ghum.JumpPower, ghum.AutoRotate, ghum.PlatformStand = 40, true, 50, true, false
         ghum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
         g.Parent = workspace
-        groot.CFrame = char:GetPivot() * CFrame.new(0, 2, -5) -- just in front of the treadmill
+        groot.CFrame = char:GetPivot() * CFrame.new(0, 2, -5)
         ghost = g
         local walk = nil
         pcall(function()
@@ -2201,17 +1942,14 @@ do
             if walk then
                 if dir.Magnitude > 0 and not walk.IsPlaying then walk:Play() elseif dir.Magnitude == 0 and walk.IsPlaying then walk:Stop() end
             end
-            -- [[ fell off the map: back to where it started ]] --
             if groot.Position.Y < -60 then
                 groot.CFrame = CFrame.new(home)
                 groot.AssemblyLinearVelocity = Vector3.zero
             end
             if os.clock() - check_t > 1 then
                 check_t = os.clock()
-                -- [[ the map loads around your body; this loads it around the ghost too, so it has a floor ]] --
                 local at = groot.Position
                 task.spawn(function() pcall(function() me:RequestStreamAroundAsync(at, 2) end) end)
-                -- [[ stepping back on the treadmill reconnects its jump exit: keep it paused ]] --
                 pause_jump_exit()
                 if on_treadmill() then off_since = nil else off_since = off_since or os.clock() end
                 if off_since and os.clock() - off_since > 4 then task.defer(S.ghost_off, "your character left the treadmill") end
@@ -2221,8 +1959,6 @@ do
     end
 end
 
--- [[ Movement, for moving around yourself: Fly (WASD where the camera looks, Space up, Ctrl or Q down) and a   ]] --
--- [[ fixed walk speed. Both pause while Auto farm runs (it moves you itself) or you're on the treadmill.       ]] --
 do
     local fly_conn, att, lv, ao = nil, nil, nil, nil
     local function fly_parts_off()
@@ -2301,11 +2037,6 @@ do
     end
 end
 
----------------------------------------------------------------- protection: no ragdoll, and bat whoever takes your pet
-
--- [[ When a bot (or anyone) bats you, the server sets FlingAt / Ragdolled on your character and swaps your     ]] --
--- [[ joints for loose ones. Your game runs your body, so this undoes it right away: joints back, standing,     ]] --
--- [[ no fling speed. (Being hit while carrying still makes the server drop the pet; the farm then re-takes it.) ]] --
 local function unragdoll(char)
     local hum = char:FindFirstChildOfClass("Humanoid")
     local root = char:FindFirstChild("HumanoidRootPart")
@@ -2327,7 +2058,7 @@ local function unragdoll(char)
     hum:ChangeState(Enum.HumanoidStateType.GettingUp)
     root.Massless = false
     root.AssemblyLinearVelocity = Vector3.zero
-    char:SetAttribute("Ragdolled", nil) -- only on your side, so the game lets you mog again right away
+    char:SetAttribute("Ragdolled", nil)
 end
 local function guard_character(char)
     track(char:GetAttributeChangedSignal("Ragdolled"):Connect(function()
@@ -2371,7 +2102,6 @@ track(me.CharacterAdded:Connect(function(char)
     guard_character(char)
     task.spawn(watch_life, char)
 end))
--- [[ the knockback the game plays on your side when you're hit while carrying ]] --
 local paused_knock = {}
 do
     local knocked = Remotes:FindFirstChild("Loot") and Remotes.Loot:FindFirstChild("Knocked")
@@ -2391,13 +2121,7 @@ do
     end
 end
 
--- [[ Bat thieves: if a bot or player runs off with a pet you hatched, you jump behind them and hit them with  ]] --
--- [[ your bat until they drop it (not inside the safe zone, the game doesn't allow hits there). The farm then  ]] --
--- [[ picks the pet back up and banks it.                                                                       ]] --
 local swing_remote = Remotes:FindFirstChild("Weapon") and Remotes.Weapon:FindFirstChild("Swing")
--- [[ Only pets worth having are chased (same keep bar as the ground: could it make your plot as an Ancient      ]] --
--- [[ Diamond?): yours, and good ones others dropped that the farm was going for (but not from their own owner). ]] --
--- [[ Someone running off with your trash is left alone.                                                       ]] --
 find_thief = function()
     local folder = loot_folder()
     local floor = (S.skip_junk and not S.gift and S.keep_floor) and S.keep_floor() or 0
@@ -2424,7 +2148,6 @@ find_thief = function()
                         end
                     end
                 end
-                -- [[ a player picking up their own pet isn't a thief ]] --
                 local who = best and Players:GetPlayerFromCharacter(best)
                 if best and not (not mine and who and m:GetAttribute("OwnerUserId") == who.UserId) then return best, m end
             end
@@ -2453,7 +2176,6 @@ bat_thief = function(thief, loot)
     local r = thief:FindFirstChild("HumanoidRootPart")
     if not r then return false end
     if SafeZoneUtil and SafeZoneUtil.ContainsPosition(r.Position) then return false end
-    -- [[ on the treadmill you're anchored: moves don't reach the server, so every swing would miss from back there ]] --
     if on_treadmill() then
         if S.ghost_off then S.ghost_off("going after a thief") end
         dismount()
@@ -2463,10 +2185,7 @@ bat_thief = function(thief, loot)
     logf("THIEF", ("%s took your %s, batting them"):format(thief.Name, loot.Name))
     local id = loot:GetAttribute("LootId")
     hatch_note(id, "outcome", "taken by " .. thief.Name .. " (being won back)")
-    if id then S.won_back[id] = os.clock() end -- whenever it drops, it's the first pet taken
-    -- [[ stuck to them: every frame you're right behind the thief, moving with them and facing the way they run, ]] --
-    -- [[ so they're always inside the bat's hitbox (a 6 x 7.5 stud box in front of you, WeaponConfig). The bat is ]] --
-    -- [[ swung on its cooldown (0.8s) until the pet drops.                                                        ]] --
+    if id then S.won_back[id] = os.clock() end
     local function stick()
         local tr = thief:FindFirstChild("HumanoidRootPart")
         local root = root_part()
@@ -2481,7 +2200,6 @@ bat_thief = function(thief, loot)
         root.AssemblyLinearVelocity = Vector3.new(vel.X, 0, vel.Z)
         root.AssemblyAngularVelocity = Vector3.zero
     end
-    -- [[ whoever is holding your pet right now (the one carrying it can change) ]] --
     local function holder()
         local pos = where(loot)
         local best, best_d = nil, 18
@@ -2493,7 +2211,6 @@ bat_thief = function(thief, loot)
         end
         return best
     end
-    -- [[ the follow lives on S, so a farm restart (or Unload) mid-chase lets go of the thief too ]] --
     local function start_follow()
         if S.thief_follow then S.thief_follow:Disconnect() end
         S.thief_follow = RunService.Heartbeat:Connect(stick)
@@ -2505,7 +2222,6 @@ bat_thief = function(thief, loot)
     local t0, next_swing, next_check = os.clock(), 0, os.clock() + 1
     while S.alive and os.clock() - t0 < 20 do
         if not loot.Parent then break end
-        -- [[ knocked out of their hands: take it back right here, before they (or anyone) grab it again, and bank it ]] --
         if loot:GetAttribute("LootState") == "Ground" then
             stop_follow()
             if id then S.won_back[id], S.loot_fail[id] = os.clock(), nil end
@@ -2516,7 +2232,6 @@ bat_thief = function(thief, loot)
                 return true
             end
             if loot:GetAttribute("LootState") == "Ground" or not loot.Parent then break end
-            -- [[ someone grabbed it again first: back on them ]] --
             thief = holder() or thief
             start_follow()
         end
@@ -2541,11 +2256,6 @@ bat_thief = function(thief, loot)
     return true
 end
 
----------------------------------------------------------------- pets advisor
-
--- [[ Uses the game's own income math (PetEarningUtil) on your pets: which are your best, which are worth      ]] --
--- [[ mutating, which to keep collecting, and which stay useless even if mutated (sell those later). Your plot ]] --
--- [[ holds MaxAnimals pets, so a pet only matters if it can beat the weakest one that would be on it.          ]] --
 local PetEarningUtil = load_module({ "Shared", "Utilities", "PetEarningUtil" })
 local function income_of(p)
     if not PetEarningUtil then return 0 end
@@ -2616,14 +2326,6 @@ local function pet_report()
     return { list = list, slots = slots, cut = cut, mutate = mutate, collect = collect, sell = sell, best_stage = best_stage, best_top = best_top }
 end
 
--- [[ Auto sell (OFF until you turn it on). A pet is only ever sold when ALL of these hold:                       ]] --
--- [[  * it's in your backpack, not on your plot (and not in your hand), and not locked / favourited             ]] --
--- [[  * your plot is full, so it really has no spot                                                             ]] --
--- [[  * it isn't one of your best (plot size + 10) pets                                                         ]] --
--- [[  * the advisor says it can't beat your weakest plot pet even after the best mutation                       ]] --
--- [[  * and: it earns 100x less than your weakest plot pet (the "way cheaper" rule, 20x / 100x / 1000x to pick),  ]] --
--- [[    OR it has sat unused for 24 hours and earns less than every pet on your plot                             ]] --
--- [[ Uses the game's own Sell (60s of the pet's income). Every sale is written to the log (SELL lines).          ]] --
 do
     local SEEN_FILE = "MogHub_PetSeen.json"
     local DAY = 24 * 3600
@@ -2673,7 +2375,6 @@ do
         local rank = {}
         for i, x in ipairs(report.list) do rank[x] = i end
         local keep_top = report.slots + 10
-        -- [[ a pet that will out-earn your weakest plot pet once both are Ancient is never sold ]] --
         local weakest_top = math.huge
         if S.ancient_of then
             for _, x in ipairs(report.list) do
@@ -2686,9 +2387,6 @@ do
             local r = x.rec
             local id = r.Id and tostring(r.Id)
             local seen = id and S.pet_seen[id]
-            -- [[ never sold: your top pets, anything placed, locked or favourited, Titanic pets, a pet whose income ]] --
-            -- [[ couldn't be read (0 or unknown), and one that could still make your plot once it's Ancient with   ]] --
-            -- [[ the best mutation (the keep bar the farm uses on the ground)                                       ]] --
             local value = S.rec_value and S.rec_value(r) or nil
             local safe = (rank[x] or 0) <= keep_top or is_placed(r) or r.Locked == true or r.Favorite == true or r.Favorited == true
                 or tostring(r.Tier or r.SizeTier or "") == "Titanic"
@@ -2707,9 +2405,6 @@ do
                 table.insert(plan, { key = keys[id], id = r.Id, name = tostring(r.Name), mutation = r.Mutation, income = x.now, why = why })
             end
         end
-        -- [[ Sell what can never make your plot: the same rule as pets on the ground. A backpack pet that couldn't  ]] --
-        -- [[ beat your weakest plot pet even as an Ancient Diamond is sold. Kept anyway: anything on your plot or in ]] --
-        -- [[ your hand, locked / favourited pets, and Titanic pets (the farm always takes those).                    ]] --
         if S.sell_floor and floor > 0 and S.rec_value then
             local listed = {}
             for _, p in ipairs(plan) do listed[tostring(p.id)] = true end
@@ -2765,16 +2460,6 @@ do
     end)
 end
 
----------------------------------------------------------------- grow babies
-
--- [[ Pets earn more as they age (PetAgeConfig: Baby 1x, Kid 1.5x, Teen 2.25x, Adult 3.4x, Elder 5.1x, Ancient    ]] --
--- [[ 7.6x after 31h placed), but only while they're placed, and the game's Equip Best ranks by what they earn     ]] --
--- [[ now, so a baby never gets a spot on a full plot. With Grow babies on (and Equip best on), a full plot is      ]] --
--- [[ ranked by what each pet will earn as Ancient instead: the best one in your backpack takes the spot of your  ]] --
--- [[ weakest plot pet when, counting both pets' ages, it has earned more in total within your payback time.      ]] --
--- [[ The game wants you holding the pet and at most 45 studs away, so the swap is done in person: the weak one   ]] --
--- [[ is unequipped and the new one placed on the same spot (the weak one goes back if that fails). Favourited or ]] --
--- [[ locked plot pets are never taken off. With the farm off it only swaps when you're already near the spot.    ]] --
 do
     local AgeConfig = load_module({ "Shared", "Configs", "PetAgeConfig" })
     local STAGES = AgeConfig and type(AgeConfig.Stages) == "table" and #AgeConfig.Stages > 0 and AgeConfig.Stages or nil
@@ -2789,20 +2474,17 @@ do
                 if st.Name == v then return i end
             end
         end
-        return 1 -- never placed yet: a baby
+        return 1
     end
-    -- [[ seconds of growth so far: what was saved, plus the time placed since this server started counting ]] --
     local function age_now(rec)
         local age = tonumber(rec.AgeSeconds) or 0
         local since = tonumber(rec.AgingSince)
         if since and is_placed(rec) then age += math.max(0, workspace:GetServerTimeNow() - since) end
         return age
     end
-    -- [[ what a pet will earn a second as Ancient: the game's income for it includes its age, so that's taken out ]] --
     local function ancient_income(rec)
         return income_of(rec) / (tonumber(STAGES[stage_index(rec)].Cash) or 1) * TOP
     end
-    -- [[ what a placed pet earns over the next `secs`, starting `age` seconds into its growth ]] --
     local function earn(top, age, secs)
         local total, start, stop = 0, 0, age + secs
         for _, st in ipairs(STAGES) do
@@ -2814,7 +2496,6 @@ do
         end
         return total
     end
-    -- [[ hours until the new pet has earned more than the one it replaces would have (nil: not within 2 weeks) ]] --
     local function payback(new, old)
         for h = 1, 24 * 14 do
             if earn(new.top, new.age, h * 3600) >= earn(old.top, old.age, h * 3600) then return h end
@@ -2848,7 +2529,6 @@ do
         end
         return nil
     end
-    -- [[ the game's own Place: the pet has to be in your hand ]] --
     local function place_pet(id, pos, yaw)
         local tool = pet_tool(id)
         local hum = me.Character and me.Character:FindFirstChildOfClass("Humanoid")
@@ -2915,9 +2595,6 @@ do
         end
         return false
     end
-    -- [[ What a pet lying on the ground could be worth to you: its income without its age bonus, as Ancient, with ]] --
-    -- [[ the best mutation it could still get (Diamond 6x; a Golden one can still become Diamond). It's the same    ]] --
-    -- [[ yardstick as auto sell's "useless even if mutated", so the farm stops carrying home what gets deleted.     ]] --
     local MutCfg = load_module({ "Shared", "Configs", "MutationConfig" })
     local MUT, BEST_MUT = {}, 1
     for _, m in pairs(MutCfg and type(MutCfg.Mutations) == "table" and MutCfg.Mutations or {}) do
@@ -2935,7 +2612,6 @@ do
         return S.value_of_income(m:GetAttribute("IncomePerSecond"), m:GetAttribute("Mutation"), m:GetAttribute("Age"))
     end
     S.rec_value = function(rec) return S.value_of_income(income_of(rec), rec.Mutation, rec.AgeStage) end
-    -- [[ a pet's age from its growth seconds: "Elder, Ancient in 6h 12m" (name_only: just "Elder") ]] --
     S.age_info = function(rec, name_only)
         if not STAGES then return "?" end
         local age, start = age_now(rec), 0
@@ -2951,7 +2627,6 @@ do
         end
         return tostring(STAGES[#STAGES].Name)
     end
-    -- [[ the bar a pet has to clear: your weakest plot pet as Ancient. 0 while your plot isn't full (take everything) ]] --
     local floor_v, floor_t = 0, -100
     S.keep_floor = function()
         if os.clock() - floor_t < 15 then return floor_v end
@@ -2971,8 +2646,6 @@ do
         if n >= slots and low < math.huge then floor_v = low end
         return floor_v
     end
-    -- [[ boost windows: Golden / Diamond weather (3x that mutation, 5 minutes every 45) and admin Luck / Mutation ]] --
-    -- [[ boosts (2-10x, every server). Every egg mogged then is worth more, so no treadmill or hopping meanwhile.  ]] --
     local EventUtil = load_module({ "Shared", "Utilities", "EventUtil" })
     local AdminBoostUtil = load_module({ "Shared", "Utilities", "AdminBoostUtil" })
     local boost_v, boost_t, boost_last = nil, -100, nil
@@ -3007,11 +2680,7 @@ do
         boost_v = text
         return text
     end
-    -- [[ eggs worth mogging: with Leave worthless on and a full plot, only the highest stage's eggs can hatch a pet ]] --
-    -- [[ for your plot (each stage down earns about 10x less), so lower-stage eggs, and Titanic eggs down there,    ]] --
-    -- [[ are skipped. Eggs the game doesn't normally have (admin / new events) are always taken: unknown pets.      ]] --
     local top_stage, top_t = nil, -100
-    -- [[ the highest stage in the map (new stages count by themselves) ]] --
     S.top_stage = function()
         if os.clock() - top_t > 10 then
             top_t, top_stage = os.clock(), nil
@@ -3033,7 +2702,6 @@ do
         if not only or is_special(egg) then return true end
         return (stage_of(egg) or tostring(egg:GetAttribute("Stage"))) == only
     end
-    -- [[ returns true when your plot is full (so the game's Equip Best isn't used) ]] --
     S.grow_step = function()
         if not (S.grow_babies and STAGES and TOP and PlayerData and place_remote and unequip_remote) then return false end
         if os.clock() - S.last_grow < 20 and not S.need_equip then return S.grow_full end
@@ -3088,8 +2756,6 @@ do
     end
 end
 
----------------------------------------------------------------- the game's menus and the admin bar
-
 local UIController = load_module({ "UI", "Controller" })
 local AdminUtil = load_module({ "Shared", "Utilities", "AdminUtil" })
 local getupvalues = exec("getupvalues")
@@ -3122,7 +2788,6 @@ local function menu_names()
     table.sort(list)
     return list
 end
--- [[ the menu's own window: what the game registered for it, or a frame with its name ]] --
 local function menu_parts(name)
     local parts = {}
     local e = S.menu_entries[name]
@@ -3162,7 +2827,6 @@ local function open_menu(name)
         if sg then sg.Enabled = true end
     end
 end
--- [[ closes a menu: first the game's own way, then forced (hidden on your screen) for ones that won't close ]] --
 local function close_menu(name)
     if UIController then pcall(UIController.Hide, name) end
     for _, inst in ipairs(menu_parts(name)) do
@@ -3203,10 +2867,7 @@ local function open_admin_bar()
     pcall(function() bar:Toggle() end)
 end
 
----------------------------------------------------------------- what's going on (for the log)
-
 local function at(pos) return pos and ("%d, %d, %d"):format(pos.X, pos.Y, pos.Z) or "?" end
--- [[ every reason you could be standing still, checked right now ]] --
 local function why_here()
     local char = me.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -3257,7 +2918,6 @@ local function save_log()
     S.log_dirty = false
     return pcall(function() writefile("MogHub_Log.txt", log_report()) end)
 end
--- [[ the hatch book as text: every pet with everything the game told us about it (unknown fields included) ]] --
 local function pet_line(p)
     local known = { Name = true, Rarity = true, Weight = true, Luck = true, Size = true, Mutation = true, Stage = true, Zone = true,
         Id = true, HatchedAt = true, Titanic = true }
@@ -3293,7 +2953,6 @@ local function hatched_report()
             r.income and ("$" .. short(r.income) .. "/s") or "income ?", r.outcome, egg, now, why))
         local k = tostring(r.pet.Rarity)
         by_rarity[k] = (by_rarity[k] or 0) + 1
-        -- [[ egg size groups, to see whether bigger eggs give better or bigger pets ]] --
         local sc = r.egg and tonumber(r.egg.scale)
         if sc then
             local label = sc < 0.6 and "0.50-0.60" or sc < 0.7 and "0.60-0.70" or sc < 0.8 and "0.70-0.80" or sc < 0.9 and "0.80-0.90" or "0.90+"
@@ -3339,21 +2998,17 @@ local function hatched_report()
     end
     return table.concat(lines, "\n")
 end
--- [[ (an empty session, like a fresh server after a hop, doesn't overwrite the book; every hatch is also kept for ]] --
--- [[ good in MogHub_EggBook.csv)                                                                                  ]] --
 local function save_hatched()
     if typeof(writefile) ~= "function" or #S.hatched == 0 then return false end
     S.hatch_dirty = false
     return pcall(function() writefile(S.hatch_file, hatched_report()) end)
 end
--- [[ the stuck check: farm ON but you haven't moved 3 studs in 45 seconds -> write down every reason ]] --
 go(function()
     local last_pos, still_since, reported = nil, nil, false
     while S.alive do
         task.wait(5)
         local root = root_part()
         local pos = root and root.Position
-        -- [[ (standing still on the treadmill is training, not being stuck) ]] --
         if S.farm and pos and not on_treadmill() then
             if last_pos and (pos - last_pos).Magnitude < 3 then
                 still_since = still_since or os.clock()
@@ -3370,7 +3025,6 @@ go(function()
         last_pos = pos
     end
 end)
--- [[ saved to the executor's workspace folder every minute, so it survives a crash or a disconnect ]] --
 go(function()
     while S.alive do
         task.wait(60)
@@ -3378,21 +3032,13 @@ go(function()
         if S.hatch_dirty then save_hatched() end
     end
 end)
--- [[ Auto reconnect (Mog to Steal an Egg only): once you're really disconnected, it tries every 4 seconds until ]] --
--- [[ you're back, and the helper loads itself again there from mog_helper.lua in the executor's workspace       ]] --
--- [[ folder; your saved settings turn the farm back on. The farm pauses while you're out. Each try:              ]] --
--- [[  * presses Roblox's own Reconnect button: the only way back into a private server (a script can't join one  ]] --
--- [[    by its server id). It switches between firing the button's click and a real mouse click on it.           ]] --
--- [[  * on a public server, every 3rd try teleports you to the same server directly instead                      ]] --
--- [[  * same server gone or full, or still out after 10 minutes: any server of the game                          ]] --
--- [[ Other teleports in this game (its own idle rejoin, Roblox's Reconnect button) take the helper along too.    ]] --
 do
     local MOG_PLACE, SELF_FILE = 77922212238973, "mog_helper.lua"
     local TeleportService = game:GetService("TeleportService")
     local GuiService: any = game:GetService("GuiService")
     local queue_tp = exec("queue_on_teleport") or exec("queueonteleport")
     local clear_tp = exec("clear_teleport_queue") or exec("clearqueueonteleport")
-    local queue_warned = false -- (the reconnect loop asks every 4s: the reason is logged once)
+    local queue_warned = false
     local function queue_self()
         if env.mog_helper_queued then return end
         if typeof(queue_tp) ~= "function" then
@@ -3427,7 +3073,6 @@ if fn then task.spawn(fn) end
     local job, private, gone = game.JobId, false, false
     pcall(function() private = game.PrivateServerId ~= "" end)
     local okV, vim = pcall(game.GetService, game, "VirtualInputManager")
-    -- [[ the game's link to the server: gone once you're disconnected or kicked ]] --
     local function still_connected()
         local ok, yes = pcall(function()
             local nc = game:FindService("NetworkClient")
@@ -3478,7 +3123,6 @@ if fn then task.spawn(fn) end
     end
     local function rejoin(why)
         if game.PlaceId ~= MOG_PLACE or S.rejoining or S.no_rejoin or not (S.alive and S.auto_reconnect) then return end
-        -- [[ kicked because this account joined somewhere else: rejoining would just kick that one ]] --
         if tostring(why):lower():find("different device") then
             S.no_rejoin = true
             logf("RECONNECT", "this account joined from another device, not rejoining")
@@ -3487,7 +3131,6 @@ if fn then task.spawn(fn) end
         S.rejoining = true
         go(function()
             task.wait(2)
-            -- [[ some error boxes (a failed teleport) show while you're still in the server: nothing to do then ]] --
             if still_connected() then
                 logf("RECONNECT", "error box but you're still connected, not rejoining: " .. tostring(why))
                 S.rejoining = false
@@ -3496,7 +3139,6 @@ if fn then task.spawn(fn) end
             logf("RECONNECT", ("disconnected from this %s server, reconnecting every 4s"):format(private and "private" or "public"))
             pcall(save_log)
             pcall(save_hatched)
-            -- [[ the new session writes its own MogHub_Log.txt, so this one is kept under its own name ]] --
             if typeof(writefile) == "function" then
                 pcall(writefile, ("MogHub_Log_%s.txt"):format(os.date("%Y%m%d_%H%M")), log_report())
             end
@@ -3521,7 +3163,6 @@ if fn then task.spawn(fn) end
                 else
                     how = "waiting for Roblox's Reconnect button (private server: any server after 10 minutes)"
                 end
-                -- [[ logged when the kind of try changes (button / same server / any server), not on every click ]] --
                 local kind = how:find("same server") and "same" or how:find("teleport") and "any" or how:find("waiting") and "wait" or "button"
                 if tries <= 3 or tries % 15 == 0 or kind ~= last_how then
                     logf("RECONNECT", ("try %d: %s"):format(tries, how))
@@ -3546,7 +3187,6 @@ if fn then task.spawn(fn) end
             rejoin(message)
         end))
     end)
-    -- [[ backup trigger: Roblox's error box itself ]] --
     go(function()
         pcall(function()
             local overlay = CoreGui:WaitForChild("RobloxPromptGui", 30):WaitForChild("promptOverlay", 30)
@@ -3569,7 +3209,7 @@ if fn then task.spawn(fn) end
                 logf("RECONNECT", "rejoin failed: " .. text)
             end
             if result == Enum.TeleportResult.Unauthorized then
-                private = true -- "can't join private instance through specific joins"
+                private = true
             elseif result == Enum.TeleportResult.GameEnded or result == Enum.TeleportResult.GameFull then
                 gone = true
             end
@@ -3582,20 +3222,6 @@ if fn then task.spawn(fn) end
     end
 end
 
----------------------------------------------------------------- biggest egg record and server hop
-
--- [[ Record: every normal egg the farm wins in the last stage (the highest stage in the map, so new stages count  ]] --
--- [[ by themselves) is measured by its size (EggScale). The biggest is kept in MogHub_EggRecord.json, so it     ]] --
--- [[ survives hops and restarts (Reset record starts over).                                                     ]] --
--- [[ Server hop (Mog to Steal an Egg only, public servers only: a script can't join a private server):          ]] --
--- [[  * Find a bigger egg: joins servers (fewest players first, none twice within an hour), looks at the eggs in ]] --
--- [[    the last stage, and moves on unless one is bigger than your record (and inside your size range). That   ]] --
--- [[    one is mogged and its pet banked, the record goes up, and it hops on for an even bigger one.            ]] --
--- [[ Hopping stays on (across hops and restarts) until you turn it off.                                         ]] --
--- [[  * Grab one every server: takes each server's biggest last-stage egg, banks its pet, then hops on.         ]] --
--- [[ Pets still hatching or on the ground are banked before leaving. Each hop loads the helper again in the new ]] --
--- [[ server; every server it checks is written to MogHub_HopLog.txt (MogHub_Log.txt starts over each server).  ]] --
--- [[ (inside its own function: one function may only hold 200 locals, and the helper is close to that)         ]] --
 ;(function()
     local MOG_PLACE, RECORD_FILE, HOP_FILE, HOP_LOG = 77922212238973, "MogHub_EggRecord.json", "MogHub_Hop.json", "MogHub_HopLog.txt"
     local TeleportService = game:GetService("TeleportService")
@@ -3610,7 +3236,6 @@ end
     local function save_json(name, t)
         if typeof(write_f) == "function" then pcall(function() write_f(name, HttpService:JSONEncode(t)) end) end
     end
-    -- [[ the hop log keeps its newest half once it passes about 1 MB (checked once per server) ]] --
     pcall(function()
         if typeof(is_f) == "function" and typeof(read_f) == "function" and typeof(write_f) == "function" and is_f(HOP_LOG) then
             local old = read_f(HOP_LOG)
@@ -3629,7 +3254,6 @@ end
             pcall(write_f, HOP_LOG, old .. line)
         end
     end
-    -- [[ the highest stage in the map right now ]] --
     local function last_stage()
         local best, best_n = nil, -1
         local folder = game_folder("Stages")
@@ -3675,8 +3299,6 @@ end
     end
     S.hop_count = function() return hops.count end
 
-    -- [[ the game's public servers, from Roblox's server list (fewest players first). Roblox only answers that a few ]] --
-    -- [[ times a minute, so the list is kept in MogHub_Hop.json for 10 minutes and shared by the next hops.         ]] --
     local function http_get(url)
         local ok, body = pcall(function() return (game :: any):HttpGet(url) end)
         if ok and type(body) == "string" then return body, nil end
@@ -3739,7 +3361,6 @@ end
             if player == me then tp_fail = ("%s %s"):format(tostring(result), tostring(message)) end
         end))
     end)
-    -- [[ one try at joining the next server. false = can't hop right now (no server list): the farm farms meanwhile ]] --
     local function hop_now()
         local s = pick_server()
         if not s then
@@ -3753,7 +3374,6 @@ end
                 return false
             end
             backoff = 15
-            -- [[ every server on the list was visited in the last hour: ones from over 10 minutes ago are fine again ]] --
             s = pick_server() or pick_server(600)
             if not s then
                 retry_at = os.clock() + 60
@@ -3762,8 +3382,6 @@ end
                 return false
             end
         end
-        -- [[ the helper has to come along: without queue_on_teleport (or the script file in the workspace) a hop ]] --
-        -- [[ would land you in a new server with no farm for the rest of the night                                ]] --
         if S.queue_self then S.queue_self() end
         if not env.mog_helper_queued then
             S.hop_note = "can't hop: the helper can't load itself in the next server (needs queue_on_teleport and mog_helper.lua in the workspace)"
@@ -3777,7 +3395,7 @@ end
         hops.visited[s.id] = os.time()
         save_json(HOP_FILE, hops)
         pcall(save_log)
-        if #S.hatched > 0 then pcall(save_hatched) end -- an empty book mustn't overwrite the last server's
+        if #S.hatched > 0 then pcall(save_hatched) end
         tp_fail = nil
         S.status = ("Server hop: joining a server with %s players (hop %d)"):format(tostring(s.playing), hops.count + 1)
         local started, err = pcall(function() TeleportService:TeleportToPlaceInstance(MOG_PLACE, s.id, me) end)
@@ -3787,21 +3405,18 @@ end
             return true
         end
         local t = os.clock()
-        -- [[ a teleport can take a while; starting another one meanwhile would send you somewhere else ]] --
         repeat task.wait(0.25) until tp_fail or os.clock() - t > 45 or not S.alive
         if tp_fail then
             logf("HOP", "couldn't join that server: " .. tp_fail)
             task.wait(1)
         else
-            -- [[ counted once the teleport went through (failed ones aren't hops) ]] --
             hops.count += 1
             save_json(HOP_FILE, hops)
         end
         return true
     end
 
-    -- [[ the biggest free normal egg in the last stage that's loaded around you and inside your size range, plus ]] --
-    -- [[ the biggest one there at all (for the hop log)                                                          ]] --
+    S.hop_now = hop_now
     local function biggest_here(stage)
         local best, best_info, top_info = nil, nil, nil
         for egg in pairs(all_eggs) do
@@ -3827,13 +3442,11 @@ end
     end
     S.hop_reset = function()
         H = { phase = "look", t = os.clock(), tries = 0 }
-        -- [[ the server you start hopping from counts as visited, so the hop doesn't come straight back ]] --
         if S.hop_mode ~= "Off" then
             hops.visited[game.JobId] = os.time()
             save_json(HOP_FILE, hops)
         end
     end
-    -- [[ an event egg's pet takes longer to come out (S.event_hatch), so that counts too ]] --
     local function pets_on_the_go()
         return carrying() or #S.pending > 0 or #S.hatching > 0 or S.fights > 0
             or (S.event_hatch ~= nil and os.clock() < S.event_hatch.until_t and S.delivered == (H.banked or S.delivered))
@@ -3842,12 +3455,10 @@ end
         local st = egg:GetAttribute("EggState")
         return st == nil or st == "Idle"
     end
-    -- [[ the Titanic egg, if this server has one up: the server writes where it is on the map (TitanicPosition) ]] --
     local function titanic_egg()
         if workspace:GetAttribute("TitanicActive") ~= true then return nil end
         local pos = workspace:GetAttribute("TitanicPosition")
         if typeof(pos) ~= "Vector3" then return nil end
-        -- [[ a Titanic in a lower stage can't hatch a pet for your plot (Leave worthless on): not worth the trip ]] --
         local zone = workspace:GetAttribute("TitanicZone")
         local only = (S.hop_mode == "Events" and last_stage()) or (S.only_stage and S.only_stage())
         if only and tostring(zone):match("^Stage%d+$") and zone ~= only then return nil end
@@ -3867,7 +3478,6 @@ end
         until os.clock() - t > 5
         return nil
     end
-    -- [[ any other event egg (admin or new event eggs) loaded around you ]] --
     local function other_event_egg()
         for egg in pairs(all_eggs) do
             if egg.Parent and egg:IsDescendantOf(workspace) and idle(egg) and egg:GetAttribute("GiantEgg") ~= true and is_event(egg)
@@ -3877,8 +3487,6 @@ end
         end
         return nil
     end
-    -- [[ an event egg up in the top stage right now: the Titanic's spot is on the map, other event eggs show once ]] --
-    -- [[ loaded (Treadmill farm keeps the top stage loaded from the treadmill)                                    ]] --
     local function top_event_here()
         local top = last_stage()
         if workspace:GetAttribute("TitanicActive") == true and workspace:GetAttribute("TitanicZone") == top then return true end
@@ -3892,8 +3500,6 @@ end
         hops.chase, hops.chase_misses = false, 0
         save_json(HOP_FILE, hops)
     end
-    -- [[ an event egg in the top stage won by the farm itself (Treadmill farm, a Titanic): for Event chase that's ]] --
-    -- [[ the event being on, the same as one the hop took                                                          ]] --
     S.event_won = function(egg)
         if S.hop_mode ~= "Events" then return end
         local st = stage_of(egg) or egg:GetAttribute("Stage")
@@ -3902,7 +3508,6 @@ end
             hop_log(("server %s: the farm won an event egg (%s), the event is on"):format(game.JobId:sub(1, 8), tostring(st)))
         end
     end
-    -- [[ a Titanic that turns up after the first look in this server gets looked at too ]] --
     track(workspace:GetAttributeChangedSignal("TitanicActive"):Connect(function()
         if workspace:GetAttribute("TitanicActive") == true then H.titanic_checked = false end
     end))
@@ -3914,21 +3519,14 @@ end
         set_phase("grab")
         return true
     end
-    -- [[ after an event egg (taken or lost), this server still gets its normal size check before hopping ]] --
     local function event_finished()
         H.event, H.event_done = false, true
         set_phase("look")
         return true
     end
-    -- [[ one step of the hop, on the farm's own thread; false = let the farm do a normal step ]] --
     S.hop_step = function()
         if S.hop_mode == "Off" or game.PlaceId ~= MOG_PLACE then return false end
         local stage = last_stage()
-        -- [[ a boost window is on here (weather, admin Luck / Mutation): every egg is worth more right now, so no ]] --
-        -- [[ hopping while it lasts                                                                               ]] --
-        -- [[ Event chase (Treadmill farm): train until an event egg shows up in the top stage. The top stage is kept ]] --
-        -- [[ loaded from the treadmill so its event eggs show up without leaving it.                                 ]] --
-        -- [[ (once an event egg was taken here, the gate is passed: the chase below hops on to the next server) ]] --
         if S.hop_mode == "Events" and H.phase == "look" and not H.event and not hops.chase and not H.event_done then
             if os.clock() < (H.quiet_until or 0) or not top_event_here() then
                 if os.clock() - (H.stream_t or -100) > 20 then
@@ -3951,8 +3549,6 @@ end
             return false
         end
         if H.phase == "look" then
-            -- [[ event eggs come first in every server, whatever your size range or record. The Titanic is checked ]] --
-            -- [[ once per server (it can be in any stage, the server says where)                                  ]] --
             if not H.event_done and not H.titanic_checked then
                 H.titanic_checked = true
                 local ev = titanic_egg()
@@ -3962,7 +3558,6 @@ end
                 local ev = other_event_egg()
                 if ev then return start_event(ev) end
             end
-            -- [[ Event chase: took an event egg here, so the event is on: on to the next server for its event egg ]] --
             if S.hop_mode == "Events" and H.event_done then
                 hops.chase, hops.chase_misses = true, 0
                 save_json(HOP_FILE, hops)
@@ -3971,9 +3566,6 @@ end
                 set_phase("hop")
                 return true
             end
-            -- [[ Chase boosts: no boost in this server (checked above), so on to the next. After 10 servers in a row ]] --
-            -- [[ without one (weather may run at the same time everywhere), it farms here for 5 minutes, then looks   ]] --
-            -- [[ again                                                                                                ]] --
             if S.hop_mode == "Boosts" then
                 if os.time() < (tonumber(hops.rest_until) or 0) then
                     S.hop_note = "no boost in the last 10 servers, farming here a few minutes before looking again"
@@ -4005,7 +3597,6 @@ end
             S.status = ("Server hop: looking at the eggs in %s"):format(stage)
             travel(ground(center), center + Vector3.new(0, 0, -10))
             task.wait(3)
-            -- [[ a long stage: its two ends too, so all its eggs load ]] --
             local stages = game_folder("Stages")
             local folder = stages and stages:FindFirstChild(stage)
             local box = folder and folder:FindFirstChild("Hitbox")
@@ -4021,10 +3612,9 @@ end
                 local ev = other_event_egg()
                 if ev then return start_event(ev) end
             end
-            -- [[ Event chase: no event egg in this server's top stage ]] --
             if S.hop_mode == "Events" then
                 if not hops.chase then
-                    H.quiet_until = os.clock() + 60 -- it was gone by the time you got there: back to the treadmill
+                    H.quiet_until = os.clock() + 60
                     S.hop_note = "the event egg was already gone, back to the treadmill"
                     return false
                 end
@@ -4102,8 +3692,6 @@ end
             end
             hop_log(S.delivered > H.banked and ("banked the pet from " .. egg_text(H.info)) or "its pet didn't make it home in time")
             if H.event then return event_finished() end
-            -- [[ hopping stays on until you turn it off: in Find a bigger egg the record just went up, so it looks for an ]] --
-            -- [[ even bigger one next                                                                                    ]] --
             if S.hop_mode == "Bigger" then
                 S.hop_note = "found a bigger egg (" .. egg_text(H.info) .. "), now looking for an even bigger one"
                 logf("HOP", S.hop_note)
@@ -4112,35 +3700,23 @@ end
             set_phase("hop")
             return true
         end
-        -- [[ hop: pets still hatching or on the ground are banked first, they'd be lost ]] --
         if pets_on_the_go() and os.clock() - H.t < 60 then
             S.status = "Server hop: banking your pets before leaving"
             if not collect_once() then task.wait(0.25) end
             return true
         end
         if hop_now() then return true end
-        -- [[ no server to go to yet: a normal farm step, and the pets it gets are banked before the next try ]] --
         H.t = os.clock()
         return false
     end
 end)()
 
--- [[ who this script is, for the shared Sobriety Hub window (reports/sobriety-ui/toolkit.lua) ]] --
 S.hub = {
     game = "Mog to Steal an Egg", tag = "MOG TO STEAL AN EGG", stop = "mog_helper_stop",
     steps = { { 0, "linking executor" }, { 0.2, "hooking the game's remotes" }, { 0.45, "reading pets, eggs and stages" },
         { 0.7, "building the window" }, { 0.95, "ready" } },
 }
 
----------------------------------------------------------------- Sobriety Hub: the window
--- [[ Shared by every Sobriety Hub script (reports/sobriety-ui/toolkit.lua; each game's build joins it in). The game ]] --
--- [[ tells it who it is through S.hub = { game = "...", tag = "...", stop = "<name of its stop function in env>",     ]] --
--- [[ steps = { { 0, "..." }, ... } } before this part runs.                                                          ]] --
--- [[ Purple and black, animated, and sized to your screen: it scales with the screen and again whenever the screen   ]] --
--- [[ changes (a phone turned, the Roblox window resized); on small screens the sidebar folds into an icon rail.      ]] --
--- [[ Hidden (Right Alt or the – button), a round S button stays on screen to bring it back: on a phone that's the    ]] --
--- [[ way back. The toolkit (make_window) and the pages (build_ui) are separate functions: one function may only      ]] --
--- [[ hold 200 locals.                                                                                                ]] --
 local BOOT_QUICK = env.sobriety_quick_boot == true
 env.sobriety_quick_boot = nil
 
@@ -4150,8 +3726,6 @@ local TweenService = game:GetService("TweenService")
 local TextService = game:GetService("TextService")
 local GuiService: any = game:GetService("GuiService")
 
--- [[ The look: black glass with the logo's liquid running through it. The accent colours are the dripping S's own ]] --
--- [[ (pale pink at the top of the liquid, magenta in the middle, violet and deep purple where it pools).            ]] --
 local C = {
     bg = Color3.fromRGB(8, 6, 14), bg2 = Color3.fromRGB(23, 12, 40), panel = Color3.fromRGB(13, 10, 22), side = Color3.fromRGB(13, 10, 22),
     card = Color3.fromRGB(23, 17, 38), card2 = Color3.fromRGB(34, 25, 57), stroke = Color3.fromRGB(48, 36, 78),
@@ -4162,7 +3736,6 @@ local C = {
     white = Color3.new(1, 1, 1), black = Color3.new(0, 0, 0),
 }
 local ACCENT = ColorSequence.new({ ColorSequenceKeypoint.new(0, C.a3), ColorSequenceKeypoint.new(0.5, C.a1), ColorSequenceKeypoint.new(1, C.a2) })
--- [[ PILL: the liquid behind white text (top to bottom); LIQUID: the full run of the logo's liquid, for drips and fills ]] --
 local PILL = ColorSequence.new({ ColorSequenceKeypoint.new(0, C.a1), ColorSequenceKeypoint.new(0.6, C.a2), ColorSequenceKeypoint.new(1, C.deep) })
 local LIQUID = ColorSequence.new({ ColorSequenceKeypoint.new(0, C.a3), ColorSequenceKeypoint.new(0.45, C.a1), ColorSequenceKeypoint.new(1, C.a2) })
 local BOLD, REG, BLACK, MED = Enum.Font.GothamBold, Enum.Font.Gotham, Enum.Font.GothamBlack, Enum.Font.GothamMedium
@@ -4187,10 +3760,6 @@ local function outline(p, color, thick, transparency)
     return new("UIStroke", { Color = color or C.stroke, Thickness = thick or 1, Transparency = transparency or 0,
         ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = p })
 end
--- [[ a UIGradient also tints its object's own text, which made selected buttons look blank. So on a gradient ]] --
--- [[ button the text moves into a plain label on top of it (children aren't tinted).                         ]] --
--- [[ A button with words on it becomes wet glass: the liquid runs top to bottom (magenta to deep purple, so white ]] --
--- [[ words read on it) under a soft highlight. Bars, beads and lines keep the pink-to-violet run.                  ]] --
 local text_labels = {}
 local function gradient(p, rotation)
     local g = new("UIGradient", { Color = ACCENT, Rotation = rotation or 0, Parent = p })
@@ -4203,7 +3772,6 @@ local function gradient(p, rotation)
         local shine = new("Frame", { Name = "Sheen", Size = UDim2.new(1, 0, 0.5, 0), BackgroundColor3 = C.white, BorderSizePixel = 0, ZIndex = 0, Parent = p })
         new("UICorner", { CornerRadius = c and c.CornerRadius or UDim.new(0, 8), Parent = shine })
         new("UIGradient", { Rotation = 90, Transparency = NumberSequence.new(0.76, 1), Parent = shine })
-        -- [[ (pages switch the gradient off for a choice that isn't picked: then it's plain, dry glass) ]] --
         g:GetPropertyChangedSignal("Enabled"):Connect(function() shine.Visible = g.Enabled end)
     end
     return g
@@ -4219,8 +3787,6 @@ local function label(p, text, font, size, color, props)
     for k, v in pairs(props or {}) do l[k] = v end
     return l
 end
--- [[ the wet look. pill: liquid a white label reads on; sheen: the soft highlight across the top of anything wet ]] --
--- [[ (it sits under the labels); glass: a card's body, lighter at the top, with a thin bright line along its top   ]] --
 local function pill(p)
     local g = gradient(p, 90)
     g.Color = PILL
@@ -4244,13 +3810,10 @@ end
 W.tween, W.new, W.corner, W.outline, W.gradient, W.set_text, W.label = tween, new, corner, outline, gradient, set_text, label
 W.pill, W.sheen, W.glass, W.PILL, W.LIQUID = pill, sheen, glass, PILL, LIQUID
 
--- [[ gradients that keep turning (the border light, the logo) and UIScales that follow the screen size ]] --
 local spinners, scaled = {}, {}
 local function spin(g, speed) table.insert(spinners, { g, speed }) return g end
 local function follow(s) table.insert(scaled, s) return s end
 
--- [[ the logo: the dripping S, an animated sprite sheet (25 frames in a 5x5 grid, 200 px each, played at 10 a second) ]] --
--- [[ read from the workspace with getcustomasset, so nothing is uploaded to Roblox. Without the file the drawn S stays. ]] --
 local LOGO_GRID, LOGO_CELL, LOGO_FRAMES, LOGO_FPS = 5, 200, 25, 10
 local function load_sheet(file)
     local ok, id = pcall(function()
@@ -4259,14 +3822,10 @@ local function load_sheet(file)
     end)
     return (ok and type(id) == "string" and id ~= "") and id or nil
 end
--- [[ the dripping S for the top bar and the round button; for the boot screen, a bottle pouring onto the S forever ]] --
--- [[ (the _v number is part of the file name on purpose: Roblox keeps an image it has loaded for the whole session, ]] --
--- [[ by name, so a changed picture needs a new name to show up. reports/sobriety-logo/publish.ps1 copies them.      ]] --
 local logo_id = load_sheet("SobrietyHub_Logo_v4.png")
 W.boot_logo_id = load_sheet("SobrietyHub_Wet_v4.png") or logo_id
-W.intro_id = load_sheet("SobrietyHub_Pour_v4.png") -- the cold open: a bottle pours out and draws the S (played once)
+W.intro_id = load_sheet("SobrietyHub_Pour_v4.png")
 local sprites = {}
--- [[ the frame for a moment in time (seconds) ]] --
 local function logo_frame(t)
     local f = math.floor(t * LOGO_FPS) % LOGO_FRAMES
     return Vector2.new((f % LOGO_GRID) * LOGO_CELL, math.floor(f / LOGO_GRID) * LOGO_CELL)
@@ -4280,8 +3839,6 @@ local function logo_image(parent, size, z)
     return img
 end
 W.logo_id, W.logo_image, W.logo_frame, W.LOGO_CELL = logo_id, logo_image, logo_frame, LOGO_CELL
--- [[ Every picture the hub uses is loaded in the background first (the three logo sheets, your avatar). Nothing is ]] --
--- [[ shown until that's done (or 6 s have passed), so no picture pops in half-way through an animation.           ]] --
 W.assets_ready = false
 go(function()
     local list, seen = {}, {}
@@ -4292,7 +3849,6 @@ go(function()
             table.insert(list, id)
         end
     end
-    -- [[ the fonts too: a label for each one (never shown) makes them load now instead of on first use ]] --
     for _, font in ipairs({ BOLD, REG, BLACK, MED, BRAND, MONO }) do
         table.insert(list, new("TextLabel", { Font = font, Text = "SOBRIETY 0123" }))
     end
@@ -4308,7 +3864,7 @@ W.spin, W.follow = spin, follow
 local L = { s = 1, compact = false, w = 780, h = 520, side = 198, top = 70, inset = 0, drag = Vector2.zero }
 W.L = L
 local function viewport()
-    if S.preview_vp then return S.preview_vp end -- (only the Studio preview sets this, to look at the phone layout)
+    if S.preview_vp then return S.preview_vp end
     local cam = workspace.CurrentCamera
     local vp = cam and cam.ViewportSize
     if vp and vp.X > 50 and vp.Y > 50 then return vp end
@@ -4319,8 +3875,6 @@ local touch_only = UserInputService.TouchEnabled and not UserInputService.MouseE
 
 local gui = new("ScreenGui", { Name = "SobrietyHub", ResetOnSpawn = false, DisplayOrder = 100, IgnoreGuiInset = true,
     ZIndexBehavior = Enum.ZIndexBehavior.Sibling })
--- [[ where the window lives: the executor's hidden folder, else CoreGui, else (low-level executors that may use ]] --
--- [[ neither) your own PlayerGui, so the hub always opens                                                      ]] --
 local okH, hidden = pcall(function() return gethui and gethui() end)
 local function try_parent(p)
     if not p then return false end
@@ -4337,7 +3891,6 @@ pcall(function()
 end)
 W.gui = gui
 
--- [[ the window: a soft shadow, a purple glow that turns around it, and a light running along its border ]] --
 local holder = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(L.w, L.h),
     BackgroundTransparency = 1, Visible = false, Parent = gui })
 local scale = new("UIScale", { Scale = 1, Parent = holder })
@@ -4358,19 +3911,14 @@ new("UIGradient", { Color = ColorSequence.new(C.bg2, C.bg), Rotation = 40, Paren
 spin(new("UIGradient", { Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, C.a3), ColorSequenceKeypoint.new(0.22, C.stroke),
     ColorSequenceKeypoint.new(0.78, C.stroke), ColorSequenceKeypoint.new(1, C.a1) }),
     Parent = new("UIStroke", { Color = C.white, Thickness = 1.4, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = main }) }), 36)
--- [[ light inside the glass: magenta pooling in the top right corner, violet in the bottom left ]] --
 for _, b in ipairs({ { Vector2.new(1, 0), 135, C.a1, 0.8 }, { Vector2.new(0, 1), 315, C.a2, 0.84 } }) do
     local bloom = new("Frame", { AnchorPoint = b[1], Position = UDim2.fromScale(b[1].X, b[1].Y), Size = UDim2.fromOffset(620, 460),
         BackgroundColor3 = b[3], BorderSizePixel = 0, Parent = main })
-    -- [[ (clear from the middle of the diagonal on, so the glow has no visible edge where its frame ends) ]] --
     new("UIGradient", { Rotation = b[2], Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, b[4]), NumberSequenceKeypoint.new(0.25, 0.95),
         NumberSequenceKeypoint.new(0.5, 1), NumberSequenceKeypoint.new(1, 1) }), Parent = bloom })
 end
 W.holder, W.main, W.scale = holder, main, scale
 
--- [[ top bar: logo, the SOBRIETY wordmark (a light sweeps over it, and now and then it glitches), what you're   ]] --
--- [[ looking at, a live status pill (FARMING / TRAINING / IDLE), hide and unload. Its bottom edge is wet: a line ]] --
--- [[ of the logo's liquid that drips into the window (see the drips further down)                                ]] --
 local top = new("Frame", { Size = UDim2.new(1, 0, 0, L.top), BackgroundColor3 = C.panel, BorderSizePixel = 0, ZIndex = 3, Parent = main })
 corner(top, 16)
 new("Frame", { Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.new(1, 0, 0.5, 0), BackgroundColor3 = C.panel, BorderSizePixel = 0, Parent = top })
@@ -4411,7 +3959,6 @@ do
     pill(badge)
     sheen(badge)
     label(badge, "HUB", BRAND, 9, C.white, { Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Center })
-    -- [[ the wordmark's real width once its font has loaded (the guess above can be short: HUB covered "TY") ]] --
     local function fit_badge()
         local w = wm.TextBounds.X
         if w > 10 then badge.Position = UDim2.fromOffset(math.floor(w) + 8, 2) end
@@ -4421,7 +3968,6 @@ do
 end
 local sub = label(top, S.hub.game, MED, 11, C.dim, { Position = UDim2.fromOffset(56, 31), Size = UDim2.new(1, -290, 0, 14),
     TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 2 })
--- [[ the open-source loader, on the header's third line; a click copies it ]] --
 local LOADER = S.hub.loader or 'loadstring(game:HttpGet("https://raw.githubusercontent.com/xNovulon/SobrietyHub/main/hub.lua"))()'
 W.LOADER = LOADER
 local GITHUB = "https://github.com/xNovulon/SobrietyHub"
@@ -4462,18 +4008,16 @@ local function top_button(text, x)
     end
     return b
 end
-local close = top_button("X", -14) -- (a plain X: the ✕ symbol isn't in the font and showed as a box)
+local close = top_button("X", -14)
 local minimize = top_button("–", -50)
 
--- [[ sidebar: a glass dock floating inside the window. The tabs (a blob of liquid flows to the open one), then you ]] --
--- [[ at the bottom                                                                                                ]] --
 local side = new("Frame", { Position = UDim2.fromOffset(10, L.top + 12), Size = UDim2.new(0, L.side - 16, 1, -L.top - 22), BackgroundColor3 = C.panel,
     BorderSizePixel = 0, ZIndex = 2, Parent = main })
 glass(side, 14)
 local tab_list = new("ScrollingFrame", { Position = UDim2.fromOffset(8, 10), Size = UDim2.new(1, -16, 1, -80), BackgroundTransparency = 1,
     BorderSizePixel = 0, ScrollBarThickness = 0, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y,
     ScrollingDirection = Enum.ScrollingDirection.Y, ZIndex = 2, Parent = side })
-local TAB_H, TAB_GAP = 31, 3 -- (all 11 tabs fit above your card without scrolling)
+local TAB_H, TAB_GAP = 31, 3
 local indicator = new("Frame", { Size = UDim2.new(1, 0, 0, TAB_H), BackgroundColor3 = C.white, BorderSizePixel = 0, Visible = false, ZIndex = 1,
     Parent = tab_list })
 corner(indicator, 10)
@@ -4495,7 +4039,6 @@ local me_sub = label(me_card, "", REG, 11, C.dim, { Position = UDim2.fromOffset(
     TextTruncate = Enum.TextTruncate.AtEnd })
 W.me_sub = me_sub
 
--- [[ pages ]] --
 local content = new("Frame", { Position = UDim2.fromOffset(L.side, L.top), Size = UDim2.new(1, -L.side, 1, -L.top), BackgroundTransparency = 1,
     ClipsDescendants = true, ZIndex = 1, Parent = main })
 local pages, tabs, pads = {}, {}, {}
@@ -4524,7 +4067,6 @@ local function select_tab(name)
     if first then
         indicator.Position = UDim2.fromOffset(0, y)
     else
-        -- [[ the blob flows: it stretches from the old tab to the new one, then pulls itself together there ]] --
         local from = indicator.Position.Y.Offset
         tween(indicator, 0.16, { Position = UDim2.fromOffset(0, math.min(from, y)), Size = UDim2.new(1, 0, 0, math.abs(y - from) + TAB_H) },
             Enum.EasingStyle.Quad)
@@ -4563,11 +4105,9 @@ local function page(name, icon, order)
 end
 W.page = page
 
--- [[ building blocks ]] --
 local order = 0
 local function next_order() order += 1 return order end
 W.next_order = next_order
--- [[ a click ripple (mouse and touch positions don't count the top bar inset; this window's positions do) ]] --
 local function ripple(b, pos)
     if not b.Parent then return end
     local s = math.max(L.s, 0.01)
@@ -4594,7 +4134,6 @@ local function pressable(b)
     return s
 end
 W.rippled, W.pressable = rippled, pressable
--- [[ text that wraps grows its card to fit, so nothing is cut off however narrow the screen is ]] --
 local function measure(l, font)
     local s = math.max(L.s, 0.01)
     local w = l.AbsoluteSize.X / s
@@ -4622,7 +4161,6 @@ local function card(p, height)
     glass(f, 14)
     return f
 end
--- [[ section headers: a bead of liquid, the title, and a line that thins out to the right ]] --
 local function section(p, text)
     local f = new("Frame", { Size = UDim2.new(1, 0, 0, 32), BackgroundTransparency = 1, LayoutOrder = next_order(), Parent = p })
     local bead = new("Frame", { Position = UDim2.fromOffset(3, 15), Size = UDim2.fromOffset(8, 8), BackgroundColor3 = C.white, BorderSizePixel = 0, Parent = f })
@@ -4633,7 +4171,6 @@ local function section(p, text)
     new("UIGradient", { Color = ACCENT, Transparency = NumberSequence.new(0.45, 1), Parent = line })
     return f
 end
--- [[ title + a description that wraps (the card grows with it); single = one line, for cards with their own layout ]] --
 local function titled(f, title_text, desc, single)
     label(f, title_text, BOLD, 14, C.text, { Position = UDim2.fromOffset(16, desc and 11 or 0), Size = UDim2.new(1, -136, 0, desc and 18 or 48),
         TextTruncate = Enum.TextTruncate.AtEnd })
@@ -4661,7 +4198,6 @@ end
 local function toggle(p, title_text, desc, get, set, off_key)
     local f = card(p, desc and 68 or 48)
     local desc_label = titled(f, title_text, desc)
-    -- [[ the switch: an empty tube; switched on, liquid runs in from the left and carries the knob across ]] --
     local sw = new("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -16, 0.5, 0), Size = UDim2.fromOffset(48, 26),
         BackgroundColor3 = C.ink, Parent = f })
     corner(sw)
@@ -4675,7 +4211,6 @@ local function toggle(p, title_text, desc, get, set, off_key)
     corner(knob)
     local state = label(f, "OFF", BOLD, 10, C.dim, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -72, 0.5, 0),
         Size = UDim2.fromOffset(30, 14), TextXAlignment = Enum.TextXAlignment.Right })
-    -- [[ a switched-on card gets a glowing edge on its left ]] --
     local edge = new("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.new(0, 3, 0, 0),
         BackgroundColor3 = C.white, BorderSizePixel = 0, Parent = f })
     corner(edge, 2)
@@ -4698,7 +4233,6 @@ local function toggle(p, title_text, desc, get, set, off_key)
         tween(knob, t, { Position = on and UDim2.new(1, -13, 0.5, 0) or UDim2.new(0, 13, 0.5, 0), BackgroundColor3 = on and C.white or C.dim },
             Enum.EasingStyle.Back)
         if t > 0 then
-            -- [[ the knob squashes as it sets off and rounds out again where it lands, like a drop ]] --
             knob.Size = UDim2.fromOffset(27, 17)
             tween(knob, 0.4, { Size = UDim2.fromOffset(20, 20) }, Enum.EasingStyle.Back)
         end
@@ -4717,7 +4251,6 @@ local function toggle(p, title_text, desc, get, set, off_key)
     paint()
     return f
 end
--- [[ a row of choices; the picked one sits under a gradient pill that slides between them ]] --
 local function segmented(p, title_text, options, get, set)
     local f = card(p, 84)
     label(f, title_text, BOLD, 14, C.text, { Position = UDim2.fromOffset(16, 10), Size = UDim2.new(1, -32, 0, 18), TextTruncate = Enum.TextTruncate.AtEnd })
@@ -4762,7 +4295,6 @@ local function segmented(p, title_text, options, get, set)
         if was == nil then
             slider.Position = pos
         else
-            -- [[ the liquid stretches towards the new choice, then gathers under it ]] --
             local lo, hi = math.min(was, idx), math.max(was, idx)
             tween(slider, 0.15, { Position = UDim2.new((lo - 1) / n, 3, 0, 3), Size = UDim2.new((hi - lo + 1) / n, -6, 1, -6) }, Enum.EasingStyle.Quad)
             task.delay(0.15, function()
@@ -4784,7 +4316,6 @@ local function action(p, title_text, desc, button_text, fn)
     local glow = outline(b, C.a3, 1, 0.55)
     pressable(b)
     if not touch_only then
-        -- [[ pointing at it: its edge lights up and a drip gathers under it ]] --
         local stem = new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(1, -40, 0.5, 14), Size = UDim2.fromOffset(4, 0),
             BackgroundColor3 = C.a2, BorderSizePixel = 0, Parent = f })
         corner(stem)
@@ -4816,8 +4347,6 @@ local function info(p, height)
     fit(l, f, 9, 9, 36, BOLD)
     return l
 end
--- [[ number tiles: liquid stands in the bottom of each one and rocks gently; when the number changes it flashes ]] --
--- [[ and the liquid jumps                                                                                       ]] --
 local pools = {}
 local function stats(p, names)
     local f = new("Frame", { Size = UDim2.new(1, 0, 0, 74), BackgroundTransparency = 1, LayoutOrder = next_order(), Parent = p })
@@ -4847,16 +4376,60 @@ local function stats(p, names)
     return values
 end
 W.card, W.section, W.titled, W.hover, W.toggle, W.segmented, W.action, W.info, W.stats = card, section, titled, hover, toggle, segmented, action, info, stats
--- [[ Credits (every hub puts this on its Settings page): who made it, that it's open source, and the loader ]] --
--- [[ Credits: its own tab in the side menu, last (every hub calls this; the page argument is from when it lived ]] --
--- [[ in Settings and is ignored now)                                                                          ]] --
--- [[ the hide / show key: Right Alt unless you picked another one in Settings (S.hide_key, saved per account) ]] --
+function W.server_hop(why)
+    if type(logf) == "function" then pcall(logf, "HOP", tostring(why) .. ": moving to another server") end
+    if S.queue_self then
+        S.auto_reload = true
+        pcall(S.queue_self)
+    end
+    local TS, Http = game:GetService("TeleportService"), game:GetService("HttpService")
+    local best = nil
+    pcall(function()
+        local body = (game :: any):HttpGet(("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100"):format(game.PlaceId))
+        local data = Http:JSONDecode(body)
+        for _, sv in ipairs(data.data or {}) do
+            local n, mx = tonumber(sv.playing) or 0, tonumber(sv.maxPlayers) or 0
+            if sv.id ~= game.JobId and n < mx - 1 and (not best or n < (tonumber(best.playing) or 0)) then best = sv end
+        end
+    end)
+    local ok = best and pcall(function() TS:TeleportToPlaceInstance(game.PlaceId, best.id, Players.LocalPlayer) end)
+    if not ok then pcall(function() TS:Teleport(game.PlaceId, Players.LocalPlayer) end) end
+end
+function W.hop_every(p, hop_fn)
+    section(p, "SERVER HOP TIMER")
+    segmented(p, "Server hop every (the hub loads itself in the new server and carries on)",
+        { { 0, "Off" }, { 10, "10 min" }, { 20, "20 min" }, { 30, "30 min" }, { 60, "60 min" } },
+        function() return S.hop_every end, function(v)
+            S.hop_every = v
+            S.hop_timer_t = os.clock()
+        end)
+    local t = info(p, 30)
+    table.insert(W.painters, function()
+        local every = tonumber(S.hop_every) or 0
+        if every <= 0 then
+            t.Text = "Off: stays in this server."
+        else
+            local left = math.max(0, every * 60 - (os.clock() - (S.hop_timer_t or os.clock())))
+            t.Text = ("Next hop in <b>%d:%02d</b>"):format(math.floor(left / 60), math.floor(left % 60))
+        end
+    end)
+    go(function()
+        S.hop_timer_t = S.hop_timer_t or os.clock()
+        while S.alive do
+            task.wait(5)
+            local every = tonumber(S.hop_every) or 0
+            if every > 0 and os.clock() - (S.hop_timer_t or os.clock()) >= every * 60 then
+                S.hop_timer_t = os.clock()
+                go(function() pcall(hop_fn or W.server_hop, ("every %d minutes"):format(every)) end)
+            end
+        end
+    end)
+end
 local function key_name(k)
     local n = tostring(k or "RightAlt"):gsub("(%l)(%u)", "%1 %2")
     return n
 end
 W.key_name = key_name
--- [[ Settings: pick the hide / show key. Click the button, press a key (Escape cancels). Not on phones (no keys) ]] --
 function W.keybind(p)
     if touch_only then return end
     section(p, "HIDE / SHOW KEY")
@@ -4880,7 +4453,6 @@ function W.keybind(p)
     end
 end
 function W.credits(p)
-    -- [[ called from each hub's Settings code: the key picker goes there, the credits get their own tab ]] --
     if p then W.keybind(p) end
     if W.credits_made then return end
     W.credits_made = true
@@ -4901,7 +4473,6 @@ function W.credits(p)
     action(p, "Copy the loader", LOADER, "COPY", function() copy(LOADER) end)
 end
 
--- [[ the round S button: shows while the window is hidden; tap it to open the window, drag it anywhere ]] --
 local bubble = new("TextButton", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 44, 0.42, 0), Size = UDim2.fromOffset(54, 54),
     BackgroundColor3 = C.white, AutoButtonColor = false, Text = "", Visible = false, ZIndex = 20, Parent = gui })
 corner(bubble)
@@ -4917,8 +4488,6 @@ else
 end
 follow(new("UIScale", { Parent = bubble }))
 
--- [[ the drips: liquid gathers under the top bar's wet edge, swells, lets a drop go and pulls back. Each has its own ]] --
--- [[ place, thickness, reach and timing; they're drawn over the page, in the colour the edge has at that spot        ]] --
 local drip_row = new("Frame", { Position = UDim2.fromOffset(0, L.top - 1), Size = UDim2.new(1, 0, 0, 90), BackgroundTransparency = 1, ZIndex = 4,
     Parent = main })
 local drips = {}
@@ -4926,8 +4495,6 @@ for i, d in ipairs({ { 0.06, 3, 9, 0.00, 6.5 }, { 0.3, 4, 13, 0.30, 7.4 }, { 0.5
     { 0.93, 3, 8, 0.55, 6.1 } }) do
     local x, w = d[1], d[2]
     local col = x < 0.5 and C.a3:Lerp(C.a1, x * 2) or C.a1:Lerp(C.a2, (x - 0.5) * 2)
-    -- [[ where it leaves the edge the liquid is wider (a low mound), so the drip grows out of the edge instead of ]] --
-    -- [[ hanging off it like a pin                                                                                ]] --
     for _, m in ipairs({ { 2.6, 2, 3 }, { 1.7, 1, 5 } }) do
         corner(new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(x, 0, 0, -1), Size = UDim2.fromOffset(math.floor(w * m[1] + m[2]), m[3]),
             BackgroundColor3 = col, BorderSizePixel = 0, Parent = drip_row }))
@@ -4938,7 +4505,6 @@ for i, d in ipairs({ { 0.06, 3, 9, 0.00, 6.5 }, { 0.3, 4, 13, 0.30, 7.4 }, { 0.5
     local bulb = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(x, 0, 0, 3), Size = UDim2.fromOffset(w + 2, w + 2),
         BackgroundColor3 = col, BorderSizePixel = 0, Parent = drip_row })
     corner(bulb)
-    -- [[ a point of light on the bulb: it's wet ]] --
     local glint = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.34, 0.34), Size = UDim2.fromScale(0.3, 0.3),
         BackgroundColor3 = C.white, BackgroundTransparency = 0.25, BorderSizePixel = 0, Parent = bulb })
     corner(glint)
@@ -4972,8 +4538,6 @@ local function move_drips(t)
 end
 move_drips(0)
 
--- [[ size and place, from the screen: a big screen gets a bigger window, a small one (a phone) gets the compact ]] --
--- [[ layout; a window you dragged stays where you put it but always on the screen                              ]] --
 local shown = false
 local function place() return UDim2.new(0.5, L.drag.X, 0.5, L.inset / 2 + L.drag.Y) end
 W.place = place
@@ -5037,7 +4601,6 @@ do
     end))
 end
 
--- [[ show / hide (the S button takes the window's place while it's hidden) ]] --
 local function pop_bubble(on)
     if on then
         bubble.Visible = true
@@ -5064,14 +4627,11 @@ local function hide()
     pop_bubble(true)
 end
 W.show, W.hide = show, hide
--- [[ the first time it appears: once every picture is loaded, it eases in. (It used to flicker in by hiding its  ]] --
--- [[ contents for two frames, which left only the window's dark shadow on screen: a black flash.)                ]] --
 W.reveal = function()
     go(function()
         W.wait_assets()
         if holder.Parent then
             show()
-            -- [[ say which key hides it (people can't guess Right Alt) ]] --
             task.delay(4, function()
                 if type(notify) == "function" then
                     pcall(notify, touch_only and "The - button hides this window; the round S button brings it back."
@@ -5086,7 +4646,6 @@ track(UserInputService.InputBegan:Connect(function(input, processed)
     if S.binding_key or processed or input.KeyCode.Name ~= (S.hide_key or "RightAlt") then return end
     if shown then hide() else show() end
 end))
--- [[ X asks first (one stray tap on a phone shouldn't unload everything): tap it again within 3s to unload ]] --
 do
     local armed = -100
     local tip = label(main, "Tap X again to unload", BOLD, 11, C.white, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 62),
@@ -5111,8 +4670,6 @@ do
         end)
     end)
 end
--- [[ dragging: the window by its top bar, the S button anywhere (a short tap on it opens the window). On a ]] --
--- [[ phone only the finger that started the drag moves it, so the joystick thumb doesn't drag it along.     ]] --
 local function draggable(handle, on_move, on_end)
     local down, start = nil, nil
     handle.InputBegan:Connect(function(input)
@@ -5157,8 +4714,6 @@ do
     end)
 end
 
--- [[ animation: the turning gradients and the light sweeping over the wordmark (only while something is on screen), ]] --
--- [[ the status dot's pulse, and a short glitch on SOBRIETY every few seconds                                        ]] --
 do
     local t0 = os.clock()
     track(RunService.Heartbeat:Connect(function()
@@ -5181,7 +4736,6 @@ do
             for i = #pools, 1, -1 do
                 local pl = pools[i]
                 if pl[1].Parent then
-                    -- [[ it sloshes: the surface tips a few degrees one way, then the other ]] --
                     pl[3] *= 0.93
                     pl[1].Rotation = 90 + 3.2 * math.sin(t * 1.15 + pl[2])
                     pl[1].Offset = Vector2.new(0, -pl[3])
@@ -5223,21 +4777,15 @@ end)
 return W
 end
 
--- [[ The boot screen: SOBRIETY decodes out of random letters with a glitch (split colours, sliced rows, scanlines, ]] --
--- [[ noise), a loading line runs, then it shuts like an old monitor and the window flickers in. Click to skip.    ]] --
--- [[ After a server hop (the helper reloading itself) it plays a short version.                                   ]] --
 local function play_boot(W, done, quick)
     local C, new, corner, tween = W.C, W.new, W.corner, W.tween
-    W.wait_assets() -- (nothing on screen until every picture is loaded)
+    W.wait_assets()
     local s = W.L.s
     local total = quick and 1.3 or 3.1
     local layer = new("TextButton", { Name = "Boot", Size = UDim2.fromScale(1, 1), BackgroundColor3 = C.black, BackgroundTransparency = 1,
         AutoButtonColor = false, Text = "", ZIndex = 50, Parent = W.gui })
     local skipped = false
     layer.MouseButton1Click:Connect(function() skipped = true end)
-    -- [[ No black screen: the boot plays on a pane of dark glass the size of the hub's window, right where the window ]] --
-    -- [[ will appear, so the game stays visible around it. The pane ("screen") switches on like an old monitor: a line ]] --
-    -- [[ across, then it opens. root keeps its full size inside it, so nothing moves while the screen opens.           ]] --
     local cw, ch, cr = math.floor(W.L.w * s), math.floor(W.L.h * s), math.floor(16 * s)
     local spot = W.place()
     local screen = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = spot, Size = UDim2.fromOffset(0, 2),
@@ -5260,8 +4808,6 @@ local function play_boot(W, done, quick)
         end)
         task.delay(0.5, function() beam:Destroy() end)
     end
-    -- [[ the cold open (full boot only): over the game itself, a bottle pours out and draws the S. Its last frame is ]] --
-    -- [[ the first of the endless pour, so it carries straight on into that; then the boot switches on around it    ]] --
     local intro_logo, wet_t0 = nil, nil
     if W.intro_id and not quick then
         local is = math.floor(200 * s)
@@ -5284,7 +4830,6 @@ local function play_boot(W, done, quick)
             task.wait(1 / 30)
         end
     end
-    -- [[ a faint grid drifting behind (kept clear of the pane's round corners), a purple bloom in the middle, dark edges ]] --
     local grid = new("Frame", { Position = UDim2.fromOffset(cr, cr), Size = UDim2.new(1, -2 * cr, 1, -2 * cr), BackgroundTransparency = 1,
         ClipsDescendants = true, Parent = root })
     local grid_in = new("Frame", { Position = UDim2.fromOffset(-48, -48), Size = UDim2.new(1, 96, 1, 96), BackgroundTransparency = 1, Parent = grid })
@@ -5297,7 +4842,6 @@ local function play_boot(W, done, quick)
             BorderSizePixel = 0, Parent = grid_in })
     end
     tween(grid_in, total + 0.5, { Position = UDim2.fromOffset(0, 0) }, Enum.EasingStyle.Linear)
-    -- [[ the bloom: ten faint pills stacked from big to small, so the glow fades out softly in every direction ]] --
     for i = 1, 10 do
         local k = 1 - (i - 1) * 0.085
         local bloom = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
@@ -5310,14 +4854,11 @@ local function play_boot(W, done, quick)
         corner(edge, cr)
         new("UIGradient", { Rotation = v[1], Transparency = NumberSequence.new(0.3, 1), Parent = edge })
     end
-    -- [[ the title, built from six sliced rows (each can slide on its own) over two colour-split copies ]] --
     local crt = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
         Size = UDim2.fromOffset(math.floor(700 * s), math.floor(250 * s)), BackgroundTransparency = 1, ClipsDescendants = true, Parent = root })
     local stage = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(700, 250),
         BackgroundTransparency = 1, Parent = crt })
     new("UIScale", { Scale = s, Parent = stage })
-    -- [[ the animated logo above the title: fades in, or after the cold open glides up from the middle while the screen ]] --
-    -- [[ switches on around it; shakes with the glitch (not while gliding), shuts with the screen                         ]] --
     local boot_logo = nil
     local ls = math.floor(130 * s)
     local logo_pos = UDim2.new(spot.X.Scale, spot.X.Offset, spot.Y.Scale, spot.Y.Offset - math.floor(98 * s))
@@ -5368,7 +4909,6 @@ local function play_boot(W, done, quick)
     local pct = new("TextLabel", { Position = UDim2.fromOffset(440, 204), Size = UDim2.fromOffset(80, 16), BackgroundTransparency = 1, Text = "000%",
         Font = W.MONO, TextSize = 11, TextColor3 = C.a3, TextXAlignment = Enum.TextXAlignment.Right, Parent = stage })
     tween(bar_track, 0.5, { Size = UDim2.fromOffset(340, 2) })
-    -- [[ the corners: little readouts typing themselves out ]] --
     local hs = math.max(9, math.floor(11 * s + 0.5))
     local hud = {}
     local function hud_text(anchor, pos, align, text)
@@ -5381,7 +4921,6 @@ local function play_boot(W, done, quick)
     hud_text(Vector2.new(1, 0), UDim2.new(1, -18, 0, 16), RIGHT, "PLACE " .. tostring(game.PlaceId))
     hud_text(Vector2.new(0, 1), UDim2.new(0, 18, 1, -16), LEFT, "USER @" .. me.Name)
     hud_text(Vector2.new(1, 1), UDim2.new(1, -18, 1, -16), RIGHT, os.date("%Y.%m.%d  %H:%M"))
-    -- [[ scanlines, a band of light rolling down, and noise blocks for the glitch bursts ]] --
     local lines = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 3, Parent = root })
     for y = cr, ch - cr, 4 do
         new("Frame", { Position = UDim2.fromOffset(0, y), Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = C.black, BackgroundTransparency = 0.55,
@@ -5467,7 +5006,6 @@ local function play_boot(W, done, quick)
         if t > total * 0.86 then g = 0.95 end
         glitch(g)
         if boot_logo then
-            -- [[ the endless pour keeps its own clock from the cold open, so it never skips back to its first frame ]] --
             if wet_t0 then
                 boot_logo.ImageRectOffset = W.logo_frame(os.clock() - wet_t0)
             elseif intro_logo then
@@ -5485,7 +5023,6 @@ local function play_boot(W, done, quick)
     glitch(0)
     for _, b in ipairs(blocks) do b.Visible = false end
     if not skipped and layer.Parent then
-        -- [[ the old-monitor shut: squeezed to a line, then the line shrinks to nothing ]] --
         local w0 = crt.Size.X.Offset
         tween(crt, 0.16, { Size = UDim2.fromOffset(w0, 2) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
         if boot_logo then
@@ -5522,8 +5059,6 @@ local gui, painters, page, next_order = W.gui, W.painters, W.page, W.next_order
 local card, section, titled, toggle, segmented, action, info, stats = W.card, W.section, W.titled, W.toggle, W.segmented, W.action, W.info, W.stats
 local top_pill, me_sub = W.top_pill, W.me_sub
 
----------------------------------------------------------------- the pages
-
 local home_page = page("Home", "⌂", 0)
 local farm_page = page("Farm", "🥚", 1)
 local mog_page = page("Mogging", "⚔", 2)
@@ -5536,11 +5071,8 @@ local board_page = page("Leaderboard", "🏆", 8)
 local logs_page = page("Logs", "📋", 9)
 local settings_page = page("Settings", "⚙", 10)
 
--- [[ Home: everything worth keeping an eye on in one place: what the farm is doing right now, the numbers, ]] --
--- [[ what just happened, and where each setting lives.                                                     ]] --
 do
     local hero = card(home_page, 112)
-    -- [[ while the farm runs, a light runs around the hero card ]] --
     local hero_stroke = hero:FindFirstChildOfClass("UIStroke")
     local hero_glow = W.spin(new("UIGradient", { Color = W.ACCENT, Enabled = false, Parent = hero_stroke }), 90)
     local hero_dot = new("Frame", { Position = UDim2.fromOffset(18, 22), Size = UDim2.fromOffset(12, 12), BackgroundColor3 = C.dim, Parent = hero })
@@ -5638,7 +5170,6 @@ do
     end)
 end
 
--- [[ Farm ]] --
 local status_card = card(farm_page, 58)
 local dot = new("Frame", { Position = UDim2.fromOffset(16, 16), Size = UDim2.fromOffset(9, 9), BackgroundColor3 = C.dim, Parent = status_card })
 corner(dot)
@@ -5677,8 +5208,6 @@ toggle(farm_page, "Gift pets at Stage 1", "Weak pets are dropped at Stage 1 for 
         S.gift = v
         logf("GIFT", v and "gift mode ON" or "gift mode OFF")
     end)
--- [[ the gift limit writer: type a plain number, pick the size (Thousand ... Quadrillion), and it shows in   ]] --
--- [[ words and in full digits what that is, as you type. Typing "50B" or all the zeroes works too.          ]] --
 do
     local UNITS = { { "", 1, "" }, { "K", 1e3, "Thousand" }, { "M", 1e6, "Million" }, { "B", 1e9, "Billion" },
         { "T", 1e12, "Trillion" }, { "Qa", 1e15, "Quadrillion" } }
@@ -5721,7 +5250,6 @@ do
             set_text(x.button, nil, on and C.white or C.dim)
         end
     end
-    -- [[ what's in the box right now: a plain number times the picked size, or a full "50B" / "50000000000" ]] --
     local function typed_value()
         local text = box.Text:gsub(",", ""):gsub("%s", "")
         local n = tonumber(text)
@@ -5808,7 +5336,6 @@ do
     local chips = {}
     local keys = { { "Any", "Any" }, { "Events", "Events" } }
     for _, name in ipairs(STAGE_NAMES) do table.insert(keys, { name, "Stage " .. stage_num(name) }) end
-    -- [[ the card grows when the game adds stages (5 chips a row) ]] --
     f.Size = UDim2.new(f.Size.X.Scale, f.Size.X.Offset, 0, math.max(138, 44 + math.ceil(#keys / 5) * 32))
     for i, k in ipairs(keys) do
         local b = new("TextButton", { BackgroundColor3 = C.bg, AutoButtonColor = false, Text = k[2], Font = BOLD, TextSize = 12, TextColor3 = C.dim,
@@ -5845,7 +5372,6 @@ table.insert(painters, function()
     hop_info.Text = ("Biggest egg so far: <b>%s</b>\nGrabbing sizes <b>%.2f to %.2f</b>   |   Hops: <b>%d</b>   |   %s"):format(
         S.record_text and S.record_text() or "-", S.hop_min, S.hop_max, S.hop_count and S.hop_count() or 0, tostring(S.hop_note))
 end)
--- [[ size range: the hop only grabs eggs from this size to that size (normal eggs are 0.50 to 1.00) ]] --
 do
     local f = card(farm_page, 126)
     titled(f, "Only grab eggs sized", "Normal eggs are 0.50 to 1.00 and big ones are rare; others are skipped", true)
@@ -5900,15 +5426,15 @@ segmented(farm_page, "Server hop (event eggs like the Titanic are always taken f
     function() return S.hop_mode end, function(v)
         S.hop_mode = v
         if S.hop_reset then S.hop_reset() end
-        if S.chase_off then S.chase_off() end -- an event chase left on from before mustn't carry over
+        if S.chase_off then S.chase_off() end
         logf("HOP", "server hop: " .. v)
     end)
+W.hop_every(farm_page, function() if S.hop_now then S.hop_now() end end)
 action(farm_page, "Reset record", "Forgets the biggest egg so far; the next one the farm wins in the last stage sets it", "RESET", function()
     if S.reset_record then S.reset_record() end
     notify("Biggest egg record reset.")
 end)
 
--- [[ Mogging ]] --
 local mog_info = info(mog_page, 52)
 section(mog_page, "FIGHTS")
 toggle(mog_page, "Always win", "The guard can't push back and your clicks count 10x", function() return S.always_win end, function(v) S.always_win = v end)
@@ -5945,7 +5471,6 @@ do
     end)
 end
 
--- [[ Pets ]] --
 local pet_stats = stats(pets_page, { "Banked", "Mutated", "Last pet" })
 section(pets_page, "INVENTORY")
 toggle(pets_page, "Equip best", "Puts your best pets on your plot after new ones arrive", function() return S.equip_best end, function(v) S.equip_best = v end)
@@ -5977,7 +5502,6 @@ action(pets_page, "Copy hatched pets", "Every pet you hatched this session and w
     notify(("Copied %d hatched pets and your whole inventory. Paste it to Claude."):format(#S.hatched))
 end)
 
--- [[ advisor lists: rebuilt every few seconds from your pet data ]] --
 local function list_card(p, title_text, desc)
     section(p, title_text)
     local f = new("Frame", { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = C.card,
@@ -6023,10 +5547,6 @@ local function pet_name(p)
     local mutation = p.Mutation and (tostring(p.Mutation) .. " ") or ""
     return ("%s%s  •  %s  •  %skg"):format(mutation, tostring(p.Name), tostring(p.Rarity or "?"), short(p.Weight))
 end
--- [[ Leaderboard: the game's own Top Money and Top Speed boards are global (every server) and keep their whole ]] --
--- [[ top 100 on the board model (Entries: user id, name, value), so all of it is listed here, with where you   ]] --
--- [[ stand. Plus every player in this server: their plot income and best pets (from their plot, so only this  ]] --
--- [[ server; nobody's inventory can be seen from outside). Refreshed every 5s while this tab is open.          ]] --
 do
     local AgeCfg = load_module({ "Shared", "Configs", "PetAgeConfig" })
     local STAGES = AgeCfg and type(AgeCfg.Stages) == "table" and AgeCfg.Stages or {}
@@ -6132,8 +5652,6 @@ do
         set_here(here_rows())
     end)
 end
--- [[ every amount here is shown with your money bonus (rebirths +0.5x each, friends, passes) so it matches the game: ]] --
--- [[ the bonus is the game's own plot total (CashPerSecond) divided by what the pets on it earn on their own        ]] --
 local bonus = 1
 local function money(n) return "$" .. short((tonumber(n) or 0) * bonus) .. "/s" end
 local function refresh_advisor()
@@ -6182,7 +5700,6 @@ local function refresh_advisor()
         #r.list, #bag, money(r.cut), r.best_stage and ("  Best stage to farm: <b>%s</b>."):format(tostring(r.best_stage)) or "")
 end
 
--- [[ Menus: every menu the game has, openable from anywhere ]] --
 section(menus_page, "GAME MENUS")
 local menu_grid_card = new("Frame", { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = C.card,
     LayoutOrder = next_order(), Parent = menus_page })
@@ -6190,8 +5707,6 @@ corner(menu_grid_card, 10)
 outline(menu_grid_card, C.stroke, 1, 0.35)
 new("UIPadding", { PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10), PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), Parent = menu_grid_card })
 new("UIGridLayout", { CellSize = UDim2.fromOffset(132, 30), CellPadding = UDim2.fromOffset(6, 6), SortOrder = Enum.SortOrder.Name, Parent = menu_grid_card })
--- [[ click a menu to open it, click it again to close it (forced, for the ones that won't close). ]] --
--- [[ An open menu's button gets a glowing outline.                                                 ]] --
 local menu_buttons = {}
 local function paint_menus()
     for name, x in pairs(menu_buttons) do
@@ -6227,8 +5742,6 @@ end)
 section(menus_page, "ADMIN")
 local admin_info = info(menus_page, 58)
 action(menus_page, "Admin command bar", "Opens the game's admin bar; the server decides if commands run", "OPEN", open_admin_bar)
--- [[ Leaderboards: the boards at spawn (Workspace.Leaderboards, top 100 kept in each board's Entries attribute) ]] --
--- [[ shown in a window on your screen, updating live. Click the same board again (or the X) to close it.        ]] --
 section(menus_page, "LEADERBOARDS")
 do
     local formats = { ["Top Money"] = "$%s/s", ["Top Speed"] = "%s" }
@@ -6348,7 +5861,6 @@ action(pets_page, "Sell them now", "Sells exactly what Preview lists, once", "SE
     end)
 end)
 
--- [[ Speed ]] --
 local speed_stats = stats(speed_page, { "Speed", "Per step", "Training" })
 section(speed_page, "TREADMILL")
 toggle(speed_page, "Speed first", "With Auto farm on: trains on your treadmill and only leaves for event eggs, good pets, thieves and Luck / Mutation boosts",
@@ -6380,8 +5892,6 @@ toggle(speed_page, "Walk around while training", "Your body stays on the treadmi
         end)
     end)
 local speed_info = info(speed_page, 80)
--- [[ live: your speed, what a step gives (one every 0.3s on the treadmill), and how long until the next rebirth ]] --
--- [[ (needs 1M x 10^rebirths speed, gives +0.5x money)                                                        ]] --
 table.insert(painters, function()
     local ok, v = pcall(function() return PlayerData and PlayerData.Get("Speed") end)
     local speed = (ok and tonumber(v)) or tonumber(me:GetAttribute("Speed")) or 0
@@ -6403,7 +5913,6 @@ table.insert(painters, function()
         :format(short(speed), short(gain), short(rate), short(need), 1 + 0.5 * reb, 1.5 + 0.5 * reb, eta)
 end)
 
--- [[ Upgrades: every automatic purchase / claim, each with its own switch ]] --
 section(upgrades_page, "AUTO UPGRADES (in-game cash only, checked every 20s; switch any off)")
 toggle(upgrades_page, "Auto ascend", "Buys your next body when you can afford it: more appeal, more instant mogs",
     function() return S.auto_ascend end, function(v) S.auto_ascend = v end)
@@ -6424,7 +5933,6 @@ toggle(upgrades_page, "Claim daily reward", "Claims it when it's due: pets from 
 toggle(upgrades_page, "Decline mog battles", "Says no to battle invites while the farm runs, so it isn't stopped",
     function() return S.decline_battles end, function(v) S.decline_battles = v end)
 
--- [[ Teleport: same safe moves as the farm (it waits for the ground to load, so you don't fall through) ]] --
 local function manual_teleport(fn)
     if S.manual then notify("Busy with a steal, try again in a moment.") return end
     if S.farm or S.treadmill then
@@ -6527,7 +6035,6 @@ do
     end)
 end
 
--- [[ Logs ]] --
 local log_info = info(logs_page, 58)
 log_info.Text = "Everything that happens is written down here: errors, the farm stopping and why, hits, falls, the treadmill, "
     .. "banked pets. It's also saved every minute to <b>MogHub_Log.txt</b> in Potassium's workspace folder."
@@ -6554,7 +6061,6 @@ do
         TextYAlignment = Enum.TextYAlignment.Top, TextXAlignment = Enum.TextXAlignment.Left, TextWrapped = true, TextTruncate = Enum.TextTruncate.AtEnd })
 end
 
--- [[ Settings ]] --
 section(settings_page, "WINDOW")
 local keys_info = info(settings_page, 44)
 keys_info.Text = "<b>Right Alt</b> or the <b>–</b> button hides the window. While it's hidden, the round <b>S</b> button brings it back "
@@ -6572,8 +6078,6 @@ action(settings_page, "Replay the intro", "Plays the boot animation again", "PLA
 end)
 action(settings_page, "Unload", "Turns everything off and removes the window", "UNLOAD", function() if env.mog_helper_stop then env.mog_helper_stop() end end)
 W.credits(settings_page)
-
----------------------------------------------------------------- toasts
 
 local toast_area = new("Frame", { AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -16, 1, -16), Size = UDim2.fromOffset(300, 420),
     BackgroundTransparency = 1, ZIndex = 30, Parent = gui })
@@ -6611,8 +6115,6 @@ notify = function(text)
         slot:Destroy()
     end)
 end
-
----------------------------------------------------------------- live numbers
 
 local function speed_text()
     local ls = me:FindFirstChild("leaderstats")
@@ -6663,8 +6165,6 @@ local function refresh()
     end
 end
 
----------------------------------------------------------------- window start
-
 W.layout(false)
 W.select_tab("Home")
 if S.boot_anim then
@@ -6683,9 +6183,6 @@ end
 end
 local gui, refresh = build_ui()
 
--- [[ Unload: stops every job right where it is (the farm included, even mid-jump or mid-take), then puts the ]] --
--- [[ game back exactly as it was: its fight code, the call hook, Auto Mog, the idle kick and knock handlers.  ]] --
--- [[ Your saved settings, log and hatch book files stay.                                                      ]] --
 env.mog_helper_stop = function()
     S.alive, S.farm, S.manual = false, false, false
     local here = coroutine.running()
@@ -6699,8 +6196,6 @@ env.mog_helper_stop = function()
     if S.clear_queue then pcall(S.clear_queue) end
     if S.ghost_off then pcall(S.ghost_off) end
     if S.thief_follow then pcall(function() S.thief_follow:Disconnect() end) S.thief_follow = nil end
-    -- [[ a fight cut off mid-way never sent its result: finish it now, or the server keeps you AlreadyBusy and ]] --
-    -- [[ the game's own MOG prompts fail for a minute and a half                                                ]] --
     pcall(function()
         for egg in pairs(all_eggs) do
             if egg.Parent and egg:GetAttribute("EggState") == "Challenged" and egg:GetAttribute("EggHolder") == me.UserId then
@@ -6720,7 +6215,6 @@ env.mog_helper_stop = function()
     env.mog_helper_resolve_original, env.mog_helper_ready_original = nil, nil
     env.mog_helper_approach_original, env.mog_helper_start_original = nil, nil
     pcall(function() me:SetAttribute("AutoMog", auto_original) end)
-    -- [[ the call hook goes back to the game's own one ]] --
     local old_namecall = env.mog_helper_namecall_old
     if old_namecall and typeof(hookmetamethod) == "function" and pcall(hookmetamethod, game, "__namecall", old_namecall) then
         env.mog_helper_namecall_old, env.mog_helper_hooked = nil, nil
@@ -6739,13 +6233,6 @@ env.mog_helper_stop = function()
     end)
 end
 
--- [[ Auto progress (in-game cash and free things only), checked every 20 seconds:                               ]] --
--- [[  * Ascend: buys the next body when you can afford it (more appeal = more instant mogs and higher eggs)      ]] --
--- [[  * Rebirth: as soon as your speed reaches the next one (+0.5x money, +0.1x luck each; it only resets speed) ]] --
--- [[  * Pen upgrade: one more pet earning on your plot per level, up to level 9                                  ]] --
--- [[  * Coach: the best coach you can afford (more speed per treadmill step, so faster rebirths)                 ]] --
--- [[  * Index: claims the free cash / speed rewards for every new animal you've hatched                          ]] --
--- [[ Also: offline earnings are claimed once when it loads, and mog battle invites are declined while farming.   ]] --
 do
     local function invoke(ns, name, ...)
         local folder = Remotes:FindFirstChild(ns)
@@ -6759,14 +6246,12 @@ do
         if type(res) == "table" then return tostring(res.Reason or res.Message or "?") end
         return tostring(res)
     end
-    -- [[ the first answer of each kind goes in the log, so a change on the game's side shows up there ]] --
     local function note(name, ok, res)
         if S.progress_seen[name] then return end
         S.progress_seen[name] = true
         local text = ok and type(res) == "table" and (pcall(function() return HttpService:JSONEncode(res) end) and HttpService:JSONEncode(res)) or tostring(res)
         logf("PROGRESS", ("%s first answer: %s"):format(name, tostring(text):sub(1, 200)))
     end
-    -- [[ shops that sell one item at a time for Cash, read from the game's own configs (best first) ]] --
     local SHOPS = {
         { name = "coach", ns = "Coaches", config = "CoachConfig", list = "Coaches", value = "Boost", attr = "EquippedCoach", setting = "auto_coach" },
         { name = "aura", ns = "Auras", config = "AuraConfig", list = "Auras", value = "Multiplier", attr = "EquippedAura", setting = "auto_aura" },
@@ -6783,7 +6268,6 @@ do
             end
         end)
     end
-    -- [[ buys the best item better than the one you have; one you already own gets equipped instead ]] --
     local function buy_best(shop)
         local equipped, current = me:GetAttribute(shop.attr), -1
         for _, c in ipairs(shop.items) do
@@ -6831,8 +6315,6 @@ do
         end))
     end
 
-    -- [[ max levels come from the game's own configs, so new levels added in an update are picked up; and any ]] --
-    -- [[ upgrade the server calls maxed is paused for 30 minutes instead of being asked every 20 seconds       ]] --
     local function config(name)
         local ok, cfg = pcall(require, RS:WaitForChild("Shared"):WaitForChild("Configs"):WaitForChild(name, 5))
         return ok and type(cfg) == "table" and cfg or {}
@@ -6840,8 +6322,6 @@ do
     local mill_cfg, pen_cfg = config("TreadmillConfig"), config("PlotUpgradeConfig")
     local MILL_MAX = type(mill_cfg.Levels) == "table" and #mill_cfg.Levels or nil
     local PEN_MAX = tonumber(pen_cfg.MaxLevel) or 9
-    -- [[ can't afford it yet: paused until you have the amount (when the game says how much), otherwise until ]] --
-    -- [[ your cash has grown by a quarter (or 10 minutes passed); coaches, auras and the pen use their prices  ]] --
     local function stat(name)
         if not PlayerData then return nil end
         local ok, v = pcall(PlayerData.Get, name)
@@ -6924,7 +6404,6 @@ do
             for _, shop in ipairs(SHOPS) do
                 if S[shop.setting] and #shop.items > 0 then pcall(buy_best, shop) end
             end
-            -- [[ treadmill level: the game's own Upgrade sign (the server says no when it's maxed or too pricey) ]] --
             if S.auto_mill_upgrade and not paused("Treadmill") then
                 local plots = game_folder("Plots")
                 local plot = plots and plots:FindFirstChild(tostring(me:GetAttribute("Plot")))
@@ -6947,8 +6426,6 @@ do
                 note("Index", ok, res)
                 if ok and worked(res) then logf("PROGRESS", "claimed index rewards") end
             end
-            -- [[ daily reward (pets from day 2, a Diamond Big one on days 6 and 7): claimed once it's due (24h after ]] --
-            -- [[ the last claim, from your saved data), tried at most every 10 minutes                              ]] --
             if S.auto_daily and os.clock() - (S.daily_try or -1e9) > 600 then
                 local last = stat("DailyLastClaim")
                 if not last or workspace:GetServerTimeNow() - last >= 86400 then
@@ -6965,7 +6442,6 @@ do
     end)
 end
 
--- [[ the farm runs on its own thread; the window and Auto Mog update on another ]] --
 local function farm_loop()
     while S.alive do
         S.loop_tick = os.clock()
@@ -6983,7 +6459,6 @@ local function farm_loop()
             end
             pcall(maybe_equip)
         elseif S.treadmill and not S.manual then
-            -- [[ farm off: stay on the treadmill all the time (steps back on if you get knocked off) ]] --
             local ok, err = xpcall(train_for, debug.traceback, 5, function() return S.farm or not S.treadmill end, "Training on the treadmill")
             if not ok then
                 logf("ERROR", "treadmill: " .. tostring(err):sub(1, 400))
@@ -6998,20 +6473,16 @@ end
 S.farm_thread = go(farm_loop)
 S.restart_farm = function()
     if S.farm_thread and S.farm_thread ~= coroutine.running() then pcall(task.cancel, S.farm_thread) end
-    -- [[ a step cut off mid-way can't clean up after itself: stay-on-the-treadmill and thief chases end here ]] --
     S.keep_mill = false
     if S.thief_follow then pcall(function() S.thief_follow:Disconnect() end) S.thief_follow = nil end
     S.farm_thread = go(farm_loop)
 end
 
--- [[ watchdog: restarts the farm if it ever stops ticking, and frees the game's mog lock if a challenge got  ]] --
--- [[ stuck (a stuck lock blocks the farm and your own MOG! prompts too, until you rejoin)                    ]] --
 local setupvalue = exec("setupvalue")
 go(function()
     local busy_since, last_err = nil, nil
     while S.alive do
         task.wait(5)
-        -- [[ one bad check (a game update renaming something) mustn't kill the watchdog for the rest of the night ]] --
         local okW, errW = pcall(function()
         if os.clock() - (S.loop_tick or os.clock()) > 100 then
             logf("WATCHDOG", "the farm stopped ticking for 100s, restarting it | " .. why_here())
@@ -7019,9 +6490,6 @@ go(function()
             S.status = "Farm restarted after it got stuck"
             notify("The farm got stuck and was restarted.")
         end
-        -- [[ the server has said AlreadyBusy for a minute straight and no open fight was found to finish: rejoining ]] --
-        -- [[ this server resets it (once every 5 minutes at most; a private server can't be rejoined by a script).    ]] --
-        -- [[ Not while pets are hatching, on the ground or in your hands, and only if the helper can reload itself.   ]] --
         local pets_out = #S.hatching > 0 or #S.pending > 0 or carrying() or S.event_hatch ~= nil
         if S.busy_first and os.clock() - (S.busy_last or 0) < 15 and os.clock() - S.busy_first > 60 and not pets_out
             and os.clock() - (S.busy_rejoin or -1e9) > 300 then
@@ -7052,8 +6520,6 @@ go(function()
             S.status = "Freed a stuck mog"
             notify("A mog got stuck in the game's code, it's been freed.")
         end
-        -- [[ prompts left hidden after a fight or egg mog that was cut short (the game only turns them back on at ]] --
-        -- [[ the very end of its own fight code): nothing is running, so its gate is cleared and they come back    ]] --
         local gate = S.prompt_gate
         if gate and PromptService.Enabled == false and not stuck and not down() then
             if S.gate_off_since == 0 then S.gate_off_since = os.clock() end
@@ -7073,15 +6539,6 @@ go(function()
         end
     end
 end)
--- [[ Auto rejoin (every 20 minutes by default). Why: a pet only keeps its growth once the game writes it down,   ]] --
--- [[ and it does that when the pet leaves your plot or when you leave the server. Until then the growth is just   ]] --
--- [[ "aging since" in the server's memory, and a reset in between throws all of it away: a 12-hour night went    ]] --
--- [[ back to Baby (the hatch books show it: +51 seconds credited for 12 hours, while a clean leave credited every ]] --
--- [[ second). A clean rejoin writes it down, so the most that can ever be lost is the last 20 minutes.           ]] --
--- [[ When it's due, the farm stops starting new eggs, takes and banks everything still hatching or on the ground, ]] --
--- [[ and waits out anything rare that's gone after a rejoin (event and Titanic eggs, a boost, an admin treadmill, ]] --
--- [[ someone running off with your pet; at most 30 minutes). Then it rejoins this same server (another one if    ]] --
--- [[ it's full) and loads itself again. Not in a private server: a script can't rejoin one.                      ]] --
 ;(function()
     local TeleportService = game:GetService("TeleportService")
     local private = false
@@ -7090,7 +6547,6 @@ end)
     track(TeleportService.TeleportInitFailed:Connect(function(player, result, message)
         if player == me and S.rejoin_going then fail = ("%s %s"):format(tostring(result), tostring(message)) end
     end))
-    -- [[ an event egg the farm would take (Treadmill farm: only the top stage's) ]] --
     local function rare_egg()
         local ok, ev = pcall(pick_egg)
         if not (ok and ev and is_event(ev)) then return nil end
@@ -7099,7 +6555,6 @@ end)
         return ev
     end
     S.rare_egg = rare_egg
-    -- [[ what still has to happen here before leaving; nil = nothing, rejoin now ]] --
     local function blocker(waited)
         if carrying() then return "a pet in your hands" end
         if S.fights > 0 or #S.hatching > 0 then return "eggs still hatching" end
@@ -7120,8 +6575,6 @@ end)
         return nil
     end
     S.rejoin_left = function() return math.max(0, (tonumber(S.rejoin_mins) or 20) * 60 - (os.clock() - base)) end
-    -- [[ growth watch: once a minute, a placed pet whose "aging since" restarted without its time being added is ]] --
-    -- [[ written to the log (with whether Equip Best ran just before), so whatever resets growth can be found     ]] --
     go(function()
         local seen = {}
         while S.alive do
@@ -7137,7 +6590,6 @@ end)
                         local since, secs = tonumber(rec.AgingSince), tonumber(rec.AgeSeconds) or 0
                         now_seen[id] = { since = since, secs = secs }
                         local old = seen[id]
-                        -- [[ placed a minute ago and placed again since: at least the time up to a minute ago must be in ]] --
                         if old and old.since and since and since > old.since then
                             local should = old.secs + math.max(0, since - old.since - 60)
                             if secs < should - 30 then
@@ -7216,7 +6668,6 @@ end)
                     t = os.clock()
                     repeat task.wait(0.25) until fail or os.clock() - t > 40 or not S.alive
                 end
-                -- [[ still here: try again in 3 minutes, the farm carries on meanwhile ]] --
                 logf("REJOIN", "the rejoin didn't go through" .. (fail and (": " .. fail) or "") .. ", trying again in 3 minutes")
                 S.rejoin_going, S.rejoin_due = false, false
                 base = os.clock() - math.max(0, (tonumber(S.rejoin_mins) or 20) * 60 - 180)
@@ -7232,8 +6683,6 @@ end)()
 
 go(function()
     while S.alive do
-        -- [[ the game's own Auto Mog mogs any egg within reach its own way (with the "get ready for battle" fight ]] --
-        -- [[ screen) and gets in the farm's way, so it's paused while the farm runs and comes back when it stops  ]] --
         local want_auto = (S.auto_mog and not S.farm) or S.own_fight == true
         if want_auto and me:GetAttribute("AutoMog") ~= true then
             me:SetAttribute("AutoMog", true)
@@ -7251,7 +6700,6 @@ go(function()
             S.last_ui_err = errr
             logf("ERROR", "window: " .. tostring(errr):sub(1, 300))
         end
-        -- [[ save the settings as soon as anything changes ]] --
         local now_settings = settings_json()
         if now_settings ~= S.saved_settings and now_settings ~= "" and typeof(writefile) == "function" then
             if pcall(writefile, "MogHub_Settings.json", now_settings) then S.saved_settings = now_settings end

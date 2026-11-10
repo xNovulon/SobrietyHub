@@ -3,16 +3,10 @@
 -- If you use this work to make a new script or an updated version, I'd appreciate a credit.
 -- Loader: loadstring(game:HttpGet("https://raw.githubusercontent.com/xNovulon/SobrietyHub/main/hub.lua"))()
 
--- Sobriety Hub: Throw Food For Animals
--- Throws food by itself (no flight, no cutscene, perfect meter), aims where your best food pays the most, trains on the
--- pull-up bar in between (or at the same time when the server allows it), presses x2, equips your best animals, sells the
--- rest, buys food / bar / fence upgrades, runs Ring Rush, accepts gifts, stays in the game, and shows you against the
--- lobby leaderboards. Right Alt (or the round S button) hides / shows the window. Running it again restarts it.
 local env = (typeof(getgenv) == "function" and getgenv()) or _G
 local fenv = getfenv()
 local function exec(name) return env[name] or fenv[name] end
 if env.sobriety_tfa_stop then pcall(env.sobriety_tfa_stop) end
--- [[ this run's token: if another copy starts while this one is still loading, the older one quits ]] --
 local RUN = {}
 env.sobriety_tfa_run = RUN
 
@@ -33,7 +27,6 @@ if game.GameId ~= GAME_ID then
     notify("This script is for Throw Food For Animals.")
     return
 end
--- [[ the game marks you DataLoaded once your save is in: nothing is touched before that ]] --
 do
     local t = os.clock()
     while me:GetAttribute("DataLoaded") ~= true and os.clock() - t < 60 do task.wait(0.25) end
@@ -44,16 +37,13 @@ do
 end
 if env.sobriety_tfa_run ~= RUN then return end
 
----------------------------------------------------------------- state and settings
-
 local S = {
     alive = true, conns = {}, threads = {}, auto_off = {}, status = "Ready", log = {}, log_dirty = false, session_start = os.clock(),
-    ui_size = 1, boot_anim = true, hide_key = "RightAlt", saved_settings = "", settings_loaded = false,
+    ui_size = 1, boot_anim = true, hide_key = "RightAlt", hop_every = 0, saved_settings = "", settings_loaded = false,
     farm = false, speed = "Instant", target = "Money", target_area = 1, use_super = "Always", ring_rush = true, ring_cap = 100,
     train_mode = "Both", train_share = 25, smart_boosts = true, tap_bonus = true,
     equip_best = true, auto_sell = true, keep_rare = false, buy_food = true, buy_bar = true, buy_fence = true, best_food = true,
     gifts = true, anti_afk = true, auto_reload = true, hide_pets = false, overdrive = true, rush = true,
-    -- [[ this session only ]] --
     phase = "idle", throws = 0, catches = 0, rings = 0, taps = 0, gifts_got = 0, sold = 0, bought = 0, supers = 0, new_catches = 0,
     last_catch = "-", best_catch = "-", best_income = 0, gap_extra = 0, complete_extra = 0, meter_extra = 0, ok_streak = 0, start_fails = 0,
     meter_free = false, meter_probed = false, both_ok = 0, use_line = true, walk_line = false, power_free = 0, meter_over = 0, want_d = 0, xp_need_now = 0, xp_need_level = 0, goal_t = -100, goal_level = 0, goal_xp = 0, train_rate = 0, fence_due = false, last_start_t = -100, cooldown = 1.5, aim_area = "", recent = {}, paint_errs = {}, event_boost = { 1, 1, 1 }, buy_warn_t = -100, equip_warn_t = -100, train_since = 0, xp_gain_t = 0, in_throw = false, started_training = false,
@@ -61,12 +51,11 @@ local S = {
     train_fail_t = -100, train_warn_t = -100, xp_gained = 0, levels_gained = 0, level_log_t = -100,
     prev_phase = "", phase_since = 0, phase_xp = 0, phase_throws = 0, stat0 = {}, rejoining = false, last_err = "",
 }
-local SETTING_KEYS = { "ui_size", "boot_anim", "hide_key",
+local SETTING_KEYS = { "ui_size", "boot_anim", "hide_key", "hop_every",
     "farm", "speed", "target", "target_area", "use_super", "ring_rush", "ring_cap", "train_mode", "train_share", "smart_boosts", "tap_bonus",
     "equip_best", "auto_sell", "keep_rare", "buy_food", "buy_bar", "buy_fence", "best_food", "gifts", "anti_afk", "auto_reload", "hide_pets", "overdrive", "rush",
 }
 local function track(c) table.insert(S.conns, c) return c end
--- [[ every background job is written down here, so Unload can stop each one mid-way ]] --
 local function go(fn, ...)
     local th = task.spawn(fn, ...)
     if #S.threads > 40 then
@@ -78,7 +67,6 @@ local function go(fn, ...)
     return th
 end
 env.sobriety_tfa_state = S
--- [[ a stop that works from here on, so a newer copy can always shut this one down (the full Unload replaces it) ]] --
 env.sobriety_tfa_stop = function()
     S.alive = false
     local here = coroutine.running()
@@ -88,9 +76,6 @@ env.sobriety_tfa_stop = function()
     for _, c in ipairs(S.conns) do pcall(function() c:Disconnect() end) end
 end
 
--- [[ the log: what the script did and why, kept in memory, shown in the Logs tab, saved to a file every minute ]] --
--- [[ each account has its own settings and log (named after it), so alts never overwrite each other, even running at ]] --
--- [[ the same time. An account's first run starts from the old shared settings file (OLD_SETTINGS), if there is one.  ]] --
 local LOG_FILE = ("SobrietyHub_ThrowFood_%s_Log.txt"):format(me.Name)
 local SETTINGS_FILE = ("SobrietyHub_ThrowFood_%s_Settings.json"):format(me.Name)
 local OLD_SETTINGS = "SobrietyHub_ThrowFood_Settings.json"
@@ -106,7 +91,6 @@ logf("START", "Sobriety Hub loaded (Throw Food For Animals)")
 local function settings_json()
     local t = {}
     for _, k in ipairs(SETTING_KEYS) do t[k] = S[k] end
-    -- [[ a switch that turned itself off is saved as on: it only stays off for this session ]] --
     for k in pairs(S.auto_off) do
         if t[k] == false then t[k] = true end
     end
@@ -137,9 +121,6 @@ if S.ring_cap ~= 50 and S.ring_cap ~= 200 and S.ring_cap ~= 0 then S.ring_cap = 
 if S.target_area < 1 then S.target_area = 1 end
 S.saved_settings = settings_json()
 
----------------------------------------------------------------- helpers
-
--- [[ 1234567 -> "1.23M", the way the game shortens numbers ]] --
 local SUFFIX = { "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc", "Ud", "Dd", "Td", "Qad", "Qid", "Sxd", "Spd", "Ocd", "Nod", "Vg" }
 local function short(n)
     n = tonumber(n) or 0
@@ -156,9 +137,6 @@ local function root_part()
     return char and char:FindFirstChild("HumanoidRootPart")
 end
 
----------------------------------------------------------------- the game's own code
-
--- [[ the game's modules are already loaded by the game, so requiring them hands back the same tables it uses ]] --
 local Shared = RS:WaitForChild("Shared", 20)
 local Config = RS:WaitForChild("Config", 20)
 local RemoteFolder = RS:WaitForChild("Remotes", 20)
@@ -183,9 +161,6 @@ if not (G.Remotes and G.DC and G.Meter and G.AreaUtil and RemoteFolder) then
 end
 pcall(function() G.DC:WaitForReady() end)
 
--- [[ remotes go through the game's own wrapper (a pcall'd InvokeServer that always answers with a table). It has no ]] --
--- [[ time limit, and a server that never answers left the whole farm standing still (run 8: 13 minutes). So the    ]] --
--- [[ call runs on its own thread and the farm stops waiting after 10 s ("Timeout"); a late answer is thrown away.   ]] --
 local CALL_TIMEOUT = 10
 local function call(name, ...)
     local args = table.pack(...)
@@ -218,7 +193,6 @@ local function on_event(name, fn)
     local ev = RemoteFolder:FindFirstChild(name)
     if ev and ev:IsA("RemoteEvent") then track(ev.OnClientEvent:Connect(function(...) pcall(fn, ...) end)) end
 end
--- [[ your saved data, read the way the game reads it (copies, never written to) ]] --
 local function get(key)
     local ok, v = pcall(G.DC.Get, G.DC, key)
     if ok then return v end
@@ -230,9 +204,6 @@ local function get_path(p)
     return nil
 end
 local function num(v) return tonumber(v) or 0 end
--- [[ Some of the game's functions (the XP and price curves) wait on the game's own threads, and a thread they wake ]] --
--- [[ up comes back without the rights to touch the hub's window ("lacking capability Plugin"), so everything after ]] --
--- [[ it failed. They run here on a throwaway thread; the caller just waits for the answer (at most 3 s).           ]] --
 local function iso(fn, ...)
     local args = table.pack(...)
     local done, res = false, nil
@@ -255,8 +226,6 @@ local function busy(on)
     end)
 end
 
----------------------------------------------------------------- where things are
-
 local function my_plot()
     local plots = workspace:FindFirstChild("Plots")
     return plots and plots:FindFirstChild(tostring(me:GetAttribute("PlotIndex")))
@@ -270,8 +239,6 @@ local function plot_point(offset)
     return p and (p.Position + offset) or nil
 end
 local function training() return me:GetAttribute("Training") == true end
--- [[ a caught animal comes to your hand as a tool, and Equip Best leaves a held one alone: put it back in the ]] --
--- [[ backpack (Roblox's own unequip) so it can go on your plot                                              ]] --
 local function put_away()
     local char = me.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -279,7 +246,6 @@ local function put_away()
     pcall(function() hum:UnequipTools() end)
     return true
 end
--- [[ a short hop to a spot on your plot (the game itself moves you onto your plot after every throw) ]] --
 local function stand_at(pos)
     local root = root_part()
     if not (root and pos) or training() then return false end
@@ -290,7 +256,6 @@ local function stand_at(pos)
     end
     return true
 end
--- [[ just outside the food shop's circle: standing in it opens the shop window (UIZonePad), next to it doesn't ]] --
 local function beside_shop()
     local props = workspace:FindFirstChild("LocalPlotProps")
     local shop = props and props:FindFirstChild("FoodShop")
@@ -309,7 +274,6 @@ local function line_spot()
     local line = area and area:FindFirstChild("CrossLine")
     return line and (line.Position + Vector3.new(0, 0, 6)) or nil
 end
--- [[ walking (when a hop doesn't reach the server): a path around the fence if Roblox can find one, else straight ]] --
 local function walk_to(pos, timeout)
     local char = me.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -335,14 +299,11 @@ local function walk_to(pos, timeout)
     end
     return (root.Position - pos).Magnitude < 8
 end
--- [[ the bar holds your character on the server: a hop made while on it (or right after) never reaches the  ]] --
--- [[ server. So training is stopped and the script waits until the bar model is gone and you're free first   ]] --
 local function leave_bar()
     if training() then call("Training_Stop") end
     local t = os.clock()
     while os.clock() - t < 2.5 do
         local root = root_part()
-        -- [[ free = not anchored any more; the flag alone can lag behind (or stay on), so after 0.6 s it's ignored ]] --
         if root and not root.Anchored and (not training() or os.clock() - t > 0.6) then break end
         task.wait(0.05)
     end
@@ -358,8 +319,6 @@ local function go_to_line()
         stand_at(spot)
     end
 end
-
----------------------------------------------------------------- levels, foods, prices
 
 local function level() return num(get("Level")) end
 local function max_power()
@@ -392,8 +351,6 @@ local function price_of(item)
     return tonumber(p) or tonumber(item.Price)
 end
 
----------------------------------------------------------------- boosts (admin commands and the Admin Abuse show)
-
 local function attr_boost(name)
     local m = tonumber(workspace:GetAttribute(name)) or 1
     local e = tonumber(workspace:GetAttribute(name .. "End")) or 0
@@ -406,9 +363,6 @@ local function event_mult(fn)
     local ok, v = pcall(fn)
     return (ok and tonumber(v)) or 1
 end
--- [[ The Admin Abuse show's multipliers come from the game's AdminAbuse module, which can wait 10 s for a        ]] --
--- [[ server-only folder each time (it froze the window and slowed the farm in the first run). So they're read on ]] --
--- [[ a side thread once a minute, and given up on for the session if they don't answer within 2 s.             ]] --
 go(function()
     local A = G.AdminAbuse
     if not A then return end
@@ -428,7 +382,6 @@ go(function()
         task.wait(60)
     end
 end)
--- [[ training, money and luck multipliers active right now (1 = none); never waits ]] --
 local function boosts()
     local tm, mm, lm = attr_boost("AdminTraining"), attr_boost("AdminMoney"), attr_boost("AdminLuck")
     lm = math.max(lm, (attr_boost("ServerLuck")))
@@ -436,8 +389,6 @@ local function boosts()
     return math.max(tm, e[1] or 1), math.max(mm, e[2] or 1), math.max(lm, e[3] or 1)
 end
 S.boosts = boosts
-
----------------------------------------------------------------- where to throw
 
 local function launch_z()
     local ok, p = pcall(function() return G.AreaUtil.GetLaunchPosition() end)
@@ -464,8 +415,6 @@ local function income_of(model)
     local e = list and list[model]
     return e and tonumber(e.Income) or 0
 end
--- [[ what one catch is worth on average (base income, before mutation and size) when the food lands this far, ]] --
--- [[ from the game's own odds: AnimalRoll.Weights gives each animal's chance for that food, area and depth     ]] --
 local function value_at(d, bait)
     local z = launch_z() - d
     local okI, i = pcall(function() return G.AreaUtil.GetAreaIndexForZ(z) end)
@@ -484,12 +433,6 @@ local function value_at(d, bait)
     end
     return sum, i
 end
--- [[ Reaching further. A throw lands at power + meter x 20 studs, and the server works that out from what the ]] --
--- [[ client sends: the power setting and the meter value. The game caps power at what your level gives        ]] --
--- [[ (LevelConfig.EffectiveThrowPower) and the meter tops out at 1, but whether the SERVER enforces those caps ]] --
--- [[ is checked once each: if one isn't enforced, every stage is in reach. Each check turns itself off if the ]] --
--- [[ server caps it or says no.                                                                                ]] --
--- [[ the meter: its top after PEAK seconds, and where it is t seconds after it starts (the game's own maths) ]] --
 local PEAK = 1.0858
 pcall(function() PEAK = G.Meter.HalfPeriod() end)
 local function meter_at(t)
@@ -503,7 +446,6 @@ end
 local function can_reach_far()
     return S.overdrive and (S.power_free ~= -1 or S.meter_over ~= -1)
 end
--- [[ how far to throw (in studs) and what it aims at; worked out again when your level, food or the aim changes ]] --
 local function work_out_target()
     local maxp = max_power()
     local food = best_food_owned()
@@ -543,21 +485,19 @@ local function update_target(force)
     if not ok then return end
     S.target_key, S.target_t, S.target_note, S.want_d = key, os.clock(), tostring(note), want
     local maxp = max_power()
-    -- [[ the meter's share of the distance: a full meter, or (Instant, timed meter) what it shows at 0.37 s ]] --
     local meter_part = (S.speed == "Instant" and not S.meter_free) and meter_at(0.37) or 1
     local p = math.floor(want - 20 * meter_part + 0.5)
     local power
     if p > maxp and S.overdrive and S.power_free ~= -1 then
-        power = p -- more than your level allows: checked on the next throw
+        power = p
     elseif p >= maxp then
-        power = 0 -- the most you have
+        power = 0
     else
         power = math.max(18, p)
     end
     if power ~= S.power_set then
         local r = call("Player_SetThrowPower", power)
         if r.Ok then
-            -- [[ written down when the aim really moves (a new area, or 50+ studs), not on every level ]] --
             local area = S.target_note:match("^(.-) at ") or S.target_note
             if area ~= S.aim_area or math.abs(power - S.power_set) > 50 or (power == 0) ~= (S.power_set == 0) then
                 logf("AIM", ("power %s: %s"):format(power == 0 and "max" or tostring(power), S.target_note))
@@ -573,17 +513,12 @@ local function update_target(force)
 end
 S.update_target = update_target
 
----------------------------------------------------------------- one throw
-
 local function want_super(saved)
     if num(saved) <= 0 or S.use_super == "Never" then return false end
     if S.use_super == "Always" then return true end
     local _, _, luck = boosts()
     return luck > 1
 end
--- [[ Ring Rush: the run is a flight through rings on a course the server seeds. The course is rebuilt from the ]] --
--- [[ seed with the game's own code and each ring is reported at the moment the real flight would cross it      ]] --
--- [[ (never sooner), slightly off-centre like a person steering                                                ]] --
 local function ring_rush()
     if not (G.Course and S.ring_rush) then
         call("Throw_Cancel")
@@ -638,7 +573,6 @@ local function ring_rush()
     call("Throw_Cancel")
     logf("RING", ("Ring Rush run done: %d rings (%d this session)"):format(got, S.rings))
 end
--- [[ a catch, written down (and a lucky one shown) ]] --
 local function note_catch(r)
     S.catches += 1
     S.new_catches += 1
@@ -660,7 +594,6 @@ local function note_catch(r)
         logf("CATCH", text .. (r.IsNew and " | NEW" or "") .. " | $" .. short(income) .. "/s")
     end
 end
--- [[ the speed profiles: wait before the meter starts, wait from the result to "done", gap before the next throw ]] --
 local function waits(r)
     if S.speed == "Safe" then
         return 0.65, 0.35 + 1.15 + (tonumber(r and r.FlightTime) or 1.6) + 0.75 + ((r and r.CanSkip) and 2.6 or 8.5), 1.6
@@ -673,8 +606,6 @@ local function throw_once()
     S.in_throw = true
     busy(true)
     local pre = waits(nil)
-    -- [[ the server wants a gap between throws (GameConfig.Throw.Cooldown, 1.5 s; it says "Cooldown" when it's too   ]] --
-    -- [[ soon): the next throw starts the moment the gap is over, no sooner. The gap learns from the server's answers ]] --
     local wait_for = S.last_start_t + S.cooldown - os.clock()
     if wait_for > 0 then task.wait(wait_for) end
     S.last_start_t = os.clock()
@@ -689,9 +620,7 @@ local function throw_once()
             S.cooldown = math.min(S.cooldown + 0.1, 4)
             return "cooldown"
         end
-        -- [[ the server only starts a throw near the throw line (seen in the first run): go there and try again ]] --
         if why == "TooFar" then
-            -- [[ write down where you were (once a minute), so a farm that keeps getting this shows why in the log ]] --
             S.toofar_n = (S.toofar_n or 0) + 1
             if os.clock() - (S.toofar_log_t or -100) > 60 then
                 S.toofar_log_t = os.clock()
@@ -702,7 +631,6 @@ local function throw_once()
                     :format(S.toofar_n, (root and spot) and ("%.0f"):format((root.Position - spot).Magnitude) or "?",
                     (root and line) and (root.Position.Z < line.Position.Z and "past" or "behind") or "? of"))
             end
-            -- [[ standing right at the spot and still refused 6 times: walk onto it properly instead of hopping ]] --
             if S.toofar_n >= 6 and S.toofar_n % 6 == 0 then
                 local spot = line_spot()
                 if spot then walk_to(spot, 8) end
@@ -710,7 +638,6 @@ local function throw_once()
             if not S.use_line then
                 logf("THROW", "the server wants you at the throw line, throwing from there")
             elseif not S.walk_line then
-                -- [[ already "at" the line, so the hop didn't reach the server: walk there from now on ]] --
                 S.walk_line = true
                 logf("THROW", "hopping to the throw line didn't reach the server, walking there instead")
             end
@@ -721,7 +648,6 @@ local function throw_once()
         S.ok_streak = 0
         S.gap_extra = math.min(S.gap_extra + 0.25, 4)
         if S.start_fails == 1 or S.start_fails % 20 == 0 then logf("THROW", ("the server didn't start a throw (%s), slowing down a little"):format(why)) end
-        -- [[ still refused after slowing all the way down: maybe the server wants you at the throw line, try from there ]] --
         if S.start_fails == 20 and not S.use_line then
             S.use_line = true
             logf("THROW", "trying from the throw line instead of your plot")
@@ -730,7 +656,6 @@ local function throw_once()
         return "refused"
     end
     S.start_fails, S.toofar_n = 0, 0
-    -- [[ did the server take more power than your level gives? (Throw_Start says which power it uses) ]] --
     if S.power_set > max_power() and S.power_free == 0 then
         if num(r.Power) > max_power() + 1 then
             S.power_free = 1
@@ -756,10 +681,7 @@ local function throw_once()
         super = s.Ok == true
         if super then S.supers += 1 end
     end
-    -- [[ the meter: the first Instant throw checks whether the server compares the meter with the clock; if it ]] --
-    -- [[ doesn't, later throws are sent at once, otherwise each one is sent at the top of the meter             ]] --
     local probe = S.speed == "Instant" and not S.meter_probed and not super
-    -- [[ the meter past its top: only when the aim is further than power + a full meter reaches ]] --
     local over = 0
     if S.overdrive and S.meter_over ~= -1 and not super and S.want_d > num(r.Power) + 21 then
         over = math.min((S.want_d - num(r.Power)) / 20, 800)
@@ -777,14 +699,11 @@ local function throw_once()
         task.wait(0.37 - (os.clock() - t0))
         value = 0.999
     else
-        -- [[ Instant with a timed meter: the true meter value as soon as the meter takes taps (0.37 s, about 0.24 full) ]] --
-        -- [[ instead of waiting 1.1 s for the top; the ~15 studs it gives up are added to your power (see update_target) ]] --
         local at = S.speed == "Instant" and 0.37 or (PEAK + (math.random() * 2 - 1) * 0.012)
         while os.clock() - t0 < at do task.wait() end
         value = meter_at(os.clock() - t0)
     end
     local res = call("Throw_Resolve", value)
-    -- [[ the meter past its top: did the food fly further? ]] --
     if over > 1 and S.meter_over ~= 1 then
         local dist = num(res.Distance)
         if res.Ok and dist > num(r.Power) + 25 then
@@ -803,7 +722,6 @@ local function throw_once()
             S.meter_probed, S.meter_free = true, false
             logf("THROW", "the server checks the meter against the clock: every throw now waits for the top of the meter")
         elseif res.Reason ~= "Timeout" then
-            -- [[ maybe the meter started too soon after the throw: wait a little longer before it next time ]] --
             S.meter_extra = math.min(S.meter_extra + 0.15, 0.8)
             S.ok_streak = 0
         end
@@ -822,7 +740,6 @@ local function throw_once()
             or ("the server times the meter (%d studs instead of %d): throws wait for the top of the meter"):format(dist, power + 20))
     end
     S.throws += 1
-    -- [[ throws per minute: the last 20 throw starts ]] --
     table.insert(S.recent, os.clock())
     if #S.recent > 20 then table.remove(S.recent, 1) end
     note_catch(res)
@@ -830,9 +747,7 @@ local function throw_once()
     task.wait(done_wait + S.complete_extra)
     local c = call("Throw_Complete")
     local tries = 0
-    -- [[ NoSession: the server already closed this throw (the animal came with the result), nothing left to finish ]] --
     if c.Ok == false and c.Reason == "NoSession" then c = { Ok = true } end
-    -- [[ no answer at all: don't wait around for it, tidy the throw up and go on ]] --
     if c.Ok == false and c.Reason == "Timeout" then tries = 4 end
     while c.Ok == false and tries < 4 and S.alive do
         tries += 1
@@ -842,12 +757,10 @@ local function throw_once()
         c = call("Throw_Complete")
     end
     if c.Ok == false then call("Throw_Cancel") end
-    -- [[ the new animal lands in your hand a moment after the throw: back to the backpack with it ]] --
     task.delay(0.6, put_away)
     busy(false)
     S.in_throw = false
     S.ok_streak += 1
-    -- [[ 25 clean throws in a row: try going a little faster again ]] --
     if S.ok_streak % 25 == 0 then
         S.gap_extra = math.max(0, S.gap_extra - 0.25)
         S.complete_extra = math.max(0, S.complete_extra - 0.25)
@@ -858,15 +771,12 @@ local function throw_once()
     return "ok"
 end
 
----------------------------------------------------------------- training
-
 local function start_training()
     if training() then return true end
     if num(get("Stand")) < 1 then return false end
     if os.clock() - S.train_fail_t < 1.5 then return false end
     local spot = plot_point(TRAIN_OFF)
     stand_at(spot)
-    -- [[ a bar upgrade the server only sells you standing at the bar: you're there now ]] --
     if S.bar_due then
         S.bar_due = false
         local u = call("Stand_Upgrade")
@@ -883,7 +793,6 @@ local function start_training()
         end
     end
     local r = call("Training_Start")
-    -- [[ the hop back from the throw line didn't reach the server yet: walk onto the bar's circle and try again ]] --
     if not r.Ok and r.Reason == "TooFar" and spot then
         walk_to(spot, 10)
         r = call("Training_Start")
@@ -906,7 +815,6 @@ local function stop_training()
     local t = os.clock()
     repeat task.wait(0.05) until not training() or os.clock() - t > 2
 end
--- [[ the x2 button: the server offers one every 4-6 s and it lasts 5 s; it's taken after a human-like moment ]] --
 on_event("Training_Bonus", function(id)
     if not (S.alive and S.tap_bonus) then return end
     task.delay(0.15 + math.random() * 0.4, function()
@@ -915,7 +823,6 @@ on_event("Training_Bonus", function(id)
         if r.Ok then S.taps += 1 end
     end)
 end)
--- [[ XP watch: what training really gives (XP this session, levels), checked every 2 s from your saved data ]] --
 local function xp_need(L)
     return tonumber(iso(function() return G.Balance.GetXpForLevel(me, L) end)) or 0
 end
@@ -924,11 +831,9 @@ go(function()
     while S.alive do
         task.wait(2)
         local L, X = level(), num(get("Xp"))
-        -- [[ the window reads this instead of asking the game itself (see iso) ]] --
         if L ~= S.xp_need_level or S.xp_need_now <= 0 then
             S.xp_need_now, S.xp_need_level = xp_need(L), L
         end
-        -- [[ XP still needed to reach the last stage, from the game's own XP curve (every 25th level, once a minute) ]] --
         if os.clock() - S.goal_t > 60 then
             S.goal_t = os.clock()
             pcall(function()
@@ -946,8 +851,6 @@ go(function()
             end)
         end
         if L ~= lastL or X > lastX then S.xp_gain_t = os.clock() end
-        -- [[ on the bar 20 s and no XP: write down why (the game's flag, its rig, your bar, where you are) and ]] --
-        -- [[ start training again                                                                             ]] --
         if S.phase == "train" and training() and os.clock() - S.train_since > 20 and os.clock() - S.xp_gain_t > 20 then
             local plot = my_plot()
             local server = plot and plot:FindFirstChild("Server")
@@ -972,7 +875,6 @@ go(function()
         lastL, lastX = L, X
     end
 end)
--- [[ what the farm does right now: throw, train, or both at once (when the server allows it) ]] --
 local function phase()
     if not S.farm then return "idle" end
     local tm, mm, lm = boosts()
@@ -982,12 +884,9 @@ local function phase()
     end
     if S.train_mode == "Only" then return "train" end
     if S.train_mode == "Off" then return "throw" end
-    -- [[ 3-minute blocks: every switch between the bar and the line costs a few seconds, so fewer, longer turns ]] --
     local cyc = (os.clock() - S.cycle0) % 180
     return cyc < 180 * S.share_now() / 100 and "train" or "throw"
 end
--- [[ the share of each minute on the bar: Rush keeps you there 85% of the time (the bar gave 26x the XP of ]] --
--- [[ throwing in the third run); throws in the other 15% keep money coming for the next bar                ]] --
 S.share_now = function()
     if S.train_mode == "Only" then return 100 end
     if S.train_mode == "Off" then return 0 end
@@ -997,13 +896,11 @@ end
 local function farm_step()
     local ph = phase()
     S.phase = ph
-    -- [[ each switch between the bar and throwing writes down what the last stretch gave ]] --
     if ph ~= S.prev_phase then
         local secs = math.floor(os.clock() - S.phase_since)
         if S.prev_phase == "train" then
             local got = S.xp_gained - S.phase_xp
             logf("TRAIN", ("%ds on the bar: +%s XP"):format(secs, short(got)))
-            -- [[ XP a second on the bar, for the time to the last stage (a stretch under 5 s says too little) ]] --
             if secs >= 5 and got > 0 then
                 local rate = got / secs
                 S.train_rate = S.train_rate > 0 and (S.train_rate * 0.6 + rate * 0.4) or rate
@@ -1027,16 +924,11 @@ local function farm_step()
             task.wait(0.5)
             return
         end
-        -- no bar yet: throw instead
     end
-    -- [[ throwing needs the throw line and training needs the bar, so they take turns: off the bar first, once per ]] --
-    -- [[ turn. The game's Training flag can stay on after you're off the bar, so later throws trust the server:    ]] --
-    -- [[ it answers "Training" when you really are still on it                                                    ]] --
     if S.left_bar_phase ~= S.phase_since then
         S.left_bar_phase = S.phase_since
         if training() then leave_bar() end
     end
-    -- [[ a fence upgrade waiting for you to be at its sign ]] --
     if S.fence_due and S.buy_fence then
         S.fence_due = false
         local sign = plot_point(SIGN_OFF)
@@ -1061,8 +953,6 @@ end
 S.farm_step = farm_step
 S.set_busy = busy
 
----------------------------------------------------------------- plot, shop, upgrades
-
 local function buy_one()
     local money = num(get("Money"))
     local list = {}
@@ -1082,15 +972,12 @@ local function buy_one()
         local okF, f = pcall(function() return G.Fence.Get(fl + 1) end)
         if okF and type(f) == "table" then table.insert(list, { kind = "fence", price = price_of(f), name = "fence level " .. (fl + 1) }) end
     end
-    -- [[ cheapest first, or with Rush: the bar first (it decides how fast you level), then food, then fence ]] --
     local RANK = { bar = 1, food = 2, fence = 3 }
     if S.rush then
         table.sort(list, function(a, b) return RANK[a.kind] < RANK[b.kind] end)
     else
         table.sort(list, function(a, b) return num(a.price) < num(b.price) end)
     end
-    -- [[ Rush saves up for the next bar, but food and fence still get bought while they cost at most a quarter of it: ]] --
-    -- [[ better food means better animals and more money, which pays for the bar sooner                               ]] --
     local item, saving = nil, nil
     for _, it in ipairs(list) do
         if it.price and money >= it.price and (not saving or it.price <= saving.price * 0.25) then
@@ -1107,18 +994,15 @@ local function buy_one()
     if not item then return false end
     local r
     if item.kind == "food" then
-        -- [[ bought in the background: from wherever you are, or (if the server wants you closer) from right next ]] --
-        -- [[ to the shop's circle, never inside it, so the shop window never opens                                ]] --
         r = call("Shop_Buy", item.id)
         if not r.Ok and not training() then
             stand_at(beside_shop())
             r = call("Shop_Buy", item.id)
         end
     elseif item.kind == "bar" then
-        if S.bar_due then return false end -- (already waiting to be bought at the bar; the money stays put for it)
+        if S.bar_due then return false end
         r = call("Stand_Upgrade")
         if not r.Ok and r.Reason == "TooFar" then
-            -- [[ the server wants you at the bar for this one: it's bought there the next time the farm goes to the bar ]] --
             if not S.bar_due then logf("BUY", ("%s has to be bought at the bar: buying it there on the next training turn"):format(item.name)) end
             S.bar_due = true
             return false
@@ -1126,7 +1010,6 @@ local function buy_one()
     else
         r = call("Plot_UpgradeFence")
         if not r.Ok and r.Reason == "TooFar" then
-            -- [[ the fence needs you at its sign: the farm does it there the next time you're off the bar ]] --
             S.fence_due = true
             return false
         end
@@ -1153,7 +1036,6 @@ local function sell_extras()
         end
         return
     end
-    -- [[ keeping Ruby and Rainbow ones: everything else that isn't on the plot (and wasn't bought) is sold one by one ]] --
     local animals = get("Animals") or {}
     local n, money = 0, 0
     for id, a in pairs(animals) do
@@ -1180,7 +1062,6 @@ local function upkeep()
             if r.Ok then logf("FOOD", "equipped your best food: " .. tostring((food_info(best) or {}).Name or best)) end
         end
     end
-    -- [[ Equip Best: right after start, after new catches (at most every 15 s), and once a minute and a half anyway ]] --
     local due = S.new_catches > 0 or os.clock() - S.last_equip_t > 90
     if due and os.clock() - S.last_equip_t > 15 then
         local had = S.new_catches
@@ -1213,8 +1094,6 @@ end
 S.upkeep = upkeep
 S.call = call
 
----------------------------------------------------------------- free things, gifts, staying in the game
-
 go(function()
     task.wait(3)
     if num(get_path("OfflinePending.Base")) > 0 then
@@ -1226,7 +1105,6 @@ go(function()
         if r.Ok then logf("FREE", "claimed the free animal") end
     end
 end)
--- [[ gifts are Robux items another player pays for: accepting one costs you nothing ]] --
 on_event("Gift_Update", function(d)
     if type(d) ~= "table" or d.Type ~= "Incoming" or not S.gifts then return end
     logf("GIFT", ("%s is sending you %s, accepting"):format(tostring(d.SenderName), tostring(d.ItemName)))
@@ -1236,8 +1114,6 @@ on_event("Gift_Update", function(d)
         if r.Ok then S.gifts_got += 1 end
     end)
 end)
--- [[ the game moves you to another server after 18 minutes without any input, and Roblox kicks you after 20: ]] --
--- [[ a tiny mouse nudge every minute counts as input for both                                               ]] --
 go(function()
     local okV, vim = pcall(function() return game:GetService("VirtualInputManager") end)
     while S.alive do
@@ -1260,7 +1136,6 @@ track(me.Idled:Connect(function()
         vu:ClickButton2(Vector2.new())
     end)
 end))
--- [[ moved to another server (AFK move, a disconnect, a rejoin): the hub loads itself again there ]] --
 local SELF_FILE = "throw_food.lua"
 local function queue_self()
     if env.sobriety_tfa_queued or not S.auto_reload then return end
@@ -1279,7 +1154,6 @@ if fn then task.spawn(fn) end
 end
 queue_self()
 S.queue_self = queue_self
--- [[ disconnected: rejoin the game (the hub comes back with it) ]] --
 pcall(function()
     local GuiService: any = game:GetService("GuiService")
     track(GuiService.ErrorMessageChanged:Connect(function(msg)
@@ -1296,8 +1170,6 @@ pcall(function()
     end))
 end)
 
----------------------------------------------------------------- the leaderboards in the lobby
-
 local SUF = { "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc", "Ud", "Dd", "Td", "Qad", "Qid", "Sxd", "Spd", "Ocd", "Nod", "Vg" }
 local function parse_amount(s)
     s = tostring(s):gsub("SCORE", ""):gsub("[%$,%s]", "")
@@ -1310,7 +1182,6 @@ local function parse_amount(s)
     end
     return nil
 end
--- [[ the value shown on a board's row (the biggest number among its labels; the rank number is smaller) ]] --
 local function board_value(part, row)
     local lb = workspace:FindFirstChild("Leaderboards")
     local p = lb and lb:FindFirstChild(part)
@@ -1346,22 +1217,12 @@ S.training = training
 S.stop_training = stop_training
 S.busy = busy
 
--- [[ who this script is, for the shared Sobriety Hub window (reports/sobriety-ui/toolkit.lua) ]] --
 S.hub = {
     game = "Throw Food For Animals", tag = "THROW FOOD FOR ANIMALS", stop = "sobriety_tfa_stop",
     steps = { { 0, "linking executor" }, { 0.2, "hooking the game's remotes" }, { 0.45, "reading foods, stages and your plot" },
         { 0.7, "building the window" }, { 0.95, "ready" } },
 }
 
----------------------------------------------------------------- Sobriety Hub: the window
--- [[ Shared by every Sobriety Hub script (reports/sobriety-ui/toolkit.lua; each game's build joins it in). The game ]] --
--- [[ tells it who it is through S.hub = { game = "...", tag = "...", stop = "<name of its stop function in env>",     ]] --
--- [[ steps = { { 0, "..." }, ... } } before this part runs.                                                          ]] --
--- [[ Purple and black, animated, and sized to your screen: it scales with the screen and again whenever the screen   ]] --
--- [[ changes (a phone turned, the Roblox window resized); on small screens the sidebar folds into an icon rail.      ]] --
--- [[ Hidden (Right Alt or the – button), a round S button stays on screen to bring it back: on a phone that's the    ]] --
--- [[ way back. The toolkit (make_window) and the pages (build_ui) are separate functions: one function may only      ]] --
--- [[ hold 200 locals.                                                                                                ]] --
 local BOOT_QUICK = env.sobriety_quick_boot == true
 env.sobriety_quick_boot = nil
 
@@ -1371,8 +1232,6 @@ local TweenService = game:GetService("TweenService")
 local TextService = game:GetService("TextService")
 local GuiService: any = game:GetService("GuiService")
 
--- [[ The look: black glass with the logo's liquid running through it. The accent colours are the dripping S's own ]] --
--- [[ (pale pink at the top of the liquid, magenta in the middle, violet and deep purple where it pools).            ]] --
 local C = {
     bg = Color3.fromRGB(8, 6, 14), bg2 = Color3.fromRGB(23, 12, 40), panel = Color3.fromRGB(13, 10, 22), side = Color3.fromRGB(13, 10, 22),
     card = Color3.fromRGB(23, 17, 38), card2 = Color3.fromRGB(34, 25, 57), stroke = Color3.fromRGB(48, 36, 78),
@@ -1383,7 +1242,6 @@ local C = {
     white = Color3.new(1, 1, 1), black = Color3.new(0, 0, 0),
 }
 local ACCENT = ColorSequence.new({ ColorSequenceKeypoint.new(0, C.a3), ColorSequenceKeypoint.new(0.5, C.a1), ColorSequenceKeypoint.new(1, C.a2) })
--- [[ PILL: the liquid behind white text (top to bottom); LIQUID: the full run of the logo's liquid, for drips and fills ]] --
 local PILL = ColorSequence.new({ ColorSequenceKeypoint.new(0, C.a1), ColorSequenceKeypoint.new(0.6, C.a2), ColorSequenceKeypoint.new(1, C.deep) })
 local LIQUID = ColorSequence.new({ ColorSequenceKeypoint.new(0, C.a3), ColorSequenceKeypoint.new(0.45, C.a1), ColorSequenceKeypoint.new(1, C.a2) })
 local BOLD, REG, BLACK, MED = Enum.Font.GothamBold, Enum.Font.Gotham, Enum.Font.GothamBlack, Enum.Font.GothamMedium
@@ -1408,10 +1266,6 @@ local function outline(p, color, thick, transparency)
     return new("UIStroke", { Color = color or C.stroke, Thickness = thick or 1, Transparency = transparency or 0,
         ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = p })
 end
--- [[ a UIGradient also tints its object's own text, which made selected buttons look blank. So on a gradient ]] --
--- [[ button the text moves into a plain label on top of it (children aren't tinted).                         ]] --
--- [[ A button with words on it becomes wet glass: the liquid runs top to bottom (magenta to deep purple, so white ]] --
--- [[ words read on it) under a soft highlight. Bars, beads and lines keep the pink-to-violet run.                  ]] --
 local text_labels = {}
 local function gradient(p, rotation)
     local g = new("UIGradient", { Color = ACCENT, Rotation = rotation or 0, Parent = p })
@@ -1424,7 +1278,6 @@ local function gradient(p, rotation)
         local shine = new("Frame", { Name = "Sheen", Size = UDim2.new(1, 0, 0.5, 0), BackgroundColor3 = C.white, BorderSizePixel = 0, ZIndex = 0, Parent = p })
         new("UICorner", { CornerRadius = c and c.CornerRadius or UDim.new(0, 8), Parent = shine })
         new("UIGradient", { Rotation = 90, Transparency = NumberSequence.new(0.76, 1), Parent = shine })
-        -- [[ (pages switch the gradient off for a choice that isn't picked: then it's plain, dry glass) ]] --
         g:GetPropertyChangedSignal("Enabled"):Connect(function() shine.Visible = g.Enabled end)
     end
     return g
@@ -1440,8 +1293,6 @@ local function label(p, text, font, size, color, props)
     for k, v in pairs(props or {}) do l[k] = v end
     return l
 end
--- [[ the wet look. pill: liquid a white label reads on; sheen: the soft highlight across the top of anything wet ]] --
--- [[ (it sits under the labels); glass: a card's body, lighter at the top, with a thin bright line along its top   ]] --
 local function pill(p)
     local g = gradient(p, 90)
     g.Color = PILL
@@ -1465,13 +1316,10 @@ end
 W.tween, W.new, W.corner, W.outline, W.gradient, W.set_text, W.label = tween, new, corner, outline, gradient, set_text, label
 W.pill, W.sheen, W.glass, W.PILL, W.LIQUID = pill, sheen, glass, PILL, LIQUID
 
--- [[ gradients that keep turning (the border light, the logo) and UIScales that follow the screen size ]] --
 local spinners, scaled = {}, {}
 local function spin(g, speed) table.insert(spinners, { g, speed }) return g end
 local function follow(s) table.insert(scaled, s) return s end
 
--- [[ the logo: the dripping S, an animated sprite sheet (25 frames in a 5x5 grid, 200 px each, played at 10 a second) ]] --
--- [[ read from the workspace with getcustomasset, so nothing is uploaded to Roblox. Without the file the drawn S stays. ]] --
 local LOGO_GRID, LOGO_CELL, LOGO_FRAMES, LOGO_FPS = 5, 200, 25, 10
 local function load_sheet(file)
     local ok, id = pcall(function()
@@ -1480,14 +1328,10 @@ local function load_sheet(file)
     end)
     return (ok and type(id) == "string" and id ~= "") and id or nil
 end
--- [[ the dripping S for the top bar and the round button; for the boot screen, a bottle pouring onto the S forever ]] --
--- [[ (the _v number is part of the file name on purpose: Roblox keeps an image it has loaded for the whole session, ]] --
--- [[ by name, so a changed picture needs a new name to show up. reports/sobriety-logo/publish.ps1 copies them.      ]] --
 local logo_id = load_sheet("SobrietyHub_Logo_v4.png")
 W.boot_logo_id = load_sheet("SobrietyHub_Wet_v4.png") or logo_id
-W.intro_id = load_sheet("SobrietyHub_Pour_v4.png") -- the cold open: a bottle pours out and draws the S (played once)
+W.intro_id = load_sheet("SobrietyHub_Pour_v4.png")
 local sprites = {}
--- [[ the frame for a moment in time (seconds) ]] --
 local function logo_frame(t)
     local f = math.floor(t * LOGO_FPS) % LOGO_FRAMES
     return Vector2.new((f % LOGO_GRID) * LOGO_CELL, math.floor(f / LOGO_GRID) * LOGO_CELL)
@@ -1501,8 +1345,6 @@ local function logo_image(parent, size, z)
     return img
 end
 W.logo_id, W.logo_image, W.logo_frame, W.LOGO_CELL = logo_id, logo_image, logo_frame, LOGO_CELL
--- [[ Every picture the hub uses is loaded in the background first (the three logo sheets, your avatar). Nothing is ]] --
--- [[ shown until that's done (or 6 s have passed), so no picture pops in half-way through an animation.           ]] --
 W.assets_ready = false
 go(function()
     local list, seen = {}, {}
@@ -1513,7 +1355,6 @@ go(function()
             table.insert(list, id)
         end
     end
-    -- [[ the fonts too: a label for each one (never shown) makes them load now instead of on first use ]] --
     for _, font in ipairs({ BOLD, REG, BLACK, MED, BRAND, MONO }) do
         table.insert(list, new("TextLabel", { Font = font, Text = "SOBRIETY 0123" }))
     end
@@ -1529,7 +1370,7 @@ W.spin, W.follow = spin, follow
 local L = { s = 1, compact = false, w = 780, h = 520, side = 198, top = 70, inset = 0, drag = Vector2.zero }
 W.L = L
 local function viewport()
-    if S.preview_vp then return S.preview_vp end -- (only the Studio preview sets this, to look at the phone layout)
+    if S.preview_vp then return S.preview_vp end
     local cam = workspace.CurrentCamera
     local vp = cam and cam.ViewportSize
     if vp and vp.X > 50 and vp.Y > 50 then return vp end
@@ -1540,8 +1381,6 @@ local touch_only = UserInputService.TouchEnabled and not UserInputService.MouseE
 
 local gui = new("ScreenGui", { Name = "SobrietyHub", ResetOnSpawn = false, DisplayOrder = 100, IgnoreGuiInset = true,
     ZIndexBehavior = Enum.ZIndexBehavior.Sibling })
--- [[ where the window lives: the executor's hidden folder, else CoreGui, else (low-level executors that may use ]] --
--- [[ neither) your own PlayerGui, so the hub always opens                                                      ]] --
 local okH, hidden = pcall(function() return gethui and gethui() end)
 local function try_parent(p)
     if not p then return false end
@@ -1558,7 +1397,6 @@ pcall(function()
 end)
 W.gui = gui
 
--- [[ the window: a soft shadow, a purple glow that turns around it, and a light running along its border ]] --
 local holder = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(L.w, L.h),
     BackgroundTransparency = 1, Visible = false, Parent = gui })
 local scale = new("UIScale", { Scale = 1, Parent = holder })
@@ -1579,19 +1417,14 @@ new("UIGradient", { Color = ColorSequence.new(C.bg2, C.bg), Rotation = 40, Paren
 spin(new("UIGradient", { Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, C.a3), ColorSequenceKeypoint.new(0.22, C.stroke),
     ColorSequenceKeypoint.new(0.78, C.stroke), ColorSequenceKeypoint.new(1, C.a1) }),
     Parent = new("UIStroke", { Color = C.white, Thickness = 1.4, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = main }) }), 36)
--- [[ light inside the glass: magenta pooling in the top right corner, violet in the bottom left ]] --
 for _, b in ipairs({ { Vector2.new(1, 0), 135, C.a1, 0.8 }, { Vector2.new(0, 1), 315, C.a2, 0.84 } }) do
     local bloom = new("Frame", { AnchorPoint = b[1], Position = UDim2.fromScale(b[1].X, b[1].Y), Size = UDim2.fromOffset(620, 460),
         BackgroundColor3 = b[3], BorderSizePixel = 0, Parent = main })
-    -- [[ (clear from the middle of the diagonal on, so the glow has no visible edge where its frame ends) ]] --
     new("UIGradient", { Rotation = b[2], Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, b[4]), NumberSequenceKeypoint.new(0.25, 0.95),
         NumberSequenceKeypoint.new(0.5, 1), NumberSequenceKeypoint.new(1, 1) }), Parent = bloom })
 end
 W.holder, W.main, W.scale = holder, main, scale
 
--- [[ top bar: logo, the SOBRIETY wordmark (a light sweeps over it, and now and then it glitches), what you're   ]] --
--- [[ looking at, a live status pill (FARMING / TRAINING / IDLE), hide and unload. Its bottom edge is wet: a line ]] --
--- [[ of the logo's liquid that drips into the window (see the drips further down)                                ]] --
 local top = new("Frame", { Size = UDim2.new(1, 0, 0, L.top), BackgroundColor3 = C.panel, BorderSizePixel = 0, ZIndex = 3, Parent = main })
 corner(top, 16)
 new("Frame", { Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.new(1, 0, 0.5, 0), BackgroundColor3 = C.panel, BorderSizePixel = 0, Parent = top })
@@ -1632,7 +1465,6 @@ do
     pill(badge)
     sheen(badge)
     label(badge, "HUB", BRAND, 9, C.white, { Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Center })
-    -- [[ the wordmark's real width once its font has loaded (the guess above can be short: HUB covered "TY") ]] --
     local function fit_badge()
         local w = wm.TextBounds.X
         if w > 10 then badge.Position = UDim2.fromOffset(math.floor(w) + 8, 2) end
@@ -1642,7 +1474,6 @@ do
 end
 local sub = label(top, S.hub.game, MED, 11, C.dim, { Position = UDim2.fromOffset(56, 31), Size = UDim2.new(1, -290, 0, 14),
     TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 2 })
--- [[ the open-source loader, on the header's third line; a click copies it ]] --
 local LOADER = S.hub.loader or 'loadstring(game:HttpGet("https://raw.githubusercontent.com/xNovulon/SobrietyHub/main/hub.lua"))()'
 W.LOADER = LOADER
 local GITHUB = "https://github.com/xNovulon/SobrietyHub"
@@ -1683,18 +1514,16 @@ local function top_button(text, x)
     end
     return b
 end
-local close = top_button("X", -14) -- (a plain X: the ✕ symbol isn't in the font and showed as a box)
+local close = top_button("X", -14)
 local minimize = top_button("–", -50)
 
--- [[ sidebar: a glass dock floating inside the window. The tabs (a blob of liquid flows to the open one), then you ]] --
--- [[ at the bottom                                                                                                ]] --
 local side = new("Frame", { Position = UDim2.fromOffset(10, L.top + 12), Size = UDim2.new(0, L.side - 16, 1, -L.top - 22), BackgroundColor3 = C.panel,
     BorderSizePixel = 0, ZIndex = 2, Parent = main })
 glass(side, 14)
 local tab_list = new("ScrollingFrame", { Position = UDim2.fromOffset(8, 10), Size = UDim2.new(1, -16, 1, -80), BackgroundTransparency = 1,
     BorderSizePixel = 0, ScrollBarThickness = 0, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y,
     ScrollingDirection = Enum.ScrollingDirection.Y, ZIndex = 2, Parent = side })
-local TAB_H, TAB_GAP = 31, 3 -- (all 11 tabs fit above your card without scrolling)
+local TAB_H, TAB_GAP = 31, 3
 local indicator = new("Frame", { Size = UDim2.new(1, 0, 0, TAB_H), BackgroundColor3 = C.white, BorderSizePixel = 0, Visible = false, ZIndex = 1,
     Parent = tab_list })
 corner(indicator, 10)
@@ -1716,7 +1545,6 @@ local me_sub = label(me_card, "", REG, 11, C.dim, { Position = UDim2.fromOffset(
     TextTruncate = Enum.TextTruncate.AtEnd })
 W.me_sub = me_sub
 
--- [[ pages ]] --
 local content = new("Frame", { Position = UDim2.fromOffset(L.side, L.top), Size = UDim2.new(1, -L.side, 1, -L.top), BackgroundTransparency = 1,
     ClipsDescendants = true, ZIndex = 1, Parent = main })
 local pages, tabs, pads = {}, {}, {}
@@ -1745,7 +1573,6 @@ local function select_tab(name)
     if first then
         indicator.Position = UDim2.fromOffset(0, y)
     else
-        -- [[ the blob flows: it stretches from the old tab to the new one, then pulls itself together there ]] --
         local from = indicator.Position.Y.Offset
         tween(indicator, 0.16, { Position = UDim2.fromOffset(0, math.min(from, y)), Size = UDim2.new(1, 0, 0, math.abs(y - from) + TAB_H) },
             Enum.EasingStyle.Quad)
@@ -1784,11 +1611,9 @@ local function page(name, icon, order)
 end
 W.page = page
 
--- [[ building blocks ]] --
 local order = 0
 local function next_order() order += 1 return order end
 W.next_order = next_order
--- [[ a click ripple (mouse and touch positions don't count the top bar inset; this window's positions do) ]] --
 local function ripple(b, pos)
     if not b.Parent then return end
     local s = math.max(L.s, 0.01)
@@ -1815,7 +1640,6 @@ local function pressable(b)
     return s
 end
 W.rippled, W.pressable = rippled, pressable
--- [[ text that wraps grows its card to fit, so nothing is cut off however narrow the screen is ]] --
 local function measure(l, font)
     local s = math.max(L.s, 0.01)
     local w = l.AbsoluteSize.X / s
@@ -1843,7 +1667,6 @@ local function card(p, height)
     glass(f, 14)
     return f
 end
--- [[ section headers: a bead of liquid, the title, and a line that thins out to the right ]] --
 local function section(p, text)
     local f = new("Frame", { Size = UDim2.new(1, 0, 0, 32), BackgroundTransparency = 1, LayoutOrder = next_order(), Parent = p })
     local bead = new("Frame", { Position = UDim2.fromOffset(3, 15), Size = UDim2.fromOffset(8, 8), BackgroundColor3 = C.white, BorderSizePixel = 0, Parent = f })
@@ -1854,7 +1677,6 @@ local function section(p, text)
     new("UIGradient", { Color = ACCENT, Transparency = NumberSequence.new(0.45, 1), Parent = line })
     return f
 end
--- [[ title + a description that wraps (the card grows with it); single = one line, for cards with their own layout ]] --
 local function titled(f, title_text, desc, single)
     label(f, title_text, BOLD, 14, C.text, { Position = UDim2.fromOffset(16, desc and 11 or 0), Size = UDim2.new(1, -136, 0, desc and 18 or 48),
         TextTruncate = Enum.TextTruncate.AtEnd })
@@ -1882,7 +1704,6 @@ end
 local function toggle(p, title_text, desc, get, set, off_key)
     local f = card(p, desc and 68 or 48)
     local desc_label = titled(f, title_text, desc)
-    -- [[ the switch: an empty tube; switched on, liquid runs in from the left and carries the knob across ]] --
     local sw = new("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -16, 0.5, 0), Size = UDim2.fromOffset(48, 26),
         BackgroundColor3 = C.ink, Parent = f })
     corner(sw)
@@ -1896,7 +1717,6 @@ local function toggle(p, title_text, desc, get, set, off_key)
     corner(knob)
     local state = label(f, "OFF", BOLD, 10, C.dim, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -72, 0.5, 0),
         Size = UDim2.fromOffset(30, 14), TextXAlignment = Enum.TextXAlignment.Right })
-    -- [[ a switched-on card gets a glowing edge on its left ]] --
     local edge = new("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.new(0, 3, 0, 0),
         BackgroundColor3 = C.white, BorderSizePixel = 0, Parent = f })
     corner(edge, 2)
@@ -1919,7 +1739,6 @@ local function toggle(p, title_text, desc, get, set, off_key)
         tween(knob, t, { Position = on and UDim2.new(1, -13, 0.5, 0) or UDim2.new(0, 13, 0.5, 0), BackgroundColor3 = on and C.white or C.dim },
             Enum.EasingStyle.Back)
         if t > 0 then
-            -- [[ the knob squashes as it sets off and rounds out again where it lands, like a drop ]] --
             knob.Size = UDim2.fromOffset(27, 17)
             tween(knob, 0.4, { Size = UDim2.fromOffset(20, 20) }, Enum.EasingStyle.Back)
         end
@@ -1938,7 +1757,6 @@ local function toggle(p, title_text, desc, get, set, off_key)
     paint()
     return f
 end
--- [[ a row of choices; the picked one sits under a gradient pill that slides between them ]] --
 local function segmented(p, title_text, options, get, set)
     local f = card(p, 84)
     label(f, title_text, BOLD, 14, C.text, { Position = UDim2.fromOffset(16, 10), Size = UDim2.new(1, -32, 0, 18), TextTruncate = Enum.TextTruncate.AtEnd })
@@ -1983,7 +1801,6 @@ local function segmented(p, title_text, options, get, set)
         if was == nil then
             slider.Position = pos
         else
-            -- [[ the liquid stretches towards the new choice, then gathers under it ]] --
             local lo, hi = math.min(was, idx), math.max(was, idx)
             tween(slider, 0.15, { Position = UDim2.new((lo - 1) / n, 3, 0, 3), Size = UDim2.new((hi - lo + 1) / n, -6, 1, -6) }, Enum.EasingStyle.Quad)
             task.delay(0.15, function()
@@ -2005,7 +1822,6 @@ local function action(p, title_text, desc, button_text, fn)
     local glow = outline(b, C.a3, 1, 0.55)
     pressable(b)
     if not touch_only then
-        -- [[ pointing at it: its edge lights up and a drip gathers under it ]] --
         local stem = new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(1, -40, 0.5, 14), Size = UDim2.fromOffset(4, 0),
             BackgroundColor3 = C.a2, BorderSizePixel = 0, Parent = f })
         corner(stem)
@@ -2037,8 +1853,6 @@ local function info(p, height)
     fit(l, f, 9, 9, 36, BOLD)
     return l
 end
--- [[ number tiles: liquid stands in the bottom of each one and rocks gently; when the number changes it flashes ]] --
--- [[ and the liquid jumps                                                                                       ]] --
 local pools = {}
 local function stats(p, names)
     local f = new("Frame", { Size = UDim2.new(1, 0, 0, 74), BackgroundTransparency = 1, LayoutOrder = next_order(), Parent = p })
@@ -2068,16 +1882,60 @@ local function stats(p, names)
     return values
 end
 W.card, W.section, W.titled, W.hover, W.toggle, W.segmented, W.action, W.info, W.stats = card, section, titled, hover, toggle, segmented, action, info, stats
--- [[ Credits (every hub puts this on its Settings page): who made it, that it's open source, and the loader ]] --
--- [[ Credits: its own tab in the side menu, last (every hub calls this; the page argument is from when it lived ]] --
--- [[ in Settings and is ignored now)                                                                          ]] --
--- [[ the hide / show key: Right Alt unless you picked another one in Settings (S.hide_key, saved per account) ]] --
+function W.server_hop(why)
+    if type(logf) == "function" then pcall(logf, "HOP", tostring(why) .. ": moving to another server") end
+    if S.queue_self then
+        S.auto_reload = true
+        pcall(S.queue_self)
+    end
+    local TS, Http = game:GetService("TeleportService"), game:GetService("HttpService")
+    local best = nil
+    pcall(function()
+        local body = (game :: any):HttpGet(("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100"):format(game.PlaceId))
+        local data = Http:JSONDecode(body)
+        for _, sv in ipairs(data.data or {}) do
+            local n, mx = tonumber(sv.playing) or 0, tonumber(sv.maxPlayers) or 0
+            if sv.id ~= game.JobId and n < mx - 1 and (not best or n < (tonumber(best.playing) or 0)) then best = sv end
+        end
+    end)
+    local ok = best and pcall(function() TS:TeleportToPlaceInstance(game.PlaceId, best.id, Players.LocalPlayer) end)
+    if not ok then pcall(function() TS:Teleport(game.PlaceId, Players.LocalPlayer) end) end
+end
+function W.hop_every(p, hop_fn)
+    section(p, "SERVER HOP TIMER")
+    segmented(p, "Server hop every (the hub loads itself in the new server and carries on)",
+        { { 0, "Off" }, { 10, "10 min" }, { 20, "20 min" }, { 30, "30 min" }, { 60, "60 min" } },
+        function() return S.hop_every end, function(v)
+            S.hop_every = v
+            S.hop_timer_t = os.clock()
+        end)
+    local t = info(p, 30)
+    table.insert(W.painters, function()
+        local every = tonumber(S.hop_every) or 0
+        if every <= 0 then
+            t.Text = "Off: stays in this server."
+        else
+            local left = math.max(0, every * 60 - (os.clock() - (S.hop_timer_t or os.clock())))
+            t.Text = ("Next hop in <b>%d:%02d</b>"):format(math.floor(left / 60), math.floor(left % 60))
+        end
+    end)
+    go(function()
+        S.hop_timer_t = S.hop_timer_t or os.clock()
+        while S.alive do
+            task.wait(5)
+            local every = tonumber(S.hop_every) or 0
+            if every > 0 and os.clock() - (S.hop_timer_t or os.clock()) >= every * 60 then
+                S.hop_timer_t = os.clock()
+                go(function() pcall(hop_fn or W.server_hop, ("every %d minutes"):format(every)) end)
+            end
+        end
+    end)
+end
 local function key_name(k)
     local n = tostring(k or "RightAlt"):gsub("(%l)(%u)", "%1 %2")
     return n
 end
 W.key_name = key_name
--- [[ Settings: pick the hide / show key. Click the button, press a key (Escape cancels). Not on phones (no keys) ]] --
 function W.keybind(p)
     if touch_only then return end
     section(p, "HIDE / SHOW KEY")
@@ -2101,7 +1959,6 @@ function W.keybind(p)
     end
 end
 function W.credits(p)
-    -- [[ called from each hub's Settings code: the key picker goes there, the credits get their own tab ]] --
     if p then W.keybind(p) end
     if W.credits_made then return end
     W.credits_made = true
@@ -2122,7 +1979,6 @@ function W.credits(p)
     action(p, "Copy the loader", LOADER, "COPY", function() copy(LOADER) end)
 end
 
--- [[ the round S button: shows while the window is hidden; tap it to open the window, drag it anywhere ]] --
 local bubble = new("TextButton", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 44, 0.42, 0), Size = UDim2.fromOffset(54, 54),
     BackgroundColor3 = C.white, AutoButtonColor = false, Text = "", Visible = false, ZIndex = 20, Parent = gui })
 corner(bubble)
@@ -2138,8 +1994,6 @@ else
 end
 follow(new("UIScale", { Parent = bubble }))
 
--- [[ the drips: liquid gathers under the top bar's wet edge, swells, lets a drop go and pulls back. Each has its own ]] --
--- [[ place, thickness, reach and timing; they're drawn over the page, in the colour the edge has at that spot        ]] --
 local drip_row = new("Frame", { Position = UDim2.fromOffset(0, L.top - 1), Size = UDim2.new(1, 0, 0, 90), BackgroundTransparency = 1, ZIndex = 4,
     Parent = main })
 local drips = {}
@@ -2147,8 +2001,6 @@ for i, d in ipairs({ { 0.06, 3, 9, 0.00, 6.5 }, { 0.3, 4, 13, 0.30, 7.4 }, { 0.5
     { 0.93, 3, 8, 0.55, 6.1 } }) do
     local x, w = d[1], d[2]
     local col = x < 0.5 and C.a3:Lerp(C.a1, x * 2) or C.a1:Lerp(C.a2, (x - 0.5) * 2)
-    -- [[ where it leaves the edge the liquid is wider (a low mound), so the drip grows out of the edge instead of ]] --
-    -- [[ hanging off it like a pin                                                                                ]] --
     for _, m in ipairs({ { 2.6, 2, 3 }, { 1.7, 1, 5 } }) do
         corner(new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(x, 0, 0, -1), Size = UDim2.fromOffset(math.floor(w * m[1] + m[2]), m[3]),
             BackgroundColor3 = col, BorderSizePixel = 0, Parent = drip_row }))
@@ -2159,7 +2011,6 @@ for i, d in ipairs({ { 0.06, 3, 9, 0.00, 6.5 }, { 0.3, 4, 13, 0.30, 7.4 }, { 0.5
     local bulb = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(x, 0, 0, 3), Size = UDim2.fromOffset(w + 2, w + 2),
         BackgroundColor3 = col, BorderSizePixel = 0, Parent = drip_row })
     corner(bulb)
-    -- [[ a point of light on the bulb: it's wet ]] --
     local glint = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.34, 0.34), Size = UDim2.fromScale(0.3, 0.3),
         BackgroundColor3 = C.white, BackgroundTransparency = 0.25, BorderSizePixel = 0, Parent = bulb })
     corner(glint)
@@ -2193,8 +2044,6 @@ local function move_drips(t)
 end
 move_drips(0)
 
--- [[ size and place, from the screen: a big screen gets a bigger window, a small one (a phone) gets the compact ]] --
--- [[ layout; a window you dragged stays where you put it but always on the screen                              ]] --
 local shown = false
 local function place() return UDim2.new(0.5, L.drag.X, 0.5, L.inset / 2 + L.drag.Y) end
 W.place = place
@@ -2258,7 +2107,6 @@ do
     end))
 end
 
--- [[ show / hide (the S button takes the window's place while it's hidden) ]] --
 local function pop_bubble(on)
     if on then
         bubble.Visible = true
@@ -2285,14 +2133,11 @@ local function hide()
     pop_bubble(true)
 end
 W.show, W.hide = show, hide
--- [[ the first time it appears: once every picture is loaded, it eases in. (It used to flicker in by hiding its  ]] --
--- [[ contents for two frames, which left only the window's dark shadow on screen: a black flash.)                ]] --
 W.reveal = function()
     go(function()
         W.wait_assets()
         if holder.Parent then
             show()
-            -- [[ say which key hides it (people can't guess Right Alt) ]] --
             task.delay(4, function()
                 if type(notify) == "function" then
                     pcall(notify, touch_only and "The - button hides this window; the round S button brings it back."
@@ -2307,7 +2152,6 @@ track(UserInputService.InputBegan:Connect(function(input, processed)
     if S.binding_key or processed or input.KeyCode.Name ~= (S.hide_key or "RightAlt") then return end
     if shown then hide() else show() end
 end))
--- [[ X asks first (one stray tap on a phone shouldn't unload everything): tap it again within 3s to unload ]] --
 do
     local armed = -100
     local tip = label(main, "Tap X again to unload", BOLD, 11, C.white, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 62),
@@ -2332,8 +2176,6 @@ do
         end)
     end)
 end
--- [[ dragging: the window by its top bar, the S button anywhere (a short tap on it opens the window). On a ]] --
--- [[ phone only the finger that started the drag moves it, so the joystick thumb doesn't drag it along.     ]] --
 local function draggable(handle, on_move, on_end)
     local down, start = nil, nil
     handle.InputBegan:Connect(function(input)
@@ -2378,8 +2220,6 @@ do
     end)
 end
 
--- [[ animation: the turning gradients and the light sweeping over the wordmark (only while something is on screen), ]] --
--- [[ the status dot's pulse, and a short glitch on SOBRIETY every few seconds                                        ]] --
 do
     local t0 = os.clock()
     track(RunService.Heartbeat:Connect(function()
@@ -2402,7 +2242,6 @@ do
             for i = #pools, 1, -1 do
                 local pl = pools[i]
                 if pl[1].Parent then
-                    -- [[ it sloshes: the surface tips a few degrees one way, then the other ]] --
                     pl[3] *= 0.93
                     pl[1].Rotation = 90 + 3.2 * math.sin(t * 1.15 + pl[2])
                     pl[1].Offset = Vector2.new(0, -pl[3])
@@ -2444,21 +2283,15 @@ end)
 return W
 end
 
--- [[ The boot screen: SOBRIETY decodes out of random letters with a glitch (split colours, sliced rows, scanlines, ]] --
--- [[ noise), a loading line runs, then it shuts like an old monitor and the window flickers in. Click to skip.    ]] --
--- [[ After a server hop (the helper reloading itself) it plays a short version.                                   ]] --
 local function play_boot(W, done, quick)
     local C, new, corner, tween = W.C, W.new, W.corner, W.tween
-    W.wait_assets() -- (nothing on screen until every picture is loaded)
+    W.wait_assets()
     local s = W.L.s
     local total = quick and 1.3 or 3.1
     local layer = new("TextButton", { Name = "Boot", Size = UDim2.fromScale(1, 1), BackgroundColor3 = C.black, BackgroundTransparency = 1,
         AutoButtonColor = false, Text = "", ZIndex = 50, Parent = W.gui })
     local skipped = false
     layer.MouseButton1Click:Connect(function() skipped = true end)
-    -- [[ No black screen: the boot plays on a pane of dark glass the size of the hub's window, right where the window ]] --
-    -- [[ will appear, so the game stays visible around it. The pane ("screen") switches on like an old monitor: a line ]] --
-    -- [[ across, then it opens. root keeps its full size inside it, so nothing moves while the screen opens.           ]] --
     local cw, ch, cr = math.floor(W.L.w * s), math.floor(W.L.h * s), math.floor(16 * s)
     local spot = W.place()
     local screen = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = spot, Size = UDim2.fromOffset(0, 2),
@@ -2481,8 +2314,6 @@ local function play_boot(W, done, quick)
         end)
         task.delay(0.5, function() beam:Destroy() end)
     end
-    -- [[ the cold open (full boot only): over the game itself, a bottle pours out and draws the S. Its last frame is ]] --
-    -- [[ the first of the endless pour, so it carries straight on into that; then the boot switches on around it    ]] --
     local intro_logo, wet_t0 = nil, nil
     if W.intro_id and not quick then
         local is = math.floor(200 * s)
@@ -2505,7 +2336,6 @@ local function play_boot(W, done, quick)
             task.wait(1 / 30)
         end
     end
-    -- [[ a faint grid drifting behind (kept clear of the pane's round corners), a purple bloom in the middle, dark edges ]] --
     local grid = new("Frame", { Position = UDim2.fromOffset(cr, cr), Size = UDim2.new(1, -2 * cr, 1, -2 * cr), BackgroundTransparency = 1,
         ClipsDescendants = true, Parent = root })
     local grid_in = new("Frame", { Position = UDim2.fromOffset(-48, -48), Size = UDim2.new(1, 96, 1, 96), BackgroundTransparency = 1, Parent = grid })
@@ -2518,7 +2348,6 @@ local function play_boot(W, done, quick)
             BorderSizePixel = 0, Parent = grid_in })
     end
     tween(grid_in, total + 0.5, { Position = UDim2.fromOffset(0, 0) }, Enum.EasingStyle.Linear)
-    -- [[ the bloom: ten faint pills stacked from big to small, so the glow fades out softly in every direction ]] --
     for i = 1, 10 do
         local k = 1 - (i - 1) * 0.085
         local bloom = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
@@ -2531,14 +2360,11 @@ local function play_boot(W, done, quick)
         corner(edge, cr)
         new("UIGradient", { Rotation = v[1], Transparency = NumberSequence.new(0.3, 1), Parent = edge })
     end
-    -- [[ the title, built from six sliced rows (each can slide on its own) over two colour-split copies ]] --
     local crt = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5),
         Size = UDim2.fromOffset(math.floor(700 * s), math.floor(250 * s)), BackgroundTransparency = 1, ClipsDescendants = true, Parent = root })
     local stage = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(700, 250),
         BackgroundTransparency = 1, Parent = crt })
     new("UIScale", { Scale = s, Parent = stage })
-    -- [[ the animated logo above the title: fades in, or after the cold open glides up from the middle while the screen ]] --
-    -- [[ switches on around it; shakes with the glitch (not while gliding), shuts with the screen                         ]] --
     local boot_logo = nil
     local ls = math.floor(130 * s)
     local logo_pos = UDim2.new(spot.X.Scale, spot.X.Offset, spot.Y.Scale, spot.Y.Offset - math.floor(98 * s))
@@ -2589,7 +2415,6 @@ local function play_boot(W, done, quick)
     local pct = new("TextLabel", { Position = UDim2.fromOffset(440, 204), Size = UDim2.fromOffset(80, 16), BackgroundTransparency = 1, Text = "000%",
         Font = W.MONO, TextSize = 11, TextColor3 = C.a3, TextXAlignment = Enum.TextXAlignment.Right, Parent = stage })
     tween(bar_track, 0.5, { Size = UDim2.fromOffset(340, 2) })
-    -- [[ the corners: little readouts typing themselves out ]] --
     local hs = math.max(9, math.floor(11 * s + 0.5))
     local hud = {}
     local function hud_text(anchor, pos, align, text)
@@ -2602,7 +2427,6 @@ local function play_boot(W, done, quick)
     hud_text(Vector2.new(1, 0), UDim2.new(1, -18, 0, 16), RIGHT, "PLACE " .. tostring(game.PlaceId))
     hud_text(Vector2.new(0, 1), UDim2.new(0, 18, 1, -16), LEFT, "USER @" .. me.Name)
     hud_text(Vector2.new(1, 1), UDim2.new(1, -18, 1, -16), RIGHT, os.date("%Y.%m.%d  %H:%M"))
-    -- [[ scanlines, a band of light rolling down, and noise blocks for the glitch bursts ]] --
     local lines = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 3, Parent = root })
     for y = cr, ch - cr, 4 do
         new("Frame", { Position = UDim2.fromOffset(0, y), Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = C.black, BackgroundTransparency = 0.55,
@@ -2688,7 +2512,6 @@ local function play_boot(W, done, quick)
         if t > total * 0.86 then g = 0.95 end
         glitch(g)
         if boot_logo then
-            -- [[ the endless pour keeps its own clock from the cold open, so it never skips back to its first frame ]] --
             if wet_t0 then
                 boot_logo.ImageRectOffset = W.logo_frame(os.clock() - wet_t0)
             elseif intro_logo then
@@ -2706,7 +2529,6 @@ local function play_boot(W, done, quick)
     glitch(0)
     for _, b in ipairs(blocks) do b.Visible = false end
     if not skipped and layer.Parent then
-        -- [[ the old-monitor shut: squeezed to a line, then the line shrinks to nothing ]] --
         local w0 = crt.Size.X.Offset
         tween(crt, 0.16, { Size = UDim2.fromOffset(w0, 2) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
         if boot_logo then
@@ -2758,7 +2580,6 @@ local function per_hour(stat)
     return (tonumber(get_path(stat)) or 0) - (S.stat0[stat] or 0), hours
 end
 
--- [[ Home: start / stop, the numbers, boosts, where it's throwing, what just happened ]] --
 do
     local hero = card(home, 112)
     local hero_stroke = hero:FindFirstChildOfClass("UIStroke")
@@ -2837,7 +2658,6 @@ do
     end)
 end
 
--- [[ Throw ]] --
 section(throw_page, "THROWING")
 toggle(throw_page, "Auto farm", "Throws (and trains, see Training) by itself: no flight, no cutscene, a perfect meter every time",
     function() return S.farm end, function(v)
@@ -2903,7 +2723,6 @@ do
     end)
 end
 
--- [[ Training ]] --
 section(train_page, "PULL-UP BAR")
 toggle(train_page, "Rush to the last stage", "85% of each minute on the bar, the next bar bought before anything else, throws aimed at the best spot you can reach",
     function() return S.rush end, function(v)
@@ -2932,7 +2751,6 @@ do
             .. "This session: <b>+%s XP</b>, <b>%d levels</b> (%s XP a minute)\nBar tier <b>%d</b>  ·  %s"):format(math.floor(L), short(xp), short(need),
             need > 0 and math.floor(xp / need * 100) or 0, math.floor(S.max_power()), short(S.xp_gained), S.levels_gained, short(S.xp_gained / mins), stand,
             "throws need the throw line and training needs the bar, so with Both they take turns")
-        -- [[ how long to the last stage at your XP rate and share of time on the bar ]] --
         local eta = "worked out after your first stretch on the bar"
         local share = S.share_now() / 100
         if S.goal_level > 0 and L >= S.goal_level then
@@ -2946,7 +2764,6 @@ do
     end)
 end
 
--- [[ Plot & Shop ]] --
 section(plot_page, "ANIMALS")
 toggle(plot_page, "Equip best", "Puts your best animals on your plot after new catches", function() return S.equip_best end, function(v) S.equip_best = v end)
 toggle(plot_page, "Sell extras", "Sells every animal that isn't on your plot (bought ones are never sold)", function() return S.auto_sell end, function(v) S.auto_sell = v end)
@@ -2964,7 +2781,6 @@ action(plot_page, "Sell extras now", "Sells what isn't on your plot", "SELL", fu
     end)
 end)
 
--- [[ Leaderboards: you against the boards in the lobby (they update every minute) ]] --
 section(boards_page, "YOU AGAINST THE LOBBY BOARDS")
 for _, b in ipairs(S.BOARDS) do
     local t = info(boards_page, 70)
@@ -2989,7 +2805,7 @@ for _, b in ipairs(S.BOARDS) do
     end)
 end
 
--- [[ Extras ]] --
+W.hop_every(extras_page, W.server_hop)
 section(extras_page, "QUALITY OF LIFE")
 toggle(extras_page, "Accept gifts", "Accepts gifts other players send you (they pay)", function() return S.gifts end, function(v) S.gifts = v end)
 toggle(extras_page, "Anti-AFK", "A tiny mouse nudge every minute, so the game doesn't move you to another server", function() return S.anti_afk end, function(v) S.anti_afk = v end)
@@ -3003,7 +2819,6 @@ toggle(extras_page, "Hide other players' pets", "Less to draw, more FPS", functi
     task.spawn(S.call, "Player_SetSetting", "ShowOtherPets", not v)
 end)
 
--- [[ Logs ]] --
 local log_view
 do
     local i = info(logs_page, 44)
@@ -3023,7 +2838,6 @@ do
         TextWrapped = true, TextTruncate = Enum.TextTruncate.AtEnd })
 end
 
--- [[ Settings ]] --
 section(settings_page, "WINDOW")
 segmented(settings_page, "Window size", { { 0.85, "Small" }, { 1, "Normal" }, { 1.15, "Large" } },
     function() return S.ui_size end, function(v)
@@ -3039,7 +2853,6 @@ end)
 action(settings_page, "Unload", "Stops everything and removes the window", "UNLOAD", function() if env.sobriety_tfa_stop then env.sobriety_tfa_stop() end end)
 W.credits(settings_page)
 
--- [[ toasts ]] --
 local toast_area = new("Frame", { AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -16, 1, -16), Size = UDim2.fromOffset(300, 420),
     BackgroundTransparency = 1, ZIndex = 30, Parent = gui })
 W.follow(new("UIScale", { Scale = W.L.s, Parent = toast_area }))
@@ -3110,8 +2923,6 @@ end
 end
 local gui, refresh = build_ui()
 
----------------------------------------------------------------- unload, loops
-
 local function save_log()
     local wf = exec("writefile")
     if typeof(wf) ~= "function" then return end
@@ -3137,7 +2948,6 @@ env.sobriety_tfa_stop = function()
     env.sobriety_tfa_stop = nil
 end
 
--- [[ the farm on its own thread; a crash in one step is written down and the next step goes on ]] --
 local function farm_loop(gen)
     while S.alive and S.farm_gen == gen do
         S.farm_beat = os.clock()
@@ -3156,8 +2966,6 @@ end
 S.farm_gen, S.farm_beat = 1, os.clock()
 S.cycle0 = os.clock()
 go(function() farm_loop(1) end)
--- [[ the watchdog: if one farm step hasn't finished in 60 s, it's stuck on something. Write down what it was doing ]] --
--- [[ and where you are, and start a fresh farm (the stuck one stops the moment it wakes up)                         ]] --
 go(function()
     while S.alive do
         task.wait(5)
@@ -3175,7 +2983,6 @@ go(function()
         end
     end
 end)
--- [[ plot, shop and food every few seconds (each part has its own switch, so it runs with the farm off too) ]] --
 go(function()
     task.wait(2)
     while S.alive do
@@ -3184,7 +2991,6 @@ go(function()
         task.wait(5)
     end
 end)
--- [[ the window's numbers, saved settings and the log file ]] --
 go(function()
     local last_log = os.clock()
     while S.alive do
