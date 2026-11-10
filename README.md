@@ -4,4 +4,6 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/xNovulon/SobrietyHub/main/hub.lua"))()
 ```
 
-made by Novulon · Discord 1z11
+Open source scripts made with delicacy 🥀
+For suggestions and Requests, Discord: 1z11
+Roblox username: 💀
