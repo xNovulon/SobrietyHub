@@ -48,7 +48,7 @@ if env.sobriety_tfa_run ~= RUN then return end
 
 local S = {
     alive = true, conns = {}, threads = {}, auto_off = {}, status = "Ready", log = {}, log_dirty = false, session_start = os.clock(),
-    ui_size = 1, boot_anim = true, saved_settings = "", settings_loaded = false,
+    ui_size = 1, boot_anim = true, hide_key = "RightAlt", saved_settings = "", settings_loaded = false,
     farm = false, speed = "Instant", target = "Money", target_area = 1, use_super = "Always", ring_rush = true, ring_cap = 100,
     train_mode = "Both", train_share = 25, smart_boosts = true, tap_bonus = true,
     equip_best = true, auto_sell = true, keep_rare = false, buy_food = true, buy_bar = true, buy_fence = true, best_food = true,
@@ -61,7 +61,7 @@ local S = {
     train_fail_t = -100, train_warn_t = -100, xp_gained = 0, levels_gained = 0, level_log_t = -100,
     prev_phase = "", phase_since = 0, phase_xp = 0, phase_throws = 0, stat0 = {}, rejoining = false, last_err = "",
 }
-local SETTING_KEYS = { "ui_size", "boot_anim",
+local SETTING_KEYS = { "ui_size", "boot_anim", "hide_key",
     "farm", "speed", "target", "target_area", "use_super", "ring_rush", "ring_cap", "train_mode", "train_share", "smart_boosts", "tap_bonus",
     "equip_best", "auto_sell", "keep_rare", "buy_food", "buy_bar", "buy_fence", "best_food", "gifts", "anti_afk", "auto_reload", "hide_pets", "overdrive", "rush",
 }
@@ -2071,7 +2071,38 @@ W.card, W.section, W.titled, W.hover, W.toggle, W.segmented, W.action, W.info, W
 -- [[ Credits (every hub puts this on its Settings page): who made it, that it's open source, and the loader ]] --
 -- [[ Credits: its own tab in the side menu, last (every hub calls this; the page argument is from when it lived ]] --
 -- [[ in Settings and is ignored now)                                                                          ]] --
-function W.credits(_p)
+-- [[ the hide / show key: Right Alt unless you picked another one in Settings (S.hide_key, saved per account) ]] --
+local function key_name(k)
+    local n = tostring(k or "RightAlt"):gsub("(%l)(%u)", "%1 %2")
+    return n
+end
+W.key_name = key_name
+-- [[ Settings: pick the hide / show key. Click the button, press a key (Escape cancels). Not on phones (no keys) ]] --
+function W.keybind(p)
+    if touch_only then return end
+    section(p, "HIDE / SHOW KEY")
+    local b = nil
+    local f = action(p, "Hide / show key", "Click, then press the key you want (Escape cancels). On phones: the - button and the round S button", key_name(S.hide_key),
+        function()
+            if S.binding_key or not b then return end
+            S.binding_key = true
+            set_text(b, "PRESS A KEY")
+            local conn
+            conn = UserInputService.InputBegan:Connect(function(input)
+                if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+                conn:Disconnect()
+                if input.KeyCode ~= Enum.KeyCode.Escape and input.KeyCode.Name ~= "Unknown" then S.hide_key = input.KeyCode.Name end
+                set_text(b, key_name(S.hide_key))
+                task.delay(0.3, function() S.binding_key = false end)
+            end)
+        end)
+    for _, d in ipairs(f:GetChildren()) do
+        if d:IsA("TextButton") then b = d end
+    end
+end
+function W.credits(p)
+    -- [[ called from each hub's Settings code: the key picker goes there, the credits get their own tab ]] --
+    if p then W.keybind(p) end
     if W.credits_made then return end
     W.credits_made = true
     local p = page("Credits", "⭐", 99)
@@ -2259,12 +2290,21 @@ W.show, W.hide = show, hide
 W.reveal = function()
     go(function()
         W.wait_assets()
-        if holder.Parent then show() end
+        if holder.Parent then
+            show()
+            -- [[ say which key hides it (people can't guess Right Alt) ]] --
+            task.delay(4, function()
+                if type(notify) == "function" then
+                    pcall(notify, touch_only and "The - button hides this window; the round S button brings it back."
+                        or ("%s hides / shows this window (change it in Settings). The - button does it too."):format(key_name(S.hide_key)))
+                end
+            end)
+        end
     end)
 end
 minimize.MouseButton1Click:Connect(hide)
 track(UserInputService.InputBegan:Connect(function(input, processed)
-    if processed or input.KeyCode ~= Enum.KeyCode.RightAlt then return end
+    if S.binding_key or processed or input.KeyCode.Name ~= (S.hide_key or "RightAlt") then return end
     if shown then hide() else show() end
 end))
 -- [[ X asks first (one stray tap on a phone shouldn't unload everything): tap it again within 3s to unload ]] --

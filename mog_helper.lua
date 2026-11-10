@@ -103,7 +103,7 @@ local S = {
     grow_babies = true, grow_hours = 72, grow_fail = {}, grow_note = "-", grow_swaps = 0, last_grow = 0, grow_full = false,
     hop_mode = "Off", hop_note = "-", hop_min = 0.5, hop_max = 1, fly_speed = 100, walk_speed = 60,
     skip_junk = true, take_others = true, auto_daily = true, skipped = {}, skipped_count = 0, free_count = 0, sell_floor = true, wanted = {}, let_go = {}, speed_first = true,
-    mill_mog = true, farm_mode = "Normal", mode_backup = {}, gate_off_since = 0, boot_anim = true, ui_size = 1,
+    mill_mog = true, farm_mode = "Normal", mode_backup = {}, gate_off_since = 0, boot_anim = true, ui_size = 1, hide_key = "RightAlt",
     auto_rejoin = true, rejoin_mins = 20, rejoin_due = false, rejoin_note = "-", rejoin_going = false,
     auto_aura = true, auto_mill_upgrade = true, always_events = true, mill_tried = setmetatable({}, { __mode = "k" }), last_bank_t = 0, last_knock_t = 0,
     stages = {}, pick = "Best", travel = "Teleport", click_mult = 10, status = "Ready",
@@ -151,7 +151,7 @@ local HttpService = game:GetService("HttpService")
 local SETTING_KEYS = { "always_win", "force_win", "skip_fight", "fast_mog", "parallel_mog", "auto_mog", "farm", "equip_best", "auto_mutate", "treadmill",
     "anti_ragdoll", "anti_void", "carry_drop", "bat_thieves", "gift", "gift_min", "stages", "pick", "travel",
     "auto_ascend", "auto_rebirth", "auto_pen", "auto_coach", "auto_index", "decline_battles",
-    "auto_aura", "auto_mill_upgrade", "always_events", "auto_sell", "sell_ratio", "sell_old", "auto_reconnect", "grow_babies", "grow_hours", "hop_mode", "hop_min", "hop_max", "fly_speed", "walk_speed",
+    "auto_aura", "auto_mill_upgrade", "always_events", "auto_sell", "sell_ratio", "sell_old", "auto_reconnect", "grow_babies", "grow_hours", "hop_mode", "hop_min", "hop_max", "fly_speed", "walk_speed", "hide_key",
     "skip_junk", "take_others", "auto_daily", "sell_floor", "speed_first", "mill_mog", "farm_mode", "mode_backup", "boot_anim", "ui_size",
     "auto_rejoin", "rejoin_mins" }
 local function settings_json()
@@ -4850,7 +4850,38 @@ W.card, W.section, W.titled, W.hover, W.toggle, W.segmented, W.action, W.info, W
 -- [[ Credits (every hub puts this on its Settings page): who made it, that it's open source, and the loader ]] --
 -- [[ Credits: its own tab in the side menu, last (every hub calls this; the page argument is from when it lived ]] --
 -- [[ in Settings and is ignored now)                                                                          ]] --
-function W.credits(_p)
+-- [[ the hide / show key: Right Alt unless you picked another one in Settings (S.hide_key, saved per account) ]] --
+local function key_name(k)
+    local n = tostring(k or "RightAlt"):gsub("(%l)(%u)", "%1 %2")
+    return n
+end
+W.key_name = key_name
+-- [[ Settings: pick the hide / show key. Click the button, press a key (Escape cancels). Not on phones (no keys) ]] --
+function W.keybind(p)
+    if touch_only then return end
+    section(p, "HIDE / SHOW KEY")
+    local b = nil
+    local f = action(p, "Hide / show key", "Click, then press the key you want (Escape cancels). On phones: the - button and the round S button", key_name(S.hide_key),
+        function()
+            if S.binding_key or not b then return end
+            S.binding_key = true
+            set_text(b, "PRESS A KEY")
+            local conn
+            conn = UserInputService.InputBegan:Connect(function(input)
+                if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+                conn:Disconnect()
+                if input.KeyCode ~= Enum.KeyCode.Escape and input.KeyCode.Name ~= "Unknown" then S.hide_key = input.KeyCode.Name end
+                set_text(b, key_name(S.hide_key))
+                task.delay(0.3, function() S.binding_key = false end)
+            end)
+        end)
+    for _, d in ipairs(f:GetChildren()) do
+        if d:IsA("TextButton") then b = d end
+    end
+end
+function W.credits(p)
+    -- [[ called from each hub's Settings code: the key picker goes there, the credits get their own tab ]] --
+    if p then W.keybind(p) end
     if W.credits_made then return end
     W.credits_made = true
     local p = page("Credits", "⭐", 99)
@@ -5038,12 +5069,21 @@ W.show, W.hide = show, hide
 W.reveal = function()
     go(function()
         W.wait_assets()
-        if holder.Parent then show() end
+        if holder.Parent then
+            show()
+            -- [[ say which key hides it (people can't guess Right Alt) ]] --
+            task.delay(4, function()
+                if type(notify) == "function" then
+                    pcall(notify, touch_only and "The - button hides this window; the round S button brings it back."
+                        or ("%s hides / shows this window (change it in Settings). The - button does it too."):format(key_name(S.hide_key)))
+                end
+            end)
+        end
     end)
 end
 minimize.MouseButton1Click:Connect(hide)
 track(UserInputService.InputBegan:Connect(function(input, processed)
-    if processed or input.KeyCode ~= Enum.KeyCode.RightAlt then return end
+    if S.binding_key or processed or input.KeyCode.Name ~= (S.hide_key or "RightAlt") then return end
     if shown then hide() else show() end
 end))
 -- [[ X asks first (one stray tap on a phone shouldn't unload everything): tap it again within 3s to unload ]] --

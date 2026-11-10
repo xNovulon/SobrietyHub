@@ -44,7 +44,7 @@ if env.sobriety_feral_run ~= RUN then return end
 
 local S = {
     alive = true, conns = {}, threads = {}, auto_off = {}, status = "Ready", log = {}, log_dirty = false, session_start = os.clock(),
-    ui_size = 1, boot_anim = true, saved_settings = "", settings_loaded = false,
+    ui_size = 1, boot_anim = true, hide_key = "RightAlt", saved_settings = "", settings_loaded = false,
     farm = false, hunt = true, prey = "Prey", bite_speed = 1, auto_lunge = true, latch_bite = true, auto_squeeze = true, eat_kills = true,
     auto_eat = true, eat_at = 70, auto_drink = true, drink_at = 70, food_src = "Both", drink_return = true,
     revive_free = false, flee_players = true, flee_dist = 70, flee_npcs = true, rest_heal = true,
@@ -63,7 +63,7 @@ local S = {
     held = false, was_held = false, escaping = false, last_bitten = -1000, last_kill = "-", walk_set = false, patched_sp = false, face_m = false,
     face_until = 0, leaping = false, leap_target = false, release_ok = false, afk_up_now = false, afk_under_now = false, underground = false, speed_cap = 99, travel_cap = 999, lead_i = 1, last_input_t = 0, fish_bad_school = {}, self_moved_t = 0, gait_set = false, trot_press_t = 0, goal_sent = 0, starve_note_t = -100, nostam_set = false, last_sq_t = 0, clamp_prey = false, latch_sent = 0, latch_hits = 0, last_under_t = -100, last_surface = false, water_burst = false, hold_chase = false, chase_speed = 60, avoid = false, snaps = 0, snap_t = -100, last_pace = 100, trot_now = 1, hopping = false, hop_due = false, afk_pos = false, afk_name = false, afk_back = false, target = false, quests = false, rew = false, rew_t = 0, rejoining = false, last_err = "", paint_errs = {}, amber0 = 0,
 }
-local SETTING_KEYS = { "ui_size", "boot_anim",
+local SETTING_KEYS = { "ui_size", "boot_anim", "hide_key",
     "farm", "hunt", "prey", "bite_speed", "auto_lunge", "latch_bite", "auto_squeeze", "eat_kills", "auto_eat", "eat_at", "auto_drink", "drink_at",
     "food_src", "drink_return", "revive_free", "flee_players", "flee_dist", "flee_npcs", "rest_heal", "anti_grab", "fight_back", "dodge_birds",
     "low_escape", "big_hit_escape", "low_escape_at", "low_escape_mode", "aura", "aura_bots", "bird_bite", "bird_reach_mult", "leap_on", "leap_key", "leap_range", "keep_latch", "aura_key", "aura_ring", "aura_targets", "reach_mult", "walk_mult", "trot_mult", "run_mult", "burst_mult", "escape_far", "speed_lock", "snap_guard", "escape",
@@ -4401,7 +4401,38 @@ W.card, W.section, W.titled, W.hover, W.toggle, W.segmented, W.action, W.info, W
 -- [[ Credits (every hub puts this on its Settings page): who made it, that it's open source, and the loader ]] --
 -- [[ Credits: its own tab in the side menu, last (every hub calls this; the page argument is from when it lived ]] --
 -- [[ in Settings and is ignored now)                                                                          ]] --
-function W.credits(_p)
+-- [[ the hide / show key: Right Alt unless you picked another one in Settings (S.hide_key, saved per account) ]] --
+local function key_name(k)
+    local n = tostring(k or "RightAlt"):gsub("(%l)(%u)", "%1 %2")
+    return n
+end
+W.key_name = key_name
+-- [[ Settings: pick the hide / show key. Click the button, press a key (Escape cancels). Not on phones (no keys) ]] --
+function W.keybind(p)
+    if touch_only then return end
+    section(p, "HIDE / SHOW KEY")
+    local b = nil
+    local f = action(p, "Hide / show key", "Click, then press the key you want (Escape cancels). On phones: the - button and the round S button", key_name(S.hide_key),
+        function()
+            if S.binding_key or not b then return end
+            S.binding_key = true
+            set_text(b, "PRESS A KEY")
+            local conn
+            conn = UserInputService.InputBegan:Connect(function(input)
+                if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+                conn:Disconnect()
+                if input.KeyCode ~= Enum.KeyCode.Escape and input.KeyCode.Name ~= "Unknown" then S.hide_key = input.KeyCode.Name end
+                set_text(b, key_name(S.hide_key))
+                task.delay(0.3, function() S.binding_key = false end)
+            end)
+        end)
+    for _, d in ipairs(f:GetChildren()) do
+        if d:IsA("TextButton") then b = d end
+    end
+end
+function W.credits(p)
+    -- [[ called from each hub's Settings code: the key picker goes there, the credits get their own tab ]] --
+    if p then W.keybind(p) end
     if W.credits_made then return end
     W.credits_made = true
     local p = page("Credits", "⭐", 99)
@@ -4589,12 +4620,21 @@ W.show, W.hide = show, hide
 W.reveal = function()
     go(function()
         W.wait_assets()
-        if holder.Parent then show() end
+        if holder.Parent then
+            show()
+            -- [[ say which key hides it (people can't guess Right Alt) ]] --
+            task.delay(4, function()
+                if type(notify) == "function" then
+                    pcall(notify, touch_only and "The - button hides this window; the round S button brings it back."
+                        or ("%s hides / shows this window (change it in Settings). The - button does it too."):format(key_name(S.hide_key)))
+                end
+            end)
+        end
     end)
 end
 minimize.MouseButton1Click:Connect(hide)
 track(UserInputService.InputBegan:Connect(function(input, processed)
-    if processed or input.KeyCode ~= Enum.KeyCode.RightAlt then return end
+    if S.binding_key or processed or input.KeyCode.Name ~= (S.hide_key or "RightAlt") then return end
     if shown then hide() else show() end
 end))
 -- [[ X asks first (one stray tap on a phone shouldn't unload everything): tap it again within 3s to unload ]] --
@@ -5033,6 +5073,12 @@ local gui, painters, page, next_order = W.gui, W.painters, W.page, W.next_order
 local card, section, toggle, segmented, action, info, stats = W.card, W.section, W.toggle, W.segmented, W.action, W.info, W.stats
 local top_pill, me_sub = W.top_pill, W.me_sub
 
+-- [[ phones and tablets: no keyboard, so key pickers and keyboard hints are hidden (the touch buttons do those jobs) ]] --
+local touch_only = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+local function pc_only(f)
+    if touch_only and typeof(f) == "Instance" then (f :: any).Visible = false end
+    return f
+end
 local home = page("Home", "⌂", 0)
 local hunt_page = page("Hunt", "🐺", 1)
 local survive_page = page("Survive", "💧", 2)
@@ -5303,10 +5349,11 @@ toggle(fight_page, "Dodge diving birds", "Steps aside when an eagle or falcon di
 section(fight_page, "BITE AURA")
 toggle(fight_page, "Bite aura on bots", "Always on: any bot in reach gets bitten, all around you (you turn to it for the bite); wild hunters once they bite you",
     function() return S.aura_bots end, function(v) S.aura_bots = v end)
-toggle(fight_page, "Bite aura on players", "Players in reach get bitten too, while this is on. The key below turns it on and off",
+toggle(fight_page, "Bite aura on players", touch_only and "Players in reach get bitten too, while this is on. The AURA touch button turns it on and off"
+    or "Players in reach get bitten too, while this is on. The key below turns it on and off",
     function() return S.aura end, function(v) S.aura = v end)
-segmented(fight_page, "Key for players (R is the game's Rest, which stops biting)", { { "T", "T" }, { "V", "V" }, { "N", "N" }, { "K", "K" } },
-    function() return S.aura_key end, function(v) S.aura_key = v end)
+pc_only(segmented(fight_page, "Key for players (R is the game's Rest, which stops biting)", { { "T", "T" }, { "V", "V" }, { "N", "N" }, { "K", "K" } },
+    function() return S.aura_key end, function(v) S.aura_key = v end))
 segmented(fight_page, "Players it bites", { { "Attackers", "Only ones biting me" }, { "Everyone", "Everyone in reach" } },
     function() return S.aura_targets end, function(v) S.aura_targets = v end)
 toggle(fight_page, "Show the reach ring", "While the players aura (T) is on: a ring showing how far your bites reach. The blue bird bubble shows only when a bird is close",
@@ -5314,13 +5361,15 @@ toggle(fight_page, "Show the reach ring", "While the players aura (T) is on: a r
 segmented(fight_page, "Bite reach", { { 1, "Game's" }, { 1.25, "1.25x" }, { 1.5, "1.5x (server's most)" } },
     function() return S.reach_mult end, function(v) S.reach_mult = v end)
 section(fight_page, "LEAP (ANY ANIMAL, ANY SIZE)")
-toggle(fight_page, "Leap", "The key below flies you onto the animal you're looking at (any size, bots or players) with the lunge pose; you stay on its back until you let go (the key again or Space). You do the biting",
+toggle(fight_page, "Leap", touch_only and "The LEAP touch button flies you onto the animal you're looking at (any size, bots or players) with the lunge pose; you stay on its back until you press LET GO. You do the biting"
+    or "The key below flies you onto the animal you're looking at (any size, bots or players) with the lunge pose; you stay on its back until you let go (the key again or Space). You do the biting",
     function() return S.leap_on end, function(v) S.leap_on = v end)
-segmented(fight_page, "Leap key", { { "V", "V" }, { "N", "N" }, { "K", "K" }, { "Y", "Y" } },
-    function() return S.leap_key end, function(v) S.leap_key = v end)
+pc_only(segmented(fight_page, "Leap key", { { "V", "V" }, { "N", "N" }, { "K", "K" }, { "Y", "Y" } },
+    function() return S.leap_key end, function(v) S.leap_key = v end))
 segmented(fight_page, "Leap range", { { 15, "15 (the lunge's)" }, { 40, "40 studs" }, { 80, "80 studs" } },
     function() return S.leap_range end, function(v) S.leap_range = v end)
-toggle(fight_page, "Stay on until I let go", "The game's own automatic let-go is held back. Yours always works (F, the leap key, or the game's button), and it lets go by itself if you drop under 50% or something else bites you",
+toggle(fight_page, "Stay on until I let go", touch_only and "The game's own automatic let-go is held back. Yours always works (LET GO, or the game's button), and it lets go by itself if you drop under 50% or something else bites you"
+    or "The game's own automatic let-go is held back. Yours always works (F, the leap key, or the game's button), and it lets go by itself if you drop under 50% or something else bites you",
     function() return S.keep_latch end, function(v) S.keep_latch = v end)
 do
     local t = info(fight_page, 30)
@@ -5588,8 +5637,8 @@ end
 section(settings_page, "PHONE AND TABLET")
 toggle(settings_page, "Touch buttons", "On phones and tablets: AURA, LEAP, LET GO and FARM buttons on the screen (drag MOVE to put them anywhere)",
     function() return S.touch_bar end, function(v) S.touch_bar = v end)
-toggle(settings_page, "Show them with a keyboard too", "The touch buttons on a computer as well", function() return S.touch_bar_always end,
-    function(v) S.touch_bar_always = v end)
+pc_only(toggle(settings_page, "Show them with a keyboard too", "The touch buttons on a computer as well", function() return S.touch_bar_always end,
+    function(v) S.touch_bar_always = v end))
 section(settings_page, "YOUR EXECUTOR")
 do
     local t = info(settings_page, 120)
