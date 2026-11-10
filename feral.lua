@@ -1,3 +1,8 @@
+-- Sobriety Hub  ·  made by Novulon  ·  Discord: 1z11 (suggestions and script requests only)
+-- Open source and free to use: https://github.com/xNovulon/SobrietyHub
+-- If you use this work to make a new script or an updated version, I'd appreciate a credit.
+-- Loader: loadstring(game:HttpGet("https://raw.githubusercontent.com/xNovulon/SobrietyHub/main/hub.lua"))()
+
 -- Sobriety Hub: FERAL Animal Survival
 -- Hunts bots only (never players), eats and drinks for you, fishes, picks the amber trees, explores, does place quests,
 -- claims rewards, breaks free from grabs, fights back (bite aura on T), dodges birds, gets away when low, runs from
@@ -45,7 +50,7 @@ local S = {
     revive_free = false, flee_players = true, flee_dist = 70, flee_npcs = true, rest_heal = true,
     anti_grab = true, fight_back = true, dodge_birds = true, low_escape = false, big_hit_escape = true, low_escape_at = 25, low_escape_mode = "Both",
     aura = false, aura_bots = true, bird_bite = true, bird_reach_mult = 1.5, leap_on = true, leap_key = "V", leap_range = 40, keep_latch = true, aura_key = "T", aura_ring = true, aura_targets = "Attackers", reach_mult = 1,
-    walk_mult = 1, trot_mult = 1, run_mult = 1, burst_mult = 1, escape_far = 200, speed_lock = true, snap_guard = true, escape = true, inf_stamina = true, no_hurt_slow = true, fast_swim = true, travel_speed = 1, instant_turn = true, slow_near = false, auto_gait = "Off", avoid_players = true, avoid_dist = 150, low_profile = true, travel_under = true, near_mode = "Under", watch_dist = 150,
+    walk_mult = 1, trot_mult = 1, run_mult = 1, burst_mult = 1, escape_far = 200, speed_lock = true, snap_guard = true, escape = true, inf_stamina = true, no_hurt_slow = true, fast_swim = true, travel_speed = 1, instant_turn = true, touch_bar = true, touch_bar_always = false, slow_near = false, auto_gait = "Off", avoid_players = true, avoid_dist = 150, low_profile = true, travel_under = true, near_mode = "Under", watch_dist = 150,
     esp = false, esp_players = true, esp_predators = true, esp_gators = true, esp_prey = false, esp_mice = false, esp_range = 600, esp_highlight = true,
     rewards = true, quest_places = true, chunks = true, explore = true, anti_afk = true, auto_reload = true,
     cull = true, cull_dist = 400, hide_raids = true, event_log = true, afk = false, afk_place = "Under", hop_amber = true, amber_mode = false,
@@ -56,13 +61,13 @@ local S = {
     chunk_amber = 0, bird_bites = 0, bird_hits = 0, fast_state = 0, fast_sent = 0, fast_hits = 0, norm_sent = 0, norm_hits = 0, pace_fast_now = false, cur_cd = 0.7, last_bite_t = 0,
     drink_anywhere = 0, found = {}, failed = {}, quest_tried = {}, herd_i = 0, chunk_t = -1000, toured = false, manual = false, manual_gen = 0,
     held = false, was_held = false, escaping = false, last_bitten = -1000, last_kill = "-", walk_set = false, patched_sp = false, face_m = false,
-    face_until = 0, leaping = false, leap_target = false, release_ok = false, afk_up_now = false, afk_under_now = false, underground = false, speed_cap = 99, travel_cap = 999, lead_i = 1, last_input_t = 0, self_moved_t = 0, gait_set = false, trot_press_t = 0, goal_sent = 0, starve_note_t = -100, nostam_set = false, last_sq_t = 0, clamp_prey = false, latch_sent = 0, latch_hits = 0, last_under_t = -100, last_surface = false, water_burst = false, hold_chase = false, chase_speed = 60, avoid = false, snaps = 0, snap_t = -100, last_pace = 100, trot_now = 1, hopping = false, hop_due = false, afk_pos = false, afk_name = false, afk_back = false, target = false, quests = false, rew = false, rew_t = 0, rejoining = false, last_err = "", paint_errs = {}, amber0 = 0,
+    face_until = 0, leaping = false, leap_target = false, release_ok = false, afk_up_now = false, afk_under_now = false, underground = false, speed_cap = 99, travel_cap = 999, lead_i = 1, last_input_t = 0, fish_bad_school = {}, self_moved_t = 0, gait_set = false, trot_press_t = 0, goal_sent = 0, starve_note_t = -100, nostam_set = false, last_sq_t = 0, clamp_prey = false, latch_sent = 0, latch_hits = 0, last_under_t = -100, last_surface = false, water_burst = false, hold_chase = false, chase_speed = 60, avoid = false, snaps = 0, snap_t = -100, last_pace = 100, trot_now = 1, hopping = false, hop_due = false, afk_pos = false, afk_name = false, afk_back = false, target = false, quests = false, rew = false, rew_t = 0, rejoining = false, last_err = "", paint_errs = {}, amber0 = 0,
 }
 local SETTING_KEYS = { "ui_size", "boot_anim",
     "farm", "hunt", "prey", "bite_speed", "auto_lunge", "latch_bite", "auto_squeeze", "eat_kills", "auto_eat", "eat_at", "auto_drink", "drink_at",
     "food_src", "drink_return", "revive_free", "flee_players", "flee_dist", "flee_npcs", "rest_heal", "anti_grab", "fight_back", "dodge_birds",
     "low_escape", "big_hit_escape", "low_escape_at", "low_escape_mode", "aura", "aura_bots", "bird_bite", "bird_reach_mult", "leap_on", "leap_key", "leap_range", "keep_latch", "aura_key", "aura_ring", "aura_targets", "reach_mult", "walk_mult", "trot_mult", "run_mult", "burst_mult", "escape_far", "speed_lock", "snap_guard", "escape",
-    "inf_stamina", "no_hurt_slow", "fast_swim", "travel_speed", "instant_turn", "slow_near", "auto_gait", "avoid_players", "avoid_dist", "low_profile", "travel_under", "near_mode", "watch_dist", "esp", "esp_players", "esp_predators", "esp_gators",
+    "inf_stamina", "no_hurt_slow", "fast_swim", "travel_speed", "instant_turn", "touch_bar", "touch_bar_always", "slow_near", "auto_gait", "avoid_players", "avoid_dist", "low_profile", "travel_under", "near_mode", "watch_dist", "esp", "esp_players", "esp_predators", "esp_gators",
     "esp_prey", "esp_mice", "esp_range", "esp_highlight", "rewards", "quest_places", "chunks", "explore", "anti_afk", "auto_reload",
     "cull", "cull_dist", "hide_raids", "event_log", "afk", "afk_place", "hop_amber", "amber_mode",
     "hook_on", "hook_url", "hook_death", "hook_low", "hook_hunger", "hook_thirst", "hook_goal_on", "hook_hp", "hook_need", "hook_goal",
@@ -156,7 +161,9 @@ S.trot_mult = one_of(S.trot_mult, { 1, 1.25, 1.5, 2, 3 }, 1)
 S.run_mult = one_of(S.run_mult, { 1, 1.25, 1.5, 2, 3 }, 1)
 S.burst_mult = one_of(S.burst_mult, { 1, 1.25, 1.5, 2, 3 }, 1)
 S.escape_far = one_of(S.escape_far, { 100, 200, 400 }, 200)
-S.travel_speed = one_of(S.travel_speed, { 1, 60, 100, 160, 250, 0 }, 1)
+-- [[ Instant is gone (the server pulls you back after any teleport): an old Instant pick becomes 400 ]] --
+if S.travel_speed == 0 then S.travel_speed = 400 end
+S.travel_speed = one_of(S.travel_speed, { 1, 60, 100, 160, 250, 400 }, 1)
 S.auto_gait = one_of(S.auto_gait, { "Off", "Trot", "Run", "Burst" }, "Off")
 S.avoid_dist = one_of(S.avoid_dist, { 100, 150, 250 }, 150)
 S.esp_range = one_of(S.esp_range, { 300, 600, 1200, 3000 }, 600)
@@ -213,6 +220,42 @@ for _, n in ipairs({ "WolfActions", "FeralFishEat", "FeralRewards", "FeralQuests
     R[n] = RS:FindFirstChild(n)
 end
 local function now() return Workspace:GetServerTimeNow() end
+
+-- [[ What this executor can do. Potassium has all of it; lower-level ones (Xeno, Solara...) may not: the hub then ]] --
+-- [[ runs without that piece (each use is checked), and this list says what's off. Shown in Settings and the log. ]] --
+local SUPPORT = {
+    { "getgc", "speed / stamina / swim / turn settings (unless the game's own tables come back from require)" },
+    { "hookmetamethod", "\"Stay on until I let go\"" },
+    { "getcustomasset", "the animated logo (a plain S instead)" },
+    { "writefile", "saving your settings and logs" },
+    { "readfile", "loading your saved settings" },
+    { "queue_on_teleport", "coming back after a server move or hop" },
+    { "request", "Discord alerts" },
+    { "setclipboard", "the copy-log buttons" },
+    { "gethui", "hiding the window from the game (it still opens)" },
+}
+function S.support()
+    local missing = {}
+    for _, x in ipairs(SUPPORT) do
+        local f = exec(x[1])
+        if x[1] == "request" and typeof(f) ~= "function" then f = exec("http_request") end
+        if x[1] == "queue_on_teleport" and typeof(f) ~= "function" then f = exec("queueonteleport") end
+        if typeof(f) ~= "function" then table.insert(missing, x) end
+    end
+    if not VIM or S.vim_failed then table.insert(missing, { "VirtualInputManager", "pressing keys for you (auto lunge, auto trot, the mouse nudge)" }) end
+    local name = "unknown"
+    pcall(function()
+        local idf = exec("identifyexecutor") or exec("getexecutorname")
+        if typeof(idf) == "function" then name = tostring((idf())) end
+    end)
+    return name, missing
+end
+task.defer(function()
+    local name, missing = S.support()
+    local off = {}
+    for _, x in ipairs(missing) do table.insert(off, x[1]) end
+    logf("START", ("executor: %s; %s"):format(name, #off == 0 and "everything works" or ("missing: " .. table.concat(off, ", "))))
+end)
 
 ---------------------------------------------------------------- the event log: everything, for reading back later
 -- [[ What the server sends you (every remote), what the hub sends, your stats as they change, players coming and   ]] --
@@ -673,7 +716,8 @@ local function travel(x, z, keep, water, instant, deep)
             continue
         end
         if paused > 0 then S.status = status0 end
-        local nxt = cur + f.Unit * math.min(d, pace() * dt)
+        local sp_now = pace()
+        local nxt = cur + f.Unit * math.min(d, sp_now * dt)
         local hit = down(nxt.X, nxt.Z, water)
         if hit then
             waited = 0
@@ -690,12 +734,28 @@ local function travel(x, z, keep, water, instant, deep)
         if under and not S.underground then ev("MOVE", "going underground (" .. (seen and "a player is close" or "always underground") .. ")") end
         S.underground = under
         if under then S.last_under_t = os.clock() end
+        -- [[ up and down no faster than 1.5x the glide (a 500-stud drop in one frame is a teleport to the server) ]] --
+        local vmax = math.max(sp_now, 60) * 1.5 * dt
+        y = cur.Y + math.clamp(y - cur.Y, -vmax, vmax)
         cur = Vector3.new(nxt.X, y, nxt.Z)
         S.hold = CFrame.lookAt(cur, cur + f.Unit)
     end
     S.underground = false
     local hit = down(x, z, water)
-    if hit and flat(goal - cur).Magnitude < 3 then place(stand_cf(hit.Position, look)) else S.hold = nil end
+    -- [[ arrived above (or below) the ground: down / up to it at the same capped rate, then stand ]] --
+    if hit and flat(goal - cur).Magnitude < 3 then
+        local stand_y = hit.Position.Y + root_height() + 0.05
+        local f = look.Magnitude > 0.05 and look.Unit or Vector3.new(0, 0, -1)
+        while keep() and math.abs(cur.Y - stand_y) > 3 do
+            local dt = task.wait()
+            local vmax = math.max(S.last_pace or 60, 60) * 1.5 * dt
+            cur = Vector3.new(cur.X, cur.Y + math.clamp(stand_y - cur.Y, -vmax, vmax), cur.Z)
+            S.hold = CFrame.lookAt(cur, cur + f)
+        end
+        place(stand_cf(hit.Position, look))
+    else
+        S.hold = nil
+    end
     return keep() and flat(goal - cur).Magnitude < 3
 end
 S.travel = travel
@@ -1270,12 +1330,18 @@ local function bite(target, mouse)
     end
 end
 local function press(key)
-    if not VIM then return false end
-    return pcall(function()
+    if not VIM or S.vim_failed then return false end
+    local ok = pcall(function()
         VIM:SendKeyEvent(true, key, false, game)
         task.wait(0.06)
         VIM:SendKeyEvent(false, key, false, game)
     end)
+    -- [[ this executor can't press keys: say so once, and stop trying ]] --
+    if not ok then
+        S.vim_failed = true
+        logf("ERROR", "this executor can't press keys for you: auto lunge and auto trot are off")
+    end
+    return ok
 end
 S.press = press
 -- [[ the moves that leap onto prey and grab it (abilities.md 1 and 3): the hunt uses yours (F) when it's ready. ]] --
@@ -1693,7 +1759,8 @@ local function fish(keep)
     table.sort(list, function(a, b) return flat(a.s.c - r.Position).Magnitude < flat(b.s.c - r.Position).Magnitude end)
     local sc = nil
     for _, x in ipairs(list) do
-        if #live_fish(x) > 0 and not near_player(x.s.c, S.avoid_players and S.avoid_dist or (S.low_profile and 80 or 0)) then
+        local bad = S.fish_bad_school[x.i] and os.clock() - S.fish_bad_school[x.i] < 180
+        if not bad and #live_fish(x) > 0 and not near_player(x.s.c, S.avoid_players and S.avoid_dist or (S.low_profile and 80 or 0)) then
             sc = x
             break
         end
@@ -1707,9 +1774,20 @@ local function fish(keep)
     local rel = r.CFrame:PointToObjectSpace(m0)
     local h0, t0, last, none_t = hunger(), os.clock(), 0, os.clock()
     local ff = RS:FindFirstChild("FeralFish")
+    -- [[ a fish not eaten after a bite is skipped for 20 s (run 8: the same fish was tried 75 times); 6 misses in a ]] --
+    -- [[ row = this school isn't working, try another one in 3 minutes                                            ]] --
+    local skip, misses = {}, 0
     S.status = "fishing"
     while keep() and os.clock() - t0 < 50 and hunger() < 97 do
-        local fishes = live_fish(sc)
+        local fishes = {}
+        for _, i in ipairs(live_fish(sc)) do
+            if not (skip[i] and os.clock() - skip[i] < 20) then table.insert(fishes, i) end
+        end
+        if misses >= 6 then
+            S.fish_bad_school[sc.i] = os.clock()
+            ev("FISH", ("school %d: 6 bites, no fish eaten; trying elsewhere"):format(sc.i))
+            break
+        end
         if #fishes == 0 then
             if os.clock() - none_t > 6 then break end
             task.wait(0.3)
@@ -1724,11 +1802,21 @@ local function fish(keep)
                 last = os.clock()
                 S.last_bite_t = last
                 task.wait()
-                fire("WolfActions", "Bite", now())
+                local t = now()
+                -- [[ the game's own fishing runs on this too (it eats whatever fish is at your mouth) ]] --
+                local c = me.Character
+                if c then pcall(c.SetAttribute, c, "WolfBiteAt", t) end
+                fire("WolfActions", "Bite", t)
                 fire("FeralFishEat", sc.i, fi)
-                task.delay(0.6, function()
-                    if ff and (ff:GetAttribute("e" .. sc.i .. "_" .. fi) or 0) > now() then S.fish += 1 end
-                end)
+                local h_before = hunger()
+                task.wait(0.5)
+                if ff and ((ff:GetAttribute("e" .. sc.i .. "_" .. fi) or 0) > now() or hunger() > h_before + 0.5) then
+                    S.fish += 1
+                    misses = 0
+                else
+                    skip[fi] = os.clock()
+                    misses += 1
+                end
             end
             task.wait()
         end
@@ -2637,6 +2725,7 @@ do
     local gh = exec("gethui")
     pcall(function() holder.Parent = (typeof(gh) == "function" and gh()) or CoreGui end)
     if not holder.Parent then pcall(function() holder.Parent = CoreGui end) end
+    if not holder.Parent then pcall(function() holder.Parent = me:WaitForChild("PlayerGui") end) end
     S.esp_holder = holder
     local marks = {}
     local COL = {
@@ -3198,8 +3287,15 @@ do
         if not S.afk_pos then S.afk_pos, S.afk_name = pick_spot() end
         if not S.afk_back then S.afk_back = r.Position end
         local p = make_platform(S.afk_pos)
-        S.hold = stand_cf(p.Position + Vector3.new(0, 1, 0), r.CFrame.LookVector)
-        task.wait(0.3)
+        -- [[ glide up (an instant jump up there gets pulled back by the server) ]] --
+        local top = stand_cf(p.Position + Vector3.new(0, 1, 0), r.CFrame.LookVector)
+        S.chase_speed = math.min(S.travel_cap, 160)
+        S.hold_chase = true
+        S.hold = top
+        local t0 = os.clock()
+        repeat task.wait(0.1) until (r.Position - top.Position).Magnitude < 3 or os.clock() - t0 > 20
+        S.hold_chase = false
+        task.wait(0.2)
         S.hold = nil
         S.afk_up_now = true
         logf("AFK", "on the AFK platform above " .. tostring(S.afk_name))
@@ -3232,7 +3328,7 @@ do
         S.hold = nil
         local b = S.afk_back
         if b then
-            travel(b.X, b.Z, keep, true, true)
+            travel(b.X, b.Z, keep, true)
             logf("AFK", "back down")
         end
         S.afk_back = false
@@ -3760,7 +3856,7 @@ W.wait_assets = function()
 end
 W.spin, W.follow = spin, follow
 
-local L = { s = 1, compact = false, w = 780, h = 520, side = 198, top = 56, inset = 0, drag = Vector2.zero }
+local L = { s = 1, compact = false, w = 780, h = 520, side = 198, top = 70, inset = 0, drag = Vector2.zero }
 W.L = L
 local function viewport()
     if S.preview_vp then return S.preview_vp end -- (only the Studio preview sets this, to look at the phone layout)
@@ -3774,8 +3870,17 @@ local touch_only = UserInputService.TouchEnabled and not UserInputService.MouseE
 
 local gui = new("ScreenGui", { Name = "SobrietyHub", ResetOnSpawn = false, DisplayOrder = 100, IgnoreGuiInset = true,
     ZIndexBehavior = Enum.ZIndexBehavior.Sibling })
+-- [[ where the window lives: the executor's hidden folder, else CoreGui, else (low-level executors that may use ]] --
+-- [[ neither) your own PlayerGui, so the hub always opens                                                      ]] --
 local okH, hidden = pcall(function() return gethui and gethui() end)
-gui.Parent = (okH and hidden) or CoreGui
+local function try_parent(p)
+    if not p then return false end
+    local ok = pcall(function() gui.Parent = p end)
+    return ok and gui.Parent == p
+end
+if not (okH and try_parent(hidden)) and not try_parent(CoreGui) then
+    gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+end
 pcall(function()
     for _, g in ipairs(gui.Parent:GetChildren()) do
         if g ~= gui and (g.Name == "SobrietyHub" or g.Name == "MogHub") then g:Destroy() end
@@ -3867,6 +3972,24 @@ do
 end
 local sub = label(top, S.hub.game, MED, 11, C.dim, { Position = UDim2.fromOffset(56, 31), Size = UDim2.new(1, -290, 0, 14),
     TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 2 })
+-- [[ the open-source loader, on the header's third line; a click copies it ]] --
+local LOADER = S.hub.loader or 'loadstring(game:HttpGet("https://raw.githubusercontent.com/xNovulon/SobrietyHub/main/hub.lua"))()'
+W.LOADER = LOADER
+local GITHUB = "https://github.com/xNovulon/SobrietyHub"
+W.GITHUB = GITHUB
+local HEADER_LINE = "OPEN SOURCE  ·  github.com/xNovulon/SobrietyHub  ·  made by Novulon  ·  click to copy the GitHub link"
+local loader_btn = new("TextButton", { AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 56, 1, -5), Size = UDim2.new(1, -70, 0, 14),
+    BackgroundTransparency = 1, AutoButtonColor = false, Text = HEADER_LINE, Font = MONO, TextSize = 10, TextColor3 = C.a3, TextTransparency = 0.25,
+    TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 2, Parent = top })
+loader_btn.MouseEnter:Connect(function() loader_btn.TextTransparency = 0 end)
+loader_btn.MouseLeave:Connect(function() loader_btn.TextTransparency = 0.25 end)
+loader_btn.MouseButton1Click:Connect(function()
+    local sc = (getgenv and getgenv().setclipboard) or setclipboard or toclipboard
+    if typeof(sc) == "function" and pcall(sc, GITHUB) then
+        loader_btn.Text = "GitHub link copied: " .. GITHUB
+        task.delay(2, function() loader_btn.Text = HEADER_LINE end)
+    end
+end)
 local top_pill = { frame = new("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -88, 0.5, 0), Size = UDim2.fromOffset(112, 28),
     BackgroundColor3 = C.card, ZIndex = 2, Parent = top }) }
 glass(top_pill.frame, 14)
@@ -4275,6 +4398,28 @@ local function stats(p, names)
     return values
 end
 W.card, W.section, W.titled, W.hover, W.toggle, W.segmented, W.action, W.info, W.stats = card, section, titled, hover, toggle, segmented, action, info, stats
+-- [[ Credits (every hub puts this on its Settings page): who made it, that it's open source, and the loader ]] --
+-- [[ Credits: its own tab in the side menu, last (every hub calls this; the page argument is from when it lived ]] --
+-- [[ in Settings and is ignored now)                                                                          ]] --
+function W.credits(_p)
+    if W.credits_made then return end
+    W.credits_made = true
+    local p = page("Credits", "⭐", 99)
+    local function copy(text)
+        local sc = (getgenv and getgenv().setclipboard) or setclipboard or toclipboard
+        if typeof(sc) == "function" then pcall(sc, text) end
+    end
+    section(p, "SOBRIETY HUB")
+    local t = info(p, 74)
+    t.Text = "<b>Sobriety Hub</b>  ·  " .. tostring(S.hub.game) .. "\nMade by <b>Novulon</b>"
+        .. "\nDiscord: <b>1z11</b> (suggestions and script requests only)"
+    section(p, "OPEN SOURCE")
+    local o = info(p, 74)
+    o.Text = "Open source and free to use: <b>github.com/xNovulon/SobrietyHub</b>"
+        .. "\nIf you use this work to make a new script or an updated version, I'd appreciate a credit."
+    action(p, "Copy the GitHub link", GITHUB, "COPY", function() copy(GITHUB) end)
+    action(p, "Copy the loader", LOADER, "COPY", function() copy(LOADER) end)
+end
 
 -- [[ the round S button: shows while the window is hidden; tap it to open the window, drag it anywhere ]] --
 local bubble = new("TextButton", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 44, 0.42, 0), Size = UDim2.fromOffset(54, 54),
@@ -4364,7 +4509,7 @@ local function layout(animate)
     local w = math.floor(math.min(compact and 760 or 800, (ax - 16) / s))
     local h = math.floor(math.min(compact and 480 or 540, (ay - 16) / s))
     L.s, L.compact, L.w, L.h, L.inset = s, compact, w, h, inset
-    L.side, L.top = compact and 60 or 198, compact and 48 or 56
+    L.side, L.top = compact and 60 or 198, compact and 64 or 70
     local mx, my = math.max(0, (ax - w * s) / 2 - 4), math.max(0, (ay - h * s) / 2 - 4)
     L.drag = Vector2.new(math.clamp(L.drag.X, -mx, mx), math.clamp(L.drag.Y, -my, my))
     local t = animate and 0.3 or 0
@@ -5247,7 +5392,7 @@ do
 end
 section(move_page, "GETTING AROUND")
 segmented(move_page, "Tween speed (studs a second; the snap-back guard lowers it if the server pulls you back)",
-    { { 1, "Running" }, { 60, "60" }, { 100, "100" }, { 160, "160" }, { 250, "250" }, { 0, "Instant" } },
+    { { 1, "Running" }, { 60, "60" }, { 100, "100" }, { 160, "160" }, { 250, "250" }, { 400, "400" } },
     function() return S.travel_speed end, function(v) S.travel_speed = v end)
 toggle(move_page, "Travel underground", "Goes everywhere under the ground (nobody sees you); comes up only to eat and drink. Bitten down there: away at once",
     function() return S.travel_under end, function(v) S.travel_under = v end)
@@ -5440,6 +5585,28 @@ do
 end
 
 -- [[ Settings ]] --
+section(settings_page, "PHONE AND TABLET")
+toggle(settings_page, "Touch buttons", "On phones and tablets: AURA, LEAP, LET GO and FARM buttons on the screen (drag MOVE to put them anywhere)",
+    function() return S.touch_bar end, function(v) S.touch_bar = v end)
+toggle(settings_page, "Show them with a keyboard too", "The touch buttons on a computer as well", function() return S.touch_bar_always end,
+    function(v) S.touch_bar_always = v end)
+section(settings_page, "YOUR EXECUTOR")
+do
+    local t = info(settings_page, 120)
+    local last = -100
+    table.insert(painters, function()
+        if os.clock() - last < 5 then return end
+        last = os.clock()
+        local name, missing = S.support()
+        if #missing == 0 then
+            t.Text = ("<b>%s</b>: everything works."):format(esc(name))
+            return
+        end
+        local lines = {}
+        for _, x in ipairs(missing) do table.insert(lines, ("no <b>%s</b>: %s"):format(esc(x[1]), esc(x[2]))) end
+        t.Text = ("<b>%s</b>: the rest works.\n%s"):format(esc(name), table.concat(lines, "\n"))
+    end)
+end
 section(settings_page, "STAYING IN THE GAME")
 toggle(settings_page, "Anti-AFK", "A tiny mouse nudge now and then, and a short step when idle (the game pauses your survival amber after 2 idle minutes)",
     function() return S.anti_afk end, function(v) S.anti_afk = v end)
@@ -5525,10 +5692,7 @@ end)
 action(settings_page, "Unload", "Stops everything, puts the game's settings back and removes the window", "UNLOAD", function()
     if env.sobriety_feral_stop then env.sobriety_feral_stop() end
 end)
-do
-    local about = info(settings_page, 44)
-    about.Text = "<b>Sobriety Hub</b>  •  FERAL Animal Survival  •  made for " .. me.DisplayName
-end
+W.credits(settings_page)
 
 -- [[ toasts ]] --
 local toast_area = new("Frame", { AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -16, 1, -16), Size = UDim2.fromOffset(300, 420),
@@ -5564,6 +5728,68 @@ notify = function(text)
         tween(t, 0.3, { Position = UDim2.new(1, 30, 0, 0) }, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
         task.wait(0.32)
         slot:Destroy()
+    end)
+end
+
+-- [[ Touch buttons (phones and tablets): the keyboard-only controls as buttons on the screen: players aura (T), ]] --
+-- [[ leap (V), let go (F), and the farm. Drag the top strip to move the bar; Settings can hide it.              ]] --
+do
+    local touch_only = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+    local bar = new("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 12, 0.42, 0), Size = UDim2.fromOffset(84, 0),
+        AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = C.card, BackgroundTransparency = 0.15, Visible = false, ZIndex = 25, Parent = gui })
+    corner(bar, 12)
+    W.outline(bar, C.stroke, 1, 0.1)
+    W.follow(new("UIScale", { Scale = W.L.s, Parent = bar }))
+    new("UIPadding", { PaddingTop = UDim.new(0, 6), PaddingBottom = UDim.new(0, 6), PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6), Parent = bar })
+    new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = bar })
+    -- [[ the strip to drag the bar by ]] --
+    local grip = new("TextButton", { Size = UDim2.new(1, 0, 0, 14), BackgroundTransparency = 1, Text = "MOVE", Font = BOLD, TextSize = 9,
+        TextColor3 = C.dim, AutoButtonColor = false, LayoutOrder = 0, ZIndex = 26, Parent = bar })
+    local dragging, start, origin = nil, nil, nil
+    grip.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging, start, origin = i, i.Position, bar.Position
+        end
+    end)
+    track(UserInputService.InputChanged:Connect(function(i)
+        if dragging and (i == dragging or i.UserInputType == Enum.UserInputType.MouseMovement) then
+            local d = i.Position - start
+            bar.Position = UDim2.new(origin.X.Scale, origin.X.Offset + d.X, origin.Y.Scale, origin.Y.Offset + d.Y)
+        end
+    end))
+    track(UserInputService.InputEnded:Connect(function(i)
+        if i == dragging or i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = nil end
+    end))
+    local function button(order, text, fn)
+        local b = new("TextButton", { Size = UDim2.new(1, 0, 0, 34), BackgroundColor3 = C.bg, AutoButtonColor = false, Text = text, Font = BLACK,
+            TextSize = 11, TextColor3 = C.text, LayoutOrder = order, ZIndex = 26, Parent = bar })
+        corner(b, 9)
+        local g = gradient(b, 0)
+        g.Enabled = false
+        W.pressable(b)
+        b.MouseButton1Click:Connect(fn)
+        return b, g
+    end
+    local aura_b, aura_g = button(1, "AURA", function()
+        S.aura = not S.aura
+        notify(S.aura and "Bite aura on players ON" or "Bite aura on players OFF (bots still get bitten)")
+    end)
+    button(2, "LEAP", function() S.leap() end)
+    button(3, "LET GO", function() S.let_go() end)
+    local farm_b, farm_g = button(4, "FARM", function()
+        S.farm = not S.farm
+        logf("FARM", S.farm and "turned ON" or "turned OFF")
+        if not S.farm then
+            S.hold = nil
+            S.manual_run("going somewhere safe", function(keep) S.go_safe(keep) end)
+        end
+    end)
+    table.insert(painters, function()
+        bar.Visible = S.touch_bar and (touch_only or S.touch_bar_always)
+        aura_g.Enabled = S.aura
+        set_text(aura_b, nil, S.aura and C.white or C.text)
+        farm_g.Enabled = S.farm
+        set_text(farm_b, S.farm and "STOP" or "FARM", S.farm and C.white or C.text)
     end)
 end
 

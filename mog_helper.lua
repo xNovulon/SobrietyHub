@@ -1,3 +1,8 @@
+-- Sobriety Hub  ·  made by Novulon  ·  Discord: 1z11 (suggestions and script requests only)
+-- Open source and free to use: https://github.com/xNovulon/SobrietyHub
+-- If you use this work to make a new script or an updated version, I'd appreciate a credit.
+-- Loader: loadstring(game:HttpGet("https://raw.githubusercontent.com/xNovulon/SobrietyHub/main/hub.lua"))()
+
 -- Sobriety Hub: Mog to Steal an Egg
 -- The clicking fight runs on your own game, which then tells the server who won (Eggs.Resolve).
 --   Always win:  the guard can't push your bar back and every click counts 10x, so the game's own fight is won.
@@ -2128,6 +2133,15 @@ do
         if hum then pcall(function() workspace.CurrentCamera.CameraSubject = hum end) end
         if why then logf("TREADMILL", "walking around ended: " .. tostring(why)) end
     end
+    -- [[ the on-screen joystick (phones and tablets): the game's own PlayerModule move vector, x = right, z = back ]] --
+    S.stick = function()
+        local ok, v = pcall(function()
+            local pm: any = me:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule")
+            S.controls = S.controls or (require(pm) :: any):GetControls()
+            return S.controls:GetMoveVector()
+        end)
+        return (ok and typeof(v) == "Vector3") and v or Vector3.zero
+    end
     S.ghost_on = function()
         local char = me.Character
         if ghost or not (char and char:FindFirstChildOfClass("Humanoid")) then return false end
@@ -2174,11 +2188,16 @@ do
             local function key(k) return not typing and UserInputService:IsKeyDown(k) end
             local f = (key(Enum.KeyCode.W) and 1 or 0) - (key(Enum.KeyCode.S) and 1 or 0)
             local r = (key(Enum.KeyCode.D) and 1 or 0) - (key(Enum.KeyCode.A) and 1 or 0)
+            if f == 0 and r == 0 then
+                local mv = S.stick()
+                f, r = -mv.Z, mv.X
+            end
             local look = Vector3.new(cam.CFrame.LookVector.X, 0, cam.CFrame.LookVector.Z)
             local right = Vector3.new(cam.CFrame.RightVector.X, 0, cam.CFrame.RightVector.Z)
             local dir = (look.Magnitude > 0 and look.Unit or Vector3.zero) * f + (right.Magnitude > 0 and right.Unit or Vector3.zero) * r
             ghum:Move(dir.Magnitude > 0 and dir.Unit or Vector3.zero, false)
-            if key(Enum.KeyCode.Space) and ghum.FloorMaterial ~= Enum.Material.Air then ghum.Jump = true end
+            local real = me.Character and me.Character:FindFirstChildOfClass("Humanoid")
+            if (key(Enum.KeyCode.Space) or (real and real.Jump)) and ghum.FloorMaterial ~= Enum.Material.Air then ghum.Jump = true end
             if walk then
                 if dir.Magnitude > 0 and not walk.IsPlaying then walk:Play() elseif dir.Magnitude == 0 and walk.IsPlaying then walk:Stop() end
             end
@@ -2252,6 +2271,11 @@ do
             local f = (key(Enum.KeyCode.W) and 1 or 0) - (key(Enum.KeyCode.S) and 1 or 0)
             local r = (key(Enum.KeyCode.D) and 1 or 0) - (key(Enum.KeyCode.A) and 1 or 0)
             local u = (key(Enum.KeyCode.Space) and 1 or 0) - ((key(Enum.KeyCode.LeftControl) or key(Enum.KeyCode.Q)) and 1 or 0)
+            if f == 0 and r == 0 then
+                local mv = S.stick()
+                f, r = -mv.Z, mv.X
+            end
+            if u == 0 and hum2.Jump then u = 1 end
             local dir = cam.CFrame.LookVector * f + cam.CFrame.RightVector * r + Vector3.yAxis * u
             lv.VectorVelocity = dir.Magnitude > 0 and dir.Unit * S.fly_speed or Vector3.zero
             local flat = Vector3.new(cam.CFrame.LookVector.X, 0, cam.CFrame.LookVector.Z)
@@ -4281,7 +4305,7 @@ W.wait_assets = function()
 end
 W.spin, W.follow = spin, follow
 
-local L = { s = 1, compact = false, w = 780, h = 520, side = 198, top = 56, inset = 0, drag = Vector2.zero }
+local L = { s = 1, compact = false, w = 780, h = 520, side = 198, top = 70, inset = 0, drag = Vector2.zero }
 W.L = L
 local function viewport()
     if S.preview_vp then return S.preview_vp end -- (only the Studio preview sets this, to look at the phone layout)
@@ -4295,8 +4319,17 @@ local touch_only = UserInputService.TouchEnabled and not UserInputService.MouseE
 
 local gui = new("ScreenGui", { Name = "SobrietyHub", ResetOnSpawn = false, DisplayOrder = 100, IgnoreGuiInset = true,
     ZIndexBehavior = Enum.ZIndexBehavior.Sibling })
+-- [[ where the window lives: the executor's hidden folder, else CoreGui, else (low-level executors that may use ]] --
+-- [[ neither) your own PlayerGui, so the hub always opens                                                      ]] --
 local okH, hidden = pcall(function() return gethui and gethui() end)
-gui.Parent = (okH and hidden) or CoreGui
+local function try_parent(p)
+    if not p then return false end
+    local ok = pcall(function() gui.Parent = p end)
+    return ok and gui.Parent == p
+end
+if not (okH and try_parent(hidden)) and not try_parent(CoreGui) then
+    gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+end
 pcall(function()
     for _, g in ipairs(gui.Parent:GetChildren()) do
         if g ~= gui and (g.Name == "SobrietyHub" or g.Name == "MogHub") then g:Destroy() end
@@ -4388,6 +4421,24 @@ do
 end
 local sub = label(top, S.hub.game, MED, 11, C.dim, { Position = UDim2.fromOffset(56, 31), Size = UDim2.new(1, -290, 0, 14),
     TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 2 })
+-- [[ the open-source loader, on the header's third line; a click copies it ]] --
+local LOADER = S.hub.loader or 'loadstring(game:HttpGet("https://raw.githubusercontent.com/xNovulon/SobrietyHub/main/hub.lua"))()'
+W.LOADER = LOADER
+local GITHUB = "https://github.com/xNovulon/SobrietyHub"
+W.GITHUB = GITHUB
+local HEADER_LINE = "OPEN SOURCE  ·  github.com/xNovulon/SobrietyHub  ·  made by Novulon  ·  click to copy the GitHub link"
+local loader_btn = new("TextButton", { AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 56, 1, -5), Size = UDim2.new(1, -70, 0, 14),
+    BackgroundTransparency = 1, AutoButtonColor = false, Text = HEADER_LINE, Font = MONO, TextSize = 10, TextColor3 = C.a3, TextTransparency = 0.25,
+    TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 2, Parent = top })
+loader_btn.MouseEnter:Connect(function() loader_btn.TextTransparency = 0 end)
+loader_btn.MouseLeave:Connect(function() loader_btn.TextTransparency = 0.25 end)
+loader_btn.MouseButton1Click:Connect(function()
+    local sc = (getgenv and getgenv().setclipboard) or setclipboard or toclipboard
+    if typeof(sc) == "function" and pcall(sc, GITHUB) then
+        loader_btn.Text = "GitHub link copied: " .. GITHUB
+        task.delay(2, function() loader_btn.Text = HEADER_LINE end)
+    end
+end)
 local top_pill = { frame = new("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -88, 0.5, 0), Size = UDim2.fromOffset(112, 28),
     BackgroundColor3 = C.card, ZIndex = 2, Parent = top }) }
 glass(top_pill.frame, 14)
@@ -4580,6 +4631,7 @@ local function section(p, text)
     label(f, text, BOLD, 11, C.head, { Position = UDim2.fromOffset(18, 10), Size = UDim2.new(1, -20, 0, 19), TextTruncate = Enum.TextTruncate.AtEnd })
     local line = new("Frame", { Position = UDim2.new(0, 18, 1, -1), Size = UDim2.new(1, -18, 0, 1), BackgroundColor3 = C.white, BorderSizePixel = 0, Parent = f })
     new("UIGradient", { Color = ACCENT, Transparency = NumberSequence.new(0.45, 1), Parent = line })
+    return f
 end
 -- [[ title + a description that wraps (the card grows with it); single = one line, for cards with their own layout ]] --
 local function titled(f, title_text, desc, single)
@@ -4795,6 +4847,28 @@ local function stats(p, names)
     return values
 end
 W.card, W.section, W.titled, W.hover, W.toggle, W.segmented, W.action, W.info, W.stats = card, section, titled, hover, toggle, segmented, action, info, stats
+-- [[ Credits (every hub puts this on its Settings page): who made it, that it's open source, and the loader ]] --
+-- [[ Credits: its own tab in the side menu, last (every hub calls this; the page argument is from when it lived ]] --
+-- [[ in Settings and is ignored now)                                                                          ]] --
+function W.credits(_p)
+    if W.credits_made then return end
+    W.credits_made = true
+    local p = page("Credits", "⭐", 99)
+    local function copy(text)
+        local sc = (getgenv and getgenv().setclipboard) or setclipboard or toclipboard
+        if typeof(sc) == "function" then pcall(sc, text) end
+    end
+    section(p, "SOBRIETY HUB")
+    local t = info(p, 74)
+    t.Text = "<b>Sobriety Hub</b>  ·  " .. tostring(S.hub.game) .. "\nMade by <b>Novulon</b>"
+        .. "\nDiscord: <b>1z11</b> (suggestions and script requests only)"
+    section(p, "OPEN SOURCE")
+    local o = info(p, 74)
+    o.Text = "Open source and free to use: <b>github.com/xNovulon/SobrietyHub</b>"
+        .. "\nIf you use this work to make a new script or an updated version, I'd appreciate a credit."
+    action(p, "Copy the GitHub link", GITHUB, "COPY", function() copy(GITHUB) end)
+    action(p, "Copy the loader", LOADER, "COPY", function() copy(LOADER) end)
+end
 
 -- [[ the round S button: shows while the window is hidden; tap it to open the window, drag it anywhere ]] --
 local bubble = new("TextButton", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 44, 0.42, 0), Size = UDim2.fromOffset(54, 54),
@@ -4884,7 +4958,7 @@ local function layout(animate)
     local w = math.floor(math.min(compact and 760 or 800, (ax - 16) / s))
     local h = math.floor(math.min(compact and 480 or 540, (ay - 16) / s))
     L.s, L.compact, L.w, L.h, L.inset = s, compact, w, h, inset
-    L.side, L.top = compact and 60 or 198, compact and 48 or 56
+    L.side, L.top = compact and 60 or 198, compact and 64 or 70
     local mx, my = math.max(0, (ax - w * s) / 2 - 4), math.max(0, (ay - h * s) / 2 - 4)
     L.drag = Vector2.new(math.clamp(L.drag.X, -mx, mx), math.clamp(L.drag.Y, -my, my))
     local t = animate and 0.3 or 0
@@ -6457,8 +6531,7 @@ action(settings_page, "Replay the intro", "Plays the boot animation again", "PLA
     task.delay(0.25, function() pcall(play_boot, W, W.show, false) end)
 end)
 action(settings_page, "Unload", "Turns everything off and removes the window", "UNLOAD", function() if env.mog_helper_stop then env.mog_helper_stop() end end)
-local about = info(settings_page, 44)
-about.Text = "<b>Sobriety Hub</b>  •  Mog to Steal an Egg  •  made for " .. me.DisplayName
+W.credits(settings_page)
 
 ---------------------------------------------------------------- toasts
 
