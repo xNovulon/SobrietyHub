@@ -1,14 +1,11 @@
--- Sobriety Hub: the front door. One link for every game.
--- Run this in your executor:
---   loadstring(game:HttpGet("https://raw.githubusercontent.com/xNovulon/SobrietyHub/main/hub.lua"))()
--- It reads which game you're in and loads that game's Sobriety Hub. A game with no hub says "wrong game gng".
+-- Sobriety Hub  ·  made by Novulon  ·  Discord: 1z11 (suggestions and script requests only)
+-- Open source and free to use: https://github.com/xNovulon/SobrietyHub
+-- loadstring(game:HttpGet("https://raw.githubusercontent.com/xNovulon/SobrietyHub/main/hub.lua"))()
 
 local env = (typeof(getgenv) == "function" and getgenv()) or _G
 local BASE = "https://raw.githubusercontent.com/xNovulon/SobrietyHub/main/"
 env.sobriety_hub_base = BASE
 
--- [[ which script goes with which game (by GameId, the universe; a few PlaceIds too, just in case). ]] --
--- [[ path = where it lives in the repo; file = the flat name it's cached under in the workspace.     ]] --
 local GAMES = {
     { name = "FERAL Animal Survival",  path = "scripts/feral.lua",       file = "feral.lua",      game = 10771881861, places = { 108901361810209 } },
     { name = "Throw Food For Animals", path = "scripts/throw_food.lua",  file = "throw_food.lua",  game = 10766972131, places = { 120219252362013 } },
@@ -21,8 +18,6 @@ local function notify(text)
     end)
 end
 
--- [[ grab a file from the repo (and, when the executor allows, keep a copy in the workspace so it still ]] --
--- [[ loads if GitHub is down and so each script's "come back after a server move" keeps working)        ]] --
 local function fetch(path, cache)
     local ok, body = pcall(function() return (game :: any):HttpGet(BASE .. path, true) end)
     if not ok or type(body) ~= "string" or #body < 100 or body:find("404: Not Found", 1, true) then
@@ -34,7 +29,6 @@ local function fetch(path, cache)
         if typeof(writefile) == "function" then pcall(writefile, cache, body) end
         return body
     end
-    -- [[ GitHub didn't answer: fall back to the copy saved last time ]] --
     if typeof(readfile) == "function" and typeof(isfile) == "function" and isfile(cache) then
         return (select(2, pcall(readfile, cache)))
     end

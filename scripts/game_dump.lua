@@ -1,19 +1,7 @@
 -- Sobriety Hub  ·  made by Novulon  ·  Discord: 1z11 (suggestions and script requests only)
 -- Open source and free to use: https://github.com/xNovulon/SobrietyHub
 -- If you use this work to make a new script or an updated version, I'd appreciate a credit.
--- Loader: loadstring(game:HttpGet("https://raw.githubusercontent.com/xNovulon/SobrietyHub/main/hub.lua"))()
 
--- Game dump (works in any game): saves every script the game gives your client (decompiled), what each of the
--- game's modules holds (its configs and data), the game's objects, your stats, every remote, everything you can
--- press (prompts, click detectors) and the store (passes and products with prices), so the whole game can be read.
--- It only reads: it sends nothing to the game's server, hooks nothing and changes nothing in the game. (The store
--- list asks Roblox's public web API for this game's passes; nothing about you is sent.)
--- 1) Run it and wait for "Game dump done" at the top (a minute or two). You can keep playing meanwhile.
---    Don't press Stop unless you mean it (it asks twice): a stopped dump is missing its later parts.
--- 2) Tell Claude it's done. Everything is in your executor's workspace folder, in GameDump_<place id>.
---    The index is also copied to your clipboard.
--- In a game that only loads the map near you (streaming, the index says so), the object tree and the prompt list
--- cover what's loaded around you: for a far-away area, go there and run it again.
 local env = (typeof(getgenv) == "function" and getgenv()) or _G
 local fenv = getfenv()
 local function exec(name) return env[name] or fenv[name] end
@@ -36,8 +24,6 @@ local me = Players.LocalPlayer
 local S = { alive = true, finished = false, stopped_at = "" }
 local started = os.clock()
 
----------------------------------------------------------------- saving
-
 local ROOT = "GameDump_" .. tostring(game.PlaceId)
 local can_write = typeof(writefile) == "function" and typeof(makefolder) == "function"
 if can_write then
@@ -50,15 +36,12 @@ local function save(path, text)
     if not can_write then return false end
     return (pcall(writefile, ROOT .. "/" .. path, text))
 end
--- [[ the later parts each run on their own: if one fails (a game or executor that does something unusual), the ]] --
--- [[ others and the index are still written, and the index says which part failed and why                      ]] --
+
 local problems = {}
 local function part(what, fn)
     local ok, err = pcall(fn)
     if not ok then table.insert(problems, what .. ": " .. tostring(err)) end
 end
-
----------------------------------------------------------------- progress bar at the top
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "GameDumpProgress"
@@ -95,7 +78,7 @@ stop.TextColor3 = Color3.fromRGB(235, 235, 240)
 stop.Text = "Stop"
 stop.Parent = bar
 Instance.new("UICorner", stop).CornerRadius = UDim.new(0, 6)
--- [[ Stop asks twice (one stray click cut the last dump short); once the dump is done the button closes the bar ]] --
+
 local stop_armed = -100
 stop.MouseButton1Click:Connect(function()
     if S.finished then
@@ -117,9 +100,6 @@ stop.MouseButton1Click:Connect(function()
 end)
 local function status(s) text.Text = "Game dump: " .. s end
 
----------------------------------------------------------------- names
-
--- [[ paths use LocalPlayer / LocalCharacter instead of your name, so files keep the same names on any account ]] --
 local function path_of(inst)
     local ok, full = pcall(function() return inst:GetFullName() end)
     if not ok then return tostring(inst) end
@@ -145,7 +125,6 @@ local function file_name(full, ext)
     return name .. ext
 end
 
--- [[ what's left out: Roblox's own scripts, copies of scripts that also live in your PlayerGui / PlayerScripts, libraries ]] --
 local ROBLOX_ROOTS = { "CoreGui", "CorePackages", "RobloxReplicatedStorage", "RobloxPluginGuiService" }
 local COPY_ROOTS = { "StarterGui.", "StarterPlayer.", "StarterPack." }
 local ROBLOX_PARTS = { ".PlayerModule", "RbxCharacterSounds", ".ChatScript", ".BubbleChat", ".ChatMain" }
@@ -164,8 +143,6 @@ local function skip_reason(inst, full)
     end
     return nil
 end
-
----------------------------------------------------------------- turning values into text
 
 local function scalar(v)
     local t = typeof(v)
@@ -210,7 +187,6 @@ local function key_less(a, b)
     return tostring(a) < tostring(b)
 end
 
--- [[ writes a table as readable Lua; tables met again are marked instead of repeated ]] --
 local function serialize(value, max_depth, budget)
     local out, size, cut, visited, count = {}, 0, false, {}, 0
     local function emit(s)
@@ -271,8 +247,6 @@ local function serialize(value, max_depth, budget)
     walk(value, "", 0)
     return table.concat(out)
 end
-
----------------------------------------------------------------- 1) every client script, decompiled
 
 local found, list = {}, {}
 local function is_client_code(d)
@@ -339,8 +313,6 @@ if typeof(decompile) == "function" then
     end
 end
 
----------------------------------------------------------------- 2) what each module holds (configs, data, functions)
-
 local CONFIG_WORDS = { config = true, configs = true, constants = true, settings = true, data = true }
 local DATA_WORDS = { "data", "replica", "store", "state", "cache", "profile", "session", "inventory", "receiver" }
 local modules, seen_m = {}, {}
@@ -352,7 +324,7 @@ local function add_module(m)
     if skip_reason(m, full) then return end
     table.insert(modules, { inst = m, path = full })
 end
--- [[ the ones the game already loaded, so reading them runs nothing new ]] --
+
 local loaded_count = 0
 if typeof(getloadedmodules) == "function" then
     local ok, l = pcall(getloadedmodules)
@@ -363,7 +335,7 @@ if typeof(getloadedmodules) == "function" then
         loaded_count = #modules
     end
 end
--- [[ plus every module inside a config / settings / data folder (these only hold values) ]] --
+
 for _, d in ipairs(RS:GetDescendants()) do
     if d:IsA("ModuleScript") then
         local p = d.Parent
@@ -406,7 +378,7 @@ for i, item in ipairs(modules) do
     else
         body = "-- couldn't read it: " .. tostring(value)
     end
-    -- [[ data modules keep the real values (like your saved data) in hidden variables of their functions ]] --
+
     if ok and type(value) == "table" and typeof(getupvalues) == "function" and data_ish(item.path) then
         local found_ups, any = {}, false
         for k, f in pairs(value) do
@@ -428,8 +400,6 @@ for i, item in ipairs(modules) do
     table.insert(data_files, item)
     task.wait()
 end
-
----------------------------------------------------------------- 3) the game's objects
 
 status("writing the object tree...")
 local tree, tree_cut = {}, false
@@ -484,7 +454,7 @@ local function walk_tree(d, depth, max_depth, per_parent)
         tline(pad .. ("  (%d children not shown)"):format(#kids))
         return
     end
-    -- [[ many children with the same name and class are shown twice, then counted ]] --
+
     local groups, order = {}, {}
     for _, c in ipairs(kids) do
         local key = c.ClassName .. "|" .. c.Name
@@ -525,12 +495,6 @@ end
 if tree_cut then table.insert(tree, "... (cut, too big)") end
 save("tree.txt", table.concat(tree, "\n"))
 
----------------------------------------------------------------- 3b) the map: every part with its shape, place and look
--- [[ map.txt     every part in the world (and the models kept in ReplicatedStorage, like pets and eggs): where it is, ]] --
--- [[             how big, turned how, colour, material, see-through, collides/anchored, mesh and texture ids         ]] --
--- [[ models.txt  every model: where it is and how big it is overall (its bounding box), how many parts it has         ]] --
--- [[ assets.txt  every mesh, texture, decal, sound, animation and image id the game uses, with how often               ]] --
--- [[ world.txt   lighting, sky, atmosphere, post effects, terrain water and the camera/gravity settings               ]] --
 local map_n, model_n, asset_n = 0, 0, 0
 part("map", function()
     status("reading the map...")
@@ -627,7 +591,7 @@ part("map", function()
         add_line("==== " .. root.Name .. " ====")
         walk(root, root.Name)
     end
-    -- [[ the images in the game's own screens too (icons, buttons, backgrounds) ]] --
+
     pcall(function()
         for _, t in ipairs(me.PlayerGui:GetDescendants()) do
             if t:IsA("ImageLabel") or t:IsA("ImageButton") then asset("image", (t :: any).Image, "PlayerGui") end
@@ -689,10 +653,6 @@ part("world", function()
     save("world.txt", table.concat(w, "\n"))
 end)
 
----------------------------------------------------------------- 3c) the screens and how they're styled
--- [[ ui.txt   every screen element: size and place, colours, see-through, fonts, text size and colour, rounded  ]] --
--- [[          corners, outlines, gradients, padding, layouts, images; hidden ones too (shops and popups wait     ]] --
--- [[          hidden until opened). palette.txt: every colour and font used on screen, most used first.          ]] --
 local ui_n = 0
 part("ui", function()
     status("reading the screens and their style...")
@@ -775,8 +735,6 @@ part("ui", function()
     save("palette.txt", "---- colours ----\n" .. top(colors) .. "\n\n---- fonts ----\n" .. top(fonts))
 end)
 
----------------------------------------------------------------- 4) you and the other players
-
 status("writing your stats...")
 local p = {}
 local function attrs_of(inst)
@@ -829,8 +787,6 @@ for _, other in ipairs(Players:GetPlayers()) do
 end
 save("player.txt", table.concat(p, "\n"))
 
----------------------------------------------------------------- 5) every remote, wherever the client can see it
-
 status("listing remotes...")
 local r = {}
 part("remotes", function()
@@ -860,10 +816,6 @@ part("remotes", function()
 end)
 save("remotes.txt", table.concat(r, "\n"))
 
----------------------------------------------------------------- 6) everything you can press: prompts and click detectors
-
--- [[ the tree only goes so deep, so these get their own full list: what it says, how long to hold, from how far, ]] --
--- [[ and where the first three of each are (many of the same are counted)                                        ]] --
 status("listing prompts and click detectors...")
 local press, press_n = {}, 0
 part("prompts", function()
@@ -909,9 +861,6 @@ part("prompts", function()
 end)
 save("prompts.txt", table.concat(press, "\n"))
 
----------------------------------------------------------------- 7) the store: places, developer products, game passes
-
--- [[ public info only: what the game sells and for how much, and the other places it has ]] --
 status("reading the store...")
 local store = {}
 part("store", function()
@@ -1002,8 +951,6 @@ part("store", function()
 end)
 save("store.txt", table.concat(store, "\n"))
 
----------------------------------------------------------------- 8) the index
-
 local name, creator = "?", "?"
 pcall(function()
     local info = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId)
@@ -1041,7 +988,7 @@ add(("  remotes.txt  %d remotes"):format(#r))
 add(("  prompts.txt  %d prompts and click detectors in the map"):format(press_n))
 add(("  store.txt    the game's places, developer products and game passes with prices (%d lines)"):format(#store))
 add("")
--- [[ what this executor can do, so scripts for this game are written with what's really there ]] --
+
 part("executor list", function()
     local has, missing = {}, {}
     for _, n in ipairs({ "decompile", "getgc", "getgenv", "getrenv", "getsenv", "getconnections", "firesignal", "fireproximityprompt",
