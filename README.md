@@ -5,4 +5,4 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/xNovulon/SobrietyHub/
 ```
 
 Open source scripts made with delicacy 🥀 | 
-For suggestions and Requests, Discord: 1z11
+ For suggestions and Requests, Discord: 1z11
