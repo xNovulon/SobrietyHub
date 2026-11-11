@@ -10,8 +10,6 @@ if not game:IsLoaded() then
     msg_instance:Destroy()
     hint_instance:Destroy()
 end
-
--- [[     INITIALIZATION (Roblox Environment)     ]] --
 local In_Studio = false
 local g
 if game:GetService("RunService"):IsStudio() then
@@ -32,7 +30,6 @@ end
 task.wait()
 local blank_F = g.blank_function or g.blankfunction or function(...) return ... end
 local cloneref = typeof(cloneref) == "function" and cloneref or function(instance) return instance end
--- [[ Should no longer break in Roblox Studio. 😈🚬 ]] --
 local http_game
 if In_Studio then
     http_game = blank_F
@@ -44,9 +41,6 @@ task.wait()
 local StarterGui = g.StarterGui or cloneref and cloneref(game:GetService("StarterGui")) or game:GetService("StarterGui")
 local Raw_Version = "V9.4.5"
 g.Script_Version = tostring(Raw_Version).."-LifeHub"
--- [[ require that never stops the script. Executors like Xeno load their own fresh copy of a game module instead of ]] --
--- [[ using the game's, and some modules can't load there at all; then only the features that need that module ]] --
--- [[ break, not the whole script (and the menu with it). ]] --
 g.safe_require = function(module)
     if typeof(module) ~= "Instance" or not module:IsA("ModuleScript") then return nil end
     local ok, result = pcall(require, module)
@@ -54,8 +48,7 @@ g.safe_require = function(module)
     warn("[Flames] couldn't load " .. module:GetFullName() .. ": " .. tostring(result))
     return nil
 end
-
-local Players = g.Players or cloneref and cloneref(game:GetService("Players")) or game:GetService("Players") -- up here to let everything load first.
+local Players = g.Players or cloneref and cloneref(game:GetService("Players")) or game:GetService("Players")
 local localPlayer = g.LocalPlayer or Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
 local speaker = localPlayer
 if In_Studio and script.Parent ~= StarterGui then script.Parent = StarterGui end
@@ -89,7 +82,6 @@ if not In_Studio then
 end
 task.wait()
 if not g.LifeTogether_Actual_Flames_Hub_Running_Functioning_Currently_On_Client then if g.notify and typeof(g.notify) == "function" then g.notify("Success", "Got LocalPlayer: "..tostring(g.LocalPlayer), 5) end end
--- [[     SERVICES / DEFINITIONS     ]] --
 local has_gethui = (typeof(gethui) == "function") or (typeof(g.gethui) == "function")
 local has_gethidden = (typeof(get_hidden_gui) == "function") or (typeof(g.get_hidden_gui) == "function")
 local RunService = cloneref and cloneref(game:GetService("RunService")) or game:GetService("RunService")
@@ -135,17 +127,13 @@ if not has_gethui and not has_gethidden and not g.roblox_hidden_gui_location the
     g.get_hui = resolve_gui
     g.get_hidden_gui = resolve_gui
 end
-
 local verify_file = "is_verified_in_Flames_Hub.txt"
 local Insert = table.insert
--- [[ for the Command Handler, because it can check if there is a number in a string (like a command you send). ]] -- 
 g.Is_Integer_In_Str = g.Is_Integer_In_Str or function(str)
     if type(str) == "number" then return str % 1 == 0 end
     if type(str) == "string" then return str:match("^-?%d+$") ~= nil end
     return false
 end
-
--- [[ NEW!: makes it way fucking easier to find attributes. ]] --
 g._attr_cache = g._attr_cache or {}
 g.attr_cached_fuzzy = g.attr_cached_fuzzy or function(obj, search)
     if not obj or not obj.Parent then return nil end
@@ -158,7 +146,6 @@ g.attr_cached_fuzzy = g.attr_cached_fuzzy or function(obj, search)
         end
         return nil
     end
-
     local ok, attrs = pcall(function() return obj:GetAttributes() end)
     if not ok or not attrs then return nil end
     g._attr_cache[obj] = attrs
@@ -167,34 +154,27 @@ g.attr_cached_fuzzy = g.attr_cached_fuzzy or function(obj, search)
             return value
         end
     end
-
     return nil
 end
-
 g.attr_main_checker = g.attr_main_checker or function(obj, attr, expected)
     local ok, result = pcall(function() return obj:GetAttribute(attr) end)
     return ok and result == expected
 end
-
 g.isProperty = g.isProperty or function(inst, prop)
     local s, r = pcall(function() return inst[prop] end)
     if not s then return nil end
     return r
 end
-
 g.hasProp = g.hasProp or function(inst, prop)
     return inst and g.isProperty(inst, prop) ~= nil
 end
-
 g.setProperty = g.setProperty or function(inst, prop, v)
     local s, _ = pcall(function() inst[prop] = v end)
     return s
 end
-
 g.safeSet = g.safeSet or function(inst, prop, val)
     if inst and g.hasProp(inst, prop) then g.setProperty(inst, prop, val) end
 end
-
 local locale_ids = {
     "en-us", "en-gb", "en-au", "en-ca", "en-za", "en-nz", "en-ie",
     "pt-br", "pt-pt",
@@ -228,7 +208,6 @@ local locale_ids = {
     "vi-vn",
     "ar-sa",
 }
-
 local matrix_ids = {
     "1865-6-19-matrix",
     "1923-4-7-matrix",
@@ -281,7 +260,6 @@ local matrix_ids = {
     "2024-11-5-matrix",
     "2025-1-1-matrix",
 }
-
 local spoofed_platforms = {
     "Adopt Me!",
     "Brookhaven RP",
@@ -334,21 +312,18 @@ local spoofed_platforms = {
     "Scuba Diving at Quill Lake",
     "Survive the Killer",
 }
-
 local function isVerified()
     if not isfile then return false end
     if not isfile(verify_file) then return false end
     local content = readfile(verify_file)
     return type(content) == "string" and content:lower():find("true") ~= nil
 end
-
 local function setVerified()
     if In_Studio then return true end
     if typeof(writefile) ~= "function" or type(verify_file) ~= "string" then return false end
     local ok = pcall(writefile, verify_file, "true")
     return ok
 end
-
 local function waitForGuiGone()
     local container = CoreGui
     if In_Studio then
@@ -362,17 +337,15 @@ local function waitForGuiGone()
         task.wait()
     end
 end
-
 g.disabled_global_value_correctly = g.disabled_global_value_correctly or function(input)
     local ok, result = pcall(function() return input end)
     if not ok then return true end
     return not result
 end
-
 g.LifeTogether_Actual_Flames_Hub_Running_Functioning_Currently_On_Client = true
 local userid = localPlayer.UserId
 local lib = g.FlamesLibrary
-g.lib = g.FlamesLibrary -- necessary for some reason.
+g.lib = g.FlamesLibrary
 local lib_attempts = 0
 local lib_max_attempts = 15
 while (not lib or type(lib) ~= "table") and lib_attempts < lib_max_attempts do
@@ -380,12 +353,10 @@ while (not lib or type(lib) ~= "table") and lib_attempts < lib_max_attempts do
     lib_attempts = lib_attempts + 1
     lib = g.FlamesLibrary
 end
-
 if not lib or type(lib) ~= "table" then
     if g.notify and typeof(g.notify) == "function" then g.notify("Error", "FlamesLibrary failed to load, the system cannot continue without it.", 15) else warn("FlamesLibrary failed to load, the system cannot continue without it.") end
     return
 end
-
 local function mask_unique_id(id)
     if not id then return nil end
     local parts = string.split(id, "-")
@@ -399,7 +370,6 @@ local function mask_unique_id(id)
     end
     return table.concat(out, "-")
 end
-
 function create_flames_hub_unique_id(target_user_id)
     local file_name = "flames_hub_unique_ID.txt"
     if userid ~= target_user_id then return nil end
@@ -407,17 +377,14 @@ function create_flames_hub_unique_id(target_user_id)
         g.flames_hub_unique_id = g.flames_hub_unique_id or HttpService:GenerateGUID(false)
         return g.flames_hub_unique_id
     end
-
     if isfile and readfile and typeof(isfile) == "function" and typeof(readfile) == "function" and isfile(file_name) then
         local ok, id = pcall(readfile, file_name)
         if ok and id and id ~= "" then return id end
     end
-
     local new_id = HttpService:GenerateGUID(false)
     if writefile and typeof(writefile) == "function" then pcall(writefile, file_name, new_id) end
     return new_id
 end
-
 function get_flames_hub_unique_id()
     local file_name = "flames_hub_unique_ID.txt"
     if isfile and isfile(file_name) then
@@ -426,15 +393,11 @@ function get_flames_hub_unique_id()
     end
     return nil
 end
-
 function get_masked_flames_hub_unique_id()
     local raw = get_flames_hub_unique_id()
     return mask_unique_id(raw)
 end
-
 local FlamesLibrary = g.lib or g.FlamesLibrary
---local ws_connect = (syn and syn.websocket and syn.websocket.connect) or (WebSocket and WebSocket.connect) or (websocket and websocket.connect)
---local http_req = request or http_request or (syn and syn.request) or (http and http.request) or (fluxus and fluxus.request)
 g.will_tag = function(text)
     local max_attempts = 5
     for attempt = 1, max_attempts do
@@ -443,10 +406,8 @@ g.will_tag = function(text)
         if type(filtered) == "string" and not filtered:match("^#+$") then return filtered ~= text end
         task.wait(0.5)
     end
-
     return true
 end
-
 g.chat_shield_enabled = g.chat_shield_enabled or false
 g.chat_shield_active = g.chat_shield_active or false
 g.toggle_chat_shield = function(force)
@@ -455,7 +416,6 @@ g.toggle_chat_shield = function(force)
     else
         g.chat_shield_enabled = not g.chat_shield_enabled
     end
-
     if not g.chat_shield_enabled then
         g.chat_shield_active = false
         FlamesLibrary.disconnect("chat_shield_loop")
@@ -463,7 +423,6 @@ g.toggle_chat_shield = function(force)
         g.notify("Success", "Flames Hub | HashTag Protection disabled.", 3)
         return
     end
-
     FlamesLibrary.spawn("chat_shield_loop", "defer", function()
         while g.chat_shield_enabled do
             local ok, filtered = pcall(function() return Chat:FilterStringForBroadcast("hello", speaker) end)
@@ -481,11 +440,8 @@ g.toggle_chat_shield = function(force)
         end
     end)
 end
-
---if not g.chat_shield_enabled then g.toggle_chat_shield(true) end
 create_flames_hub_unique_id(Players.LocalPlayer.UserId)
 task.wait()
---local flames_unique_server_ID = get_flames_hub_unique_id()
 local masked_flames_hub_server_ID = get_masked_flames_hub_unique_id()
 local Lib = g.FlamesLibrary
 g.masked_flames_hub_server_ID = masked_flames_hub_server_ID
@@ -511,13 +467,9 @@ g.safe_wrapper = g.safe_wrapper or function(service)
         return game:GetService(service)
     end
 end
-
---local replicate_sig_func = replicatesignal or replicate_signal or DeltaSignal
---local set_hid_func = sethiddenproperty or set_hidden_property or set_hidden_prop or sethiddenprop
 g.originalIO = g.originalIO or {}
 g.spectateConns = g.spectateConns or {}
 local fw = lib.wait
---local name = "administrator_watcher_conn_Flames_Hub"
 g.originalIO.ensureCam = function(spectate_target)
     if not spectate_target then return end
     local cam = workspace.CurrentCamera
@@ -525,7 +477,6 @@ g.originalIO.ensureCam = function(spectate_target)
     if g.isProperty(cam, "CameraSubject") == nil then return end
     if cam.CameraSubject ~= spectate_target then g.setProperty(cam, "CameraSubject", spectate_target) end
 end
-
 g.originalIO.hookCameraGuard = function(spectate_target)
     if not workspace then return end
     local cam = workspace.CurrentCamera
@@ -541,7 +492,6 @@ g.originalIO.hookCameraGuard = function(spectate_target)
             g.originalIO.ensureCam()
         end))
     end
-
     if not g.spectateConns.camW and g.isProperty(workspace, "CurrentCamera") ~= nil then
         g.spectateConns.camW = g.FlamesLibrary.connect("spectate_camW", workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
             if not spectate_target then return end
@@ -550,7 +500,6 @@ g.originalIO.hookCameraGuard = function(spectate_target)
         end))
     end
 end
-
 g.originalIO.captureIO = function(name)
     local fn
     if rawget and typeof(rawget) == "function" then fn = rawget(_G, name) end
@@ -570,7 +519,6 @@ if not g.originalIO.__captured then
     g.originalIO.captureIO('isfile')
     g.originalIO.captureIO('isfolder')
 end
-
 g.originalIO.pathVariants = function(path)
     if type(path) ~= "string" then return { path } end
     if path:match('^[%w_]+://') then return { path } end
@@ -594,7 +542,6 @@ g.originalIO.pathVariants = function(path)
     end
     return variants
 end
-
 g.originalIO.resolveWithListfiles = function(target)
     local lf = g.originalIO.listfiles
     if type(lf) ~= "function" then
@@ -623,7 +570,6 @@ g.originalIO.resolveWithListfiles = function(target)
     end
     return nil
 end
-
 g.input_to_String = g.input_to_String or function(input_value) return typeof(input_value) == "string" and input_value or tostring(input_value) end
 if g.notify and typeof(g.notify) == "function" then g.notify("Info", "Booting up Life Together RP Hub, please wait a few moments while we initialize everything...", 8) end
 g.service_cache = g.service_cache or {}
@@ -642,34 +588,28 @@ local aliases = {
     ts = "TweenService",
     uis = "UserInputService"
 }
-
 local virtuals = {
     lp = true,
     localplayer = true,
     localplr = true
 }
-
 local function resolve_service(input)
     if not input then return nil end
     local lowered = tostring(input):lower()
     if aliases[lowered] then return aliases[lowered] end
     local children = game:GetChildren()
-
     for _, svc in ipairs(children) do
         if svc.Name:lower() == lowered then
             return svc.Name
         end
     end
-
     for _, svc in ipairs(children) do
         if svc.Name:lower():find(lowered, 1, true) then
             return svc.Name
         end
     end
-
     local best_name
     local best_score = math.huge
-
     for _, svc in ipairs(children) do
         local score = g.levenshtein(lowered, svc.Name:lower())
         if score < best_score then
@@ -677,14 +617,11 @@ local function resolve_service(input)
             best_name = svc.Name
         end
     end
-
     if best_score <= 4 then
         return best_name
     end
-
     return nil
 end
-
 local function fetch_value(name)
     if not name then return nil end
     local lowered = tostring(name):lower()
@@ -696,7 +633,6 @@ local function fetch_value(name)
         if not ok or not speaker then return nil end
         return lowered, speaker
     end
-
     local resolved = resolve_service(name)
     if not resolved then return nil end
     local ok, svc = pcall(function()
@@ -707,8 +643,6 @@ local function fetch_value(name)
     if not ok or not svc then return nil end
     return resolved, svc
 end
-
--- [[ Ultra proper checking my friends. ]] --
 if setmetatable and getmetatable and rawget and rawset and typeof(setmetatable) == "function" and typeof(getmetatable) == "function" and typeof(rawget) == "function" and typeof(rawset) == "function" then
     if not getmetatable(g.service_cache) then
         setmetatable(g.service_cache, {
@@ -723,7 +657,6 @@ if setmetatable and getmetatable and rawget and rawset and typeof(setmetatable) 
             end
         })
     end
-
     g.safe_wrapper = function(name)
         if not name then return nil end
         return g.service_cache[name]
@@ -745,7 +678,6 @@ g.string_contains_plain = g.string_contains_plain or function(source, needle)
     if typeof(source) ~= "string" or typeof(needle) ~= "string" then return false end
     return source:lower():find(needle:lower(), 1, true) ~= nil
 end
-
 g.load_youtube_music_player_func = g.load_youtube_music_player_func or function()
     if g.You_Tube_Music_Player_Loaded then return g.notify("Warning", "YouTube Music Player is already loaded.", 5) end
     g.You_Tube_Music_Player_Loaded = true
@@ -768,7 +700,6 @@ g.load_youtube_music_player_func = g.load_youtube_music_player_func or function(
                 if screen_gui then break end
             end
         until screen_gui
-
         local target_button
         for _, child in ipairs(screen_gui:GetDescendants()) do
             if child:IsA("ImageButton") and child.Image == target_image then
@@ -776,9 +707,7 @@ g.load_youtube_music_player_func = g.load_youtube_music_player_func or function(
                 break
             end
         end
-
         if not target_button then return end
-
         local target_frame
         for _, child in ipairs(screen_gui:GetDescendants()) do
             if child:IsA("Frame") then
@@ -789,7 +718,6 @@ g.load_youtube_music_player_func = g.load_youtube_music_player_func or function(
                 end
             end
         end
-
         if target_frame then
             target_frame.Draggable = true
         end
@@ -797,7 +725,6 @@ g.load_youtube_music_player_func = g.load_youtube_music_player_func or function(
     end)
     return
 end
-
 if g.notify then g.notify("Info", "One moment, we're initializing basic services...", 5) end
 local executor_string = nil
 local function executor_contains(substr)
@@ -806,7 +733,6 @@ local function executor_contains(substr)
     end
     return string.find(string.lower(executor_string), string.lower(substr), 1, true) ~= nil
 end
-
 local function retrieve_executor()
     local name
     if identifyexecutor then
@@ -814,46 +740,39 @@ local function retrieve_executor()
     end
     return { Name = name or "Unknown Executor" }
 end
-
 local function identify_executor()
     local executorinfo = retrieve_executor()
     return tostring(executorinfo.Name)
 end
-
 executor_string = identify_executor()
--- [[ every executor is allowed (Xeno, Solara and JJSploit used to be turned away here) ]] --
 function low_level_executor()
     return false
 end
 g.low_level_executor = low_level_executor
 task.wait()
-
 g.randomString = g.randomString or function()
     local length = math.random(10,20)
     local array = {}
     for i = 1, length do array[i] = string.char(math.random(32, 126)) end
     return table.concat(array)
 end
-
 g.blankfunction = g.blankfunction or function(...) return ... end
 if g.LifeTogether_RP_ScriptHub_Loaded then
     if g.notify then
         return g.notify("Warning", "Life Together RP Hub has already been loaded.", 8)
     else
-        return 
+        return
     end
 end
-
 if g.LifeTogetherRP_Admin and g.Script_Loaded_Correctly_LifeTogether_Admin_Flames_Hub == false then
     if g.notify then
         return g.notify("Warning", "Life Together RP admin has already been loaded.", 6)
     else
-        return 
+        return
     end
 elseif g.LifeTogetherRP_Admin and g.Script_Loaded_Correctly_LifeTogether_Admin_Flames_Hub then
-    return 
+    return
 end
-
 if g.notify and typeof(g.notify) == "function" then g.notify("Info", "Now checking for Flames Hub files...", 5) end
 g.ConstantUpdate_Checker_Live = true
 if isfile and not isfile("flames_hub_agreement_COPY.txt") then
@@ -861,20 +780,17 @@ if isfile and not isfile("flames_hub_agreement_COPY.txt") then
         writefile("flames_hub_agreement_COPY.txt", "has not decided")
     end)
 end
-
 if isfile and typeof(isfile) == "function" and not isfile("LifeTogether_RP_Admin_Custom_Name.txt") then
     pcall(function()
         writefile("LifeTogether_RP_Admin_Custom_Name.txt", speaker.DisplayName)
     end)
 end
-
 task.wait()
 if isfile and typeof(isfile) == "function" and not isfile("LifeTogether_RP_Admin_Custom_Bio.txt") then
     pcall(function()
         writefile("LifeTogether_RP_Admin_Custom_Bio.txt", "🔥 Flames Hub 🔥")
     end)
 end
-
 if not g.dragify then
     do
         local active_frame     = nil
@@ -891,7 +807,6 @@ if not g.dragify then
                 active_tween = nil
             end
         end
-
         local function stop_drag()
             active_frame      = nil
             active_drag_start = nil
@@ -899,21 +814,18 @@ if not g.dragify then
             last_input_pos    = nil
             cancel_tween()
         end
-
         local function frame_valid(f)
             local ok, res = pcall(function()
                 return f and f.Parent and f:IsDescendantOf(game)
             end)
             return ok and res
         end
-
         g.FlamesLibrary.connect(GLOBAL_KEY .. "_heartbeat", rs.Heartbeat:Connect(function()
             if not active_frame or not last_input_pos then return end
             if not frame_valid(active_frame) then
                 stop_drag()
                 return
             end
-
             local delta = last_input_pos - active_drag_start
             if delta.Magnitude < MIN_DELTA then return end
             local sp  = active_start_pos
@@ -923,12 +835,10 @@ if not g.dragify then
                 sp.Y.Scale,
                 sp.Y.Offset + delta.Y
             )
-
             cancel_tween()
             active_tween = ts:Create(active_frame, TWEEN_INFO, { Position = pos })
             active_tween:Play()
         end))
-
         g.FlamesLibrary.connect(GLOBAL_KEY .. "_changed", uis.InputChanged:Connect(function(input)
             if not active_frame then return end
             if input.UserInputType == Enum.UserInputType.MouseMovement
@@ -936,14 +846,12 @@ if not g.dragify then
                 last_input_pos = input.Position
             end
         end))
-
         g.FlamesLibrary.connect(GLOBAL_KEY .. "_ended", uis.InputEnded:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1
             or input.UserInputType == Enum.UserInputType.Touch then
                 stop_drag()
             end
         end))
-
         g.dragify = function(frame)
             if not frame then return end
             task.spawn(function()
@@ -953,7 +861,6 @@ if not g.dragify then
                     waited = waited + 0.1
                     if waited >= 10 then return end
                 end
-
                 local frame_key = "dragify_" .. tostring(frame:GetDebugId())
                 g.FlamesLibrary.connect(frame_key .. "_began", frame.InputBegan:Connect(function(input)
                     if not frame_valid(frame) then return end
@@ -968,7 +875,6 @@ if not g.dragify then
                         last_input_pos    = input.Position
                     end
                 end))
-
                 g.FlamesLibrary.connect(frame_key .. "_ancestry", frame.AncestryChanged:Connect(function(_, parent)
                     if not parent then
                         if active_frame == frame then stop_drag() end
@@ -980,7 +886,6 @@ if not g.dragify then
         end
     end
 end
-
 local http_requesting = request or http_request or (syn and syn.request) or (http and http.request) or (fluxus and fluxus.request)
 g.http_requesting = g.http_requesting or http_requesting
 local function normalize_response(res)
@@ -988,7 +893,6 @@ local function normalize_response(res)
    local body = res.Body or res.body or res.Response or res.response or ""
    return status, body
 end
-
 g.try_load = g.try_load or function(urls)
     for i = 1, #urls do
         local url = urls[i]
@@ -1012,7 +916,6 @@ g.try_load = g.try_load or function(urls)
     end
     return { failed = true, status = "no-response", url = urls[#urls] }
 end
-
 local GITHUB   = "https://raw.githubusercontent.com/EnterpriseExperience/Flames_Hub_Games/main/"
 local GITLAB   = "https://gitlab.com/flames2431233/Starter/-/raw/main/"
 local CODEBERG = "https://codeberg.org/talkinboutlol/FlamesHub/raw/branch/main/"
@@ -1025,8 +928,6 @@ local function mirror(path, paste_a, paste_b)
         paste_b,
     }
 end
-
--- [[ you can use these, or you can modify the source code from each one and upload it to your own GitHub. ]] --
 local github_urls = {
     GlobalEnv_Framework = {
         "https://gitlab.com/flames2431233/Starter/-/raw/main/Assets/Global_Environment.lua?ref_type=heads"
@@ -1038,8 +939,6 @@ local github_urls = {
         "https://gitlab.com/flames2431233/Starter/-/raw/main/Life_Together_Framework/Life_Together_Network.lua?ref_type=heads"
     },
 }
-
--- [[ you can use these, or you can change them into your own if you want, but if GitHub goes down, they'll work for you, unless somehow GitHub, Pastebin AND Pastefy are down. ]] --
 local fallback_urls = {
     GlobalEnv_Framework = mirror(
         "Assets/Global_Environment.lua",
@@ -1092,28 +991,23 @@ local fallback_urls = {
         "https://pastefy.app/JPSCgeB4/raw"
     )
 }
-
 g.get_script_text = g.get_script_text or function(name)
     local gh = github_urls[name] or {}
     local fb = fallback_urls[name] or {}
-
     for i = 1, #gh do
         local res = http_requesting({ Url = gh[i], Method = "GET" })
         if res and res.StatusCode == 200 and res.Body ~= "" then
             return res.Body
         end
     end
-
     for i = 1, #fb do
         local res = http_requesting({ Url = fb[i], Method = "GET" })
         if res and res.StatusCode == 200 and res.Body ~= "" then
             return res.Body
         end
     end
-
     return ""
 end
-
 g.load_script = g.load_script or function(name)
     local github_list = github_urls[name] or {}
     local fallback_list = fallback_urls[name] or {}
@@ -1121,7 +1015,6 @@ g.load_script = g.load_script or function(name)
     if type(result) == "table" and result.failed then result = g.try_load(fallback_list) end
     return result
 end
-
 g.pick_script = g.pick_script or function(name)
     local gh = github_urls[name] or {}
     local fb = fallback_urls[name] or {}
@@ -1134,7 +1027,6 @@ g.pick_script = g.pick_script or function(name)
     g[name] = r
     return r
 end
-
 local allowed = {
     ["CIippedByAura"] = true,
     ["imjustbeter100"] = true,
@@ -1155,8 +1047,6 @@ local title_allowed_list_tbl = {
     ["AuraWithClipFarmin"] = "Owner",
     ["ActuallyMasterInIt"] = "Owner"
 }
--- [[ download every module (and the config script + UI library used further down) at the same time instead of one ]] --
--- [[ after another. Nothing runs here: each one still runs at its usual spot, in the usual order. ]] --
 local prefetched = {
     config_gui_url = "https://pastebin.com/raw/9qkZEvjw",
     atlas_url = "https://gitlab.com/flames2431233/Starter/-/raw/main/UIs/Atlas.lua?ref_type=heads",
@@ -1195,8 +1085,6 @@ do
     local started = os.clock()
     while pending > 0 and os.clock() - started < 20 do task.wait() end
 end
-
--- [[ same result as g.load_script, from the downloaded copy; anything that fails goes through g.load_script as before. ]] --
 function prefetched.load(name)
     local body = prefetched[name]
     if body then
@@ -1208,7 +1096,6 @@ function prefetched.load(name)
     end
     return g.load_script(name)
 end
-
 local GlobalEnv_Framework = prefetched.load("GlobalEnv_Framework")
 local Life_Together_Network = prefetched.load("Life_Together_Network")
 local Functions_API_LifeTogether = prefetched.load("Functions_API_LifeTogether")
@@ -1225,7 +1112,6 @@ g.make_round = g.make_round or function(obj, radius)
     uic.CornerRadius = UDim.new(0, radius)
     uic.Parent = obj
 end
-
 if type(GlobalEnv_Framework) == "function" then GlobalEnv_Framework() end
 if not g.notify then repeat task.wait() until g.notify end
 if type(Life_Together_Network) == "function" then Life_Together_Network() end
@@ -1244,16 +1130,13 @@ g.get_all_current_outfits_and_their_IDs = function()
     if typeof(Data) ~= "table" then return end
     local Outfits = Data.outfits
     if typeof(Outfits) ~= "table" then return end
-
     for i, outfit in pairs(Outfits) do
         if outfit.id then
             table.insert(g.all_saved_Life_Together_RP_Outfit_IDs, outfit.id)
         end
     end
-
     return g.all_saved_Life_Together_RP_Outfit_IDs
 end
-
 g.find_nba_props_map_folder = function()
     local cache = g.nba_props_kept_folder_inst
     if cache and cache:IsA("Folder") then return cache end
@@ -1263,10 +1146,8 @@ g.find_nba_props_map_folder = function()
             return v
         end
     end
-
     return nil
 end
-
 g.collect_all_nba_props = function()
     local char = g.Character or g.LocalPlayer.Character or g.get_char(LocalPlayer, 10) or g.Char and g.Char:get()
     if not char then return end
@@ -1284,7 +1165,6 @@ g.collect_all_nba_props = function()
         end
     end
 end
-
 local parent_gui = (get_hidden_gui and get_hidden_gui()) or (gethui and gethui()) or g.CoreGui or g.PlayerGui
 g.find_delta_icon_image_button = g.find_delta_icon_image_button or function()
     local cached = g.deltas_icon_image_button_descendant_flames_hub_value
@@ -1303,10 +1183,8 @@ g.find_delta_icon_image_button = g.find_delta_icon_image_button or function()
             return v
         end
     end
-
     return nil
 end
-
 g.toggle_delta_image_button_flames_hub = g.toggle_delta_image_button_flames_hub or function(state)
     if typeof(state) ~= "boolean" then return end
     if not executor_contains("delta") then g.notify("Error", "You're not using Delta, this feature will not work for you.", 7); return end
@@ -1316,7 +1194,6 @@ g.toggle_delta_image_button_flames_hub = g.toggle_delta_image_button_flames_hub 
         btn.Visible = state
     end
 end
-
 g.levenshtein = g.levenshtein or function(s, t)
     if s == t then return 0 end
     local len_s, len_t = #s, #t
@@ -1333,7 +1210,6 @@ g.levenshtein = g.levenshtein or function(s, t)
     end
     return d[len_s][len_t]
 end
-
 g.ToUserId = function(x)
     if typeof(x) == "number" then
         return x
@@ -1345,7 +1221,6 @@ g.ToUserId = function(x)
     end
     return nil
 end
-
 g.GetUserId = g.GetUserId or function(target)
     if typeof(target) == "Instance" then
         if target:IsA("Player") then return target.UserId end
@@ -1353,23 +1228,19 @@ g.GetUserId = g.GetUserId or function(target)
         if plr then return plr.UserId end
         return nil
     end
-
     if typeof(target) == "string" then
         local plr = Players:FindFirstChild(target)
         if plr and plr:IsA("Player") then return plr.UserId end
         return nil
     end
-
     if typeof(target) == "number" then return target end
     return nil
 end
-
 local function FindPlayer(query)
     if not query then
         if g.notify and typeof(g.notify) then g.notify("Error", "Something unexpected happened while trying to find: "..tostring(query), 6) end
         return nil
     end
-
     query = tostring(query):lower()
     local best_match = nil
     local best_score = math.huge
@@ -1377,47 +1248,30 @@ local function FindPlayer(query)
         local username = plr.Name:lower()
         local display = plr.DisplayName:lower()
         local userid = tostring(plr.UserId)
-        -----------------------------------------------------------
-        -- [[ substring match (better score = lower position number). ]] --
-        -----------------------------------------------------------
         local function substring_score(target)
             local i = target:find(query, 1, true)
-            if i then -- is it good?
+            if i then
                 return i
             end
             return nil
         end
-
-        -----------------------------------------------------------
-        -- fuzzy score (levenshtein >> (function) < distance). --
-        -- lower is better, weighted worse than substring. --
-        -----------------------------------------------------------
         local function fuzzy_score(target)
-            return g.levenshtein(query, target) -- query the target.
+            return g.levenshtein(query, target)
         end
-        -----------------------------------------------------------
-        -- [[ perfect UserId match. ]] --
-        -----------------------------------------------------------
         if query == userid then
             return plr
         end
-        -----------------------------------------------------------
-        -- [[ evaluate score layers. ]] --
-        -----------------------------------------------------------
         local candidates = {
             username,
             display,
             userid
         }
-
         for _, target in ipairs(candidates) do
-            -- substring match first. --
             local sub = substring_score(target)
             if sub and sub < best_score then
                 best_score = sub
                 best_match = plr
             else
-                -- [[ aww man, we didn't match the substring, oh well. ]] --
                 local fuzzy = fuzzy_score(target)
                 if fuzzy < best_score then
                     best_score = fuzzy
@@ -1426,15 +1280,9 @@ local function FindPlayer(query)
             end
         end
     end
-
     return best_match
 end
-
 g.FindPlayer = g.FindPlayer or FindPlayer
--- [[ configuration GUI. ]] --
--- [[ the old white config GUI is retired, everything lives in the main menu. Its config is set to not enrolled, so its ]] --
--- [[ script only defines the shared functions (anti sit, job spammer...) and never draws its window or auto-starts its ]] --
--- [[ own anti stealer, which kept forcing the old long bio. ]] --
 pcall(function()
     local old_config_path = "Flames_Admin_Config.json"
     if isfile and isfile(old_config_path) then
@@ -1445,8 +1293,6 @@ pcall(function()
         end
     end
 end)
--- [[ optional: on executors that can't load the game's internal modules (Xeno) this part errors, and that used to stop ]] --
--- [[ the whole script before the menu was built ]] --
 if not CoreGui:FindFirstChild("FlamesAdminGUI", true) then
     local ok_old_gui, err_old_gui = pcall(function() loadstring(prefetched.__config_gui or g.http_get(prefetched.config_gui_url))() end)
     if not ok_old_gui then warn("[Flames] old helper GUI skipped: " .. tostring(err_old_gui)) end
@@ -1489,7 +1335,6 @@ g.rgb_color_map = g.rgb_color_map or {
     coral = Color3.fromRGB(255,127,80),
     salmon = Color3.fromRGB(250,128,114)
 }
-
 g.rgb_color_index = {}
 do
     local i = 1
@@ -1498,7 +1343,6 @@ do
         i = i + 1
     end
 end
-
 local function ensure_global_loop()
     if g._rgb_global_conn then return end
     local conn = rs.RenderStepped:Connect(function(dt)
@@ -1513,54 +1357,44 @@ local function ensure_global_loop()
                 end
             end
         end
-
         if not any then
             g._rgb_global_conn:Disconnect()
             g._rgb_global_conn = nil
         end
     end)
-
     g._rgb_global_conn = conn
 end
-
 g.flowrgb = g.flowrgb or function(name, speed, obj, toggle)
     local conns = g._rgb_conns
     if toggle == false then
         conns[name] = nil
         return
     end
-
     conns[name] = {
         obj = obj,
         speed = speed,
         hue = 0,
         paused = false
     }
-
     ensure_global_loop()
 end
-
-g.toggle_rgb = g.toggle_rgb or function(name, state) -- toggle a certain connection.
+g.toggle_rgb = g.toggle_rgb or function(name, state)
     local data = g._rgb_conns[name]
     if data then
         data.paused = state
     end
 end
-
-g.toggle_all_rgb = g.toggle_all_rgb or function(state) -- toggle all
+g.toggle_all_rgb = g.toggle_all_rgb or function(state)
     for _, data in pairs(g._rgb_conns) do
         if data then
             data.paused = state
         end
     end
 end
-
 g.set_rgb_color_smart = g.set_rgb_color_smart or function(name, input)
     local data = g._rgb_conns[name]
     if not data or not data.obj then return end
-
     local color
-
     if typeof(input) == "string" then
         color = g.rgb_color_map[input:lower()]
     elseif typeof(input) == "number" then
@@ -1569,19 +1403,15 @@ g.set_rgb_color_smart = g.set_rgb_color_smart or function(name, input)
     elseif typeof(input) == "Color3" then
         color = input
     end
-
     if not color then
         local keys = {}
         for k in pairs(g.rgb_color_map) do keys[#keys+1] = k end
         color = g.rgb_color_map[keys[math.random(1, #keys)]]
     end
-
     data.obj.BackgroundColor3 = color
 end
-
 g.set_all_rgb_color_smart = g.set_all_rgb_color_smart or function(input)
     local color
-
     if typeof(input) == "string" then
         color = g.rgb_color_map[input:lower()]
     elseif typeof(input) == "number" then
@@ -1590,20 +1420,17 @@ g.set_all_rgb_color_smart = g.set_all_rgb_color_smart or function(input)
     elseif typeof(input) == "Color3" then
         color = input
     end
-
     if not color then
         local keys = {}
         for k in pairs(g.rgb_color_map) do keys[#keys+1] = k end
         color = g.rgb_color_map[keys[math.random(1, #keys)]]
     end
-
     for _, data in pairs(g._rgb_conns) do
         if data and data.obj then
             data.obj.BackgroundColor3 = color
         end
     end
 end
-
 g.set_all_rgb_color = g.set_all_rgb_color or function(color)
     for _, data in pairs(g._rgb_conns) do
         if data and data.obj then
@@ -1611,20 +1438,17 @@ g.set_all_rgb_color = g.set_all_rgb_color or function(color)
         end
     end
 end
-
 g.get_player_list = function()
     local players = Players:GetPlayers()
     local parts = {}
     for i, plr in ipairs(players) do table.insert(parts, "[" .. i .. ']: "' .. plr.Name .. '"') end
     return table.concat(parts, ", ")
 end
-
 g.is_server_full = g.is_server_full or function()
     local current = #Players:GetPlayers()
     local max = Players.MaxPlayers
     return current >= max
 end
-
 g.Device_Detector = g.Device_Detector or function()
     local platform = UserInputService:GetPlatform()
     local platform_map = {
@@ -1652,12 +1476,10 @@ g.Device_Detector = g.Device_Detector or function()
     }
     return platform_map[platform] or "Unknown Device"
 end
-
 g.count_all_flames_hub_commands = g.count_all_flames_hub_commands or function()
     local cmds = g.cmdsString
     if type(cmds) ~= "string" then return 0 end
     local total = 0
-
     for line in cmds:gmatch("[^\r\n]+") do
         local cleaned = line:match("^%s*(.-)%s*$")
         if cleaned and cleaned ~= "" then
@@ -1669,16 +1491,13 @@ g.count_all_flames_hub_commands = g.count_all_flames_hub_commands or function()
             end
         end
     end
-
     return total
 end
-
 local holiday = g.getholiday() or ""
 local Announcement_Message = "Made Height & Width scale sliders (+ Added Width slider) + re-worked and improved some internal code."
 g.displayTimeMax = 60
 g.Script_Loaded_Correctly_LifeTogether_Admin_Flames_Hub = g.Script_Loaded_Correctly_LifeTogether_Admin_Flames_Hub or false
-g.Script_Version_GlobalGenv = g.Script_Version -- also keep it like this so it can over-write new version properly.
-
+g.Script_Version_GlobalGenv = g.Script_Version
 if not g.Flames_Hub_Owner_Title_Animated_Initialized then
     g.Flames_Hub_Owner_Title_Animated_Initialized = true
     local title_name = "unique_title_billboard"
@@ -1690,7 +1509,6 @@ if not g.Flames_Hub_Owner_Title_Animated_Initialized then
         ["Wifey"] = "Wifey_Chat_Tag",
         ["Client"] = "Client_Chat_Tag"
     }
-
     local function resolve_title(player)
         local role = title_allowed_list_tbl[player.Name]
         if not role then return nil end
@@ -1699,7 +1517,6 @@ if not g.Flames_Hub_Owner_Title_Animated_Initialized then
         local tags = g.Chat_UI_Table_Stuff or {}
         return tags[tag_key] or role
     end
-
     local function animate_label(label)
         local key = OWNER_KEY .. "_label_" .. tostring(label)
         lib.spawn(key, "spawn", function()
@@ -1717,7 +1534,6 @@ if not g.Flames_Hub_Owner_Title_Animated_Initialized then
             lib.disconnect(key)
         end)
     end
-
     local function animate_float(billboard)
         local key = OWNER_KEY .. "_float_" .. tostring(billboard)
         local going_up = true
@@ -1736,7 +1552,6 @@ if not g.Flames_Hub_Owner_Title_Animated_Initialized then
             lib.disconnect(key)
         end)
     end
-
     local function create_billboard(character, title_text)
         if not character then return end
         local head = character:FindFirstChild("Head") or character:WaitForChild("Head", 10)
@@ -1748,23 +1563,19 @@ if not g.Flames_Hub_Owner_Title_Animated_Initialized then
         billboard.StudsOffset = Vector3.new(0, 2.5, 0)
         billboard.AlwaysOnTop = true
         billboard.Parent = head
-
         local frame = Instance.new("Frame")
         frame.Size = UDim2.new(1, 0, 1, 0)
         frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
         frame.BackgroundTransparency = 0.2
         frame.BorderSizePixel = 0
         frame.Parent = billboard
-
         local corner = Instance.new("UICorner")
         corner.CornerRadius = UDim.new(0, 12)
         corner.Parent = frame
-
         local stroke = Instance.new("UIStroke")
         stroke.Thickness = 2
         stroke.Color = Color3.fromRGB(255, 140, 0)
         stroke.Parent = frame
-
         local label = Instance.new("TextLabel")
         label.BackgroundTransparency = 1
         label.Size = UDim2.new(1, -10, 1, -10)
@@ -1775,12 +1586,10 @@ if not g.Flames_Hub_Owner_Title_Animated_Initialized then
         label.TextStrokeTransparency = 0
         label.TextColor3 = Color3.new(1, 1, 1)
         label.Parent = frame
-
         animate_label(label)
         animate_float(billboard)
         g.activeowner_title_billboards[character] = billboard
     end
-
     local function cleanup_character(character)
         local billboard = g.activeowner_title_billboards[character]
         if billboard then
@@ -1793,7 +1602,6 @@ if not g.Flames_Hub_Owner_Title_Animated_Initialized then
             g.activeowner_title_billboards[character] = nil
         end
     end
-
     local function watch_owners_character(player)
         local title_text = resolve_title(player)
         if not title_text then return end
@@ -1805,13 +1613,11 @@ if not g.Flames_Hub_Owner_Title_Animated_Initialized then
             if head:FindFirstChild(title_name) then return end
             create_billboard(char, title_text)
         end
-
         local function on_char(char)
             if prev_char then
                 cleanup_character(prev_char)
             end
             prev_char = char
-
             lib.disconnect(char_key .. "_spawn")
             lib.spawn(char_key .. "_spawn", "spawn", function()
                 if not char:IsDescendantOf(workspace) then
@@ -1832,7 +1638,6 @@ if not g.Flames_Hub_Owner_Title_Animated_Initialized then
                 task.wait(0.1)
                 attach_to_head(char)
             end)
-
             local head_watch_key = char_key .. "_headwatch"
             lib.connect(head_watch_key, char.ChildAdded:Connect(function(child)
                 if child.Name == "Head" then
@@ -1842,7 +1647,6 @@ if not g.Flames_Hub_Owner_Title_Animated_Initialized then
                 end
             end))
         end
-
         lib.connect(char_key, player.CharacterAdded:Connect(function(char)
             lib.disconnect(char_key .. "_headwatch")
             lib.disconnect(char_key .. "_spawn")
@@ -1850,7 +1654,6 @@ if not g.Flames_Hub_Owner_Title_Animated_Initialized then
         end))
         if player.Character then on_char(player.Character) end
     end
-
     local function unwatch_player(player)
         if not title_allowed_list_tbl[player.Name] then return end
         local char_key = OWNER_KEY .. "_charadded_" .. tostring(player.UserId)
@@ -1859,7 +1662,6 @@ if not g.Flames_Hub_Owner_Title_Animated_Initialized then
         lib.disconnect(char_key .. "_headwatch")
         if player.Character then cleanup_character(player.Character) end
     end
-
     for _, player in ipairs(Players:GetPlayers()) do watch_owners_character(player) end
     if not g.Flames_Title_Owner_Added_And_Removing_Checks then
         g.Flames_Title_Owner_Added_And_Removing_Checks = true
@@ -1868,14 +1670,11 @@ if not g.Flames_Hub_Owner_Title_Animated_Initialized then
                 watch_owners_character(player)
             end)
         end))
-
         lib.connect(OWNER_KEY .. "_player_removing", Players.PlayerRemoving:Connect(function(player)
             unwatch_player(player)
         end))
     end
 end
-
---[[if not g.Flames_Hub_Client_Title_Initialized then
     g.Flames_Hub_Client_Title_Initialized = true
     local client_billboard_name = "unique_client_title_billboard"
     local CLIENT_KEY = "client_title"
@@ -1890,37 +1689,31 @@ end
         ["unemploymenttz"] = true,
         ["CBWxOWNERxJULIOOOO"] = true
     }
-
     g.active_client_title_billboards = setmetatable({}, { __mode = "k" })
     local function build_client_billboard(character)
         if not character then return end
         local head = character:FindFirstChild("Head") or character:WaitForChild("Head", 10)
         if not head then return end
         if head:FindFirstChild(client_billboard_name) then return end
-
         local billboard = Instance.new("BillboardGui")
         billboard.Name = client_billboard_name
         billboard.Size = UDim2.new(0, 220, 0, 60)
         billboard.StudsOffset = Vector3.new(0, 2.5, 0)
         billboard.AlwaysOnTop = true
         billboard.Parent = head
-
         local frame = Instance.new("Frame")
         frame.Size = UDim2.new(1, 0, 1, 0)
         frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
         frame.BackgroundTransparency = 0
         frame.BorderSizePixel = 0
         frame.Parent = billboard
-
         local corner = Instance.new("UICorner")
         corner.CornerRadius = UDim.new(0, 12)
         corner.Parent = frame
-
         local stroke = Instance.new("UIStroke")
         stroke.Thickness = 2
         stroke.Color = Color3.fromRGB(255, 255, 255)
         stroke.Parent = frame
-
         local label = Instance.new("TextLabel")
         label.BackgroundTransparency = 1
         label.Size = UDim2.new(1, -10, 1, -10)
@@ -1931,10 +1724,8 @@ end
         label.TextStrokeTransparency = 0
         label.TextColor3 = Color3.fromRGB(255, 255, 255)
         label.Parent = frame
-
         g.active_client_title_billboards[character] = billboard
     end
-
     local function destroy_client_billboard(character)
         local billboard = g.active_client_title_billboards[character]
         if billboard then
@@ -1942,7 +1733,6 @@ end
             g.active_client_title_billboards[character] = nil
         end
     end
-
     local function client_is_whitelisted(player) return client_whitelist[player.Name] == true end
     local function attach_client_billboard(char)
         local head = char:FindFirstChild("Head")
@@ -1950,7 +1740,6 @@ end
         if head:FindFirstChild(client_billboard_name) then return end
         build_client_billboard(char)
     end
-
     local function on_client_char_added(player, char, prev_char_ref)
         if prev_char_ref[1] then destroy_client_billboard(prev_char_ref[1]) end
         prev_char_ref[1] = char
@@ -1974,7 +1763,6 @@ end
             task.wait(0.1)
             attach_client_billboard(char)
         end)
-
         local head_watch_key = char_key .. "_headwatch"
         lib.connect(head_watch_key, char.ChildAdded:Connect(function(child)
             if child.Name == "Head" then
@@ -1984,7 +1772,6 @@ end
             end
         end))
     end
-
     local function start_client_watcher(player)
         if not client_is_whitelisted(player) then return end
         local char_key = CLIENT_KEY .. "_charadded_" .. tostring(player.UserId)
@@ -1996,7 +1783,6 @@ end
         end))
         if player.Character then on_client_char_added(player, player.Character, prev_char_ref) end
     end
-
     local function stop_client_watcher(player)
         if not client_is_whitelisted(player) then return end
         local char_key = CLIENT_KEY .. "_charadded_" .. tostring(player.UserId)
@@ -2005,24 +1791,19 @@ end
         lib.disconnect(char_key .. "_headwatch")
         if player.Character then destroy_client_billboard(player.Character) end
     end
-
     for _, player in ipairs(Players:GetPlayers()) do start_client_watcher(player) end
     if not g.Flames_Client_Title_Player_Checks then
         g.Flames_Client_Title_Player_Checks = true
-
         lib.connect(CLIENT_KEY .. "_player_added", Players.PlayerAdded:Connect(function(player)
             lib.spawn(CLIENT_KEY .. "_watch_" .. tostring(player.UserId), "spawn", function()
                 start_client_watcher(player)
             end)
         end))
-
         lib.connect(CLIENT_KEY .. "_player_removing", Players.PlayerRemoving:Connect(function(player)
             stop_client_watcher(player)
         end))
     end
-end--]]
-
--- [[ if someone has a bad outfit, like those fling outfits, this will detect it and destroy it. ]] --
+end
 local Local_Player = Players.LocalPlayer
 g.Delete_Bad_Accessories = g.Delete_Bad_Accessories or function(Target_Char)
 	for _, v in ipairs(Target_Char:GetDescendants()) do
@@ -2031,7 +1812,6 @@ g.Delete_Bad_Accessories = g.Delete_Bad_Accessories or function(Target_Char)
 		end
 	end
 end
-
 local function Setup_Player(Player)
 	if Player == Local_Player then return end
 	if Player.Character then
@@ -2044,13 +1824,11 @@ local function Setup_Player(Player)
 		g.Delete_Bad_Accessories(New_Char)
 	end))
 end
-
 for _, Player in ipairs(Players:GetPlayers()) do Setup_Player(Player) end
 Lib.connect("bad_accessories_player_added", Players.PlayerAdded:Connect(Setup_Player))
 Lib.connect("bad_accessories_player_removing", Players.PlayerRemoving:Connect(function(Player)
 	Lib.disconnect("bad_accessories_" .. Player.UserId)
 end))
-
 g.is_streamed_in = g.is_streamed_in or function(plr)
     if not plr or not plr:IsA("Player") then return false end
     local char = plr.Character
@@ -2059,7 +1837,6 @@ g.is_streamed_in = g.is_streamed_in or function(plr)
     if not root then return false end
     return root:IsDescendantOf(workspace)
 end
-
 g.is_streamed_out_checker = g.is_streamed_out_checker or function(char)
     if not char or not char:IsA("Player") then return false end
     char = char or char.Character
@@ -2069,15 +1846,12 @@ g.is_streamed_out_checker = g.is_streamed_out_checker or function(char)
     if not root:IsDescendantOf(workspace) then return false end
     return true
 end
-
 g.LoadPerformanceStatsGUI = function()
     if g.performance_stats then
         g.notify("Info", "Performance Statistics GUI is already loaded.", 5)
         return
     end
-
     g.notify("Info", "Loading Performance Statistics GUI...", 5)
-
     local success, err = pcall(function()
         local src = g.get_script_text("grab_file_performance")
         if src == "" then
@@ -2085,25 +1859,21 @@ g.LoadPerformanceStatsGUI = function()
         end
         loadstring(src)()
     end)
-
     if not success then
         g.notify("Error", "Failed to load Performance Statistics GUI: "..tostring(err), 8)
         return
     end
-
     local timeout = 10
     repeat
         task.wait(0.5)
         timeout = timeout - 0.5
     until g.performance_stats or timeout <= 0
-
     if g.performance_stats then
         g.notify("Success", "Loaded Performance Statistics GUI.", 5)
     else
         g.notify("Warning", "Failed to confirm Performance Statistics GUI load.", 8)
     end
 end
-
 g.fileName = "LifeTogether_Admin_Configuration.json"
 g.make_stroke = g.make_stroke or function(obj, thickness, trans)
     local ui_stroke = Instance.new("UIStroke")
@@ -2111,21 +1881,18 @@ g.make_stroke = g.make_stroke or function(obj, thickness, trans)
     ui_stroke.Transparency = tonumber(trans) or 0.3
     ui_stroke.Parent = obj
 end
-
 g.find_module_s = function(module_name)
     if not module_name then return nil end
     local base = g.Modules or g.ReplicatedStorage:FindFirstChild("Modules", true)
     local Modules = g.safe_require(base)
     local ok, Module_Found = pcall(function() return Modules and Modules[module_name:lower()] end)
     if ok and Module_Found then return Module_Found end
-    -- [[ Xeno: the game's module list is empty in the script's own copy, so load the ModuleScript itself ]] --
     local wanted = module_name:lower()
     for _, d in ipairs(base and base:GetDescendants() or {}) do
         if d:IsA("ModuleScript") and d.Name:lower() == wanted then return g.safe_require(d) end
     end
     return nil
 end
-
 g.NightVisionEnabled = g.NightVisionEnabled or false
 g.ensureColorCorrection = function(name, props)
     local effect = g.Lighting:FindFirstChild(name)
@@ -2139,7 +1906,6 @@ g.ensureColorCorrection = function(name, props)
     end
     return effect
 end
-
 local ccEffects = {
     NightVisionColorCorrection = g.ensureColorCorrection("NightVisionColorCorrection", {
         Enabled = false,
@@ -2149,7 +1915,6 @@ local ccEffects = {
         TintColor = Color3.new(0.6, 1, 0.815686)
     })
 }
-
 local vignetteGui = CoreGui:FindFirstChild("VignetteEffect") or g.PlayerGui:FindFirstChild("VignetteEffect")
 if not vignetteGui then
     vignetteGui = Instance.new("ScreenGui")
@@ -2159,7 +1924,6 @@ if not vignetteGui then
     vignetteGui.ResetOnSpawn = false
     vignetteGui.Parent = CoreGui
 end
-
 local vignetteImage = vignetteGui:FindFirstChildOfClass("ImageLabel")
 if not vignetteImage then
     vignetteImage = Instance.new("ImageLabel")
@@ -2183,7 +1947,6 @@ if not vignetteImage then
     vignetteImage.ScaleType = Enum.ScaleType.Stretch
     vignetteImage.Parent = vignetteGui
 end
-
 g.ToggleNightVision = function(state)
     g.NightVisionEnabled = state
     for _, effect in pairs(ccEffects) do
@@ -2191,7 +1954,6 @@ g.ToggleNightVision = function(state)
     end
     vignetteGui.Enabled = state
 end
-
 g.night_vision = function(toggle)
     if toggle == true then
         if g.NightVisionEnabled then g.notify("Warning", "Night Vision is already enabled.", 5); return end
@@ -2202,10 +1964,9 @@ g.night_vision = function(toggle)
         g.ToggleNightVision(false)
         g.notify("Success", "Night Vision has been disabled.", 5)
     else
-        return 
+        return
     end
 end
-
 g.create_message_instance = function(inst_name, message, duration)
     message = tostring(message)
     inst_name = tostring(inst_name)
@@ -2217,13 +1978,11 @@ g.create_message_instance = function(inst_name, message, duration)
     task.wait(duration)
     if new_msg and new_msg:IsA("Hint") and new_msg.Parent ~= nil then new_msg:Destroy() end
 end
-
 g.Net = g.Net or g.find_module_s("Net") or g.safe_require(g.Core:FindFirstChild("Net"))
 g.owner_joined = function(Name)
    local owner_text_content = "Flames Hub | Owner has joined this server ("..tostring(Name).."), this is my current and only account right now, so come to me if you need help/assistance."
    if g.notify and typeof(g.notify) == "function" then g.notify("Success", owner_text_content, 15) else print("Success: "..tostring(owner_text_content)) end
 end
-
 if g.Teleport_Checker_For_Script then
     pcall(function() g.Teleport_Checker_For_Script:Disconnect() end)
     g.Teleport_Checker_For_Script = nil
@@ -2236,7 +1995,6 @@ g.Teleport_Checker_For_Script = g.LocalPlayer.OnTeleport:Connect(function(State)
 		queueteleport("loadstring(game:HttpGet('https://raw.githubusercontent.com/EnterpriseExperience/Flames_Hub_Games/refs/heads/main/Experiences/13967668166.lua'))()")
 	end
 end)
-
 g.LocalPlayer = g.LocalPlayer or g.safe_wrapper("LocalPlayer")
 local some_vehicles = {
     "Monster Truck",
@@ -2262,7 +2020,6 @@ print("[Flames] loading: vehicle check")
 if not g.Spawned_Vehicle_Checker then
     local Net = g.find_module_s("Net") or g.safe_require(g.Core:FindFirstChild("Net"))
     g.notify("Success", "Spoofing Vehicle spawner...", 10)
-
     for _, car in ipairs(some_vehicles) do
         fw(0.2)
         Net.get("spawn_vehicle", tostring(car))
@@ -2272,7 +2029,6 @@ task.wait()
 g.find_placed_models_folder = function()
     local cached_folder = g.cached_placed_models_folder
     if cached_folder and cached_folder.Parent and cached_folder:IsDescendantOf(workspace) then return cached_folder end
-
     for _, v in ipairs(g.Workspace:GetDescendants()) do
         local n = v.Name:lower()
         if v:IsA("Folder") and (n:find("placedmodels", 1, true) or n:find("modelsplaced", 1, true)) then
@@ -2280,27 +2036,23 @@ g.find_placed_models_folder = function()
             return v
         end
     end
-
     return nil
 end
-
 if not g.cached_placed_models_folder then pcall(function() g.find_placed_models_folder() end) end
 local Placed_Models = g.cached_placed_models_folder or Workspace:FindFirstChild("PlacedModels") or Workspace:WaitForChild("PlacedModels", 1) or g.find_placed_models_folder()
 g.workspace_editor_script_GUI = function()
     if g.CoreGui:FindFirstChild("Workspace_Editor_GUI_Flames_Hub") and g.CoreGui:FindFirstChild("Workspace_Editor_GUI_Flames_Hub"):IsA("ScreenGui") then
         g.CoreGui:FindFirstChild("Workspace_Editor_GUI_Flames_Hub").Enabled = true
-        return 
+        return
     end
     fw(0.1)
     loadstring(g.http_get('https://pastebin.com/raw/bdiufqqx'))()
 end
-
 g.is_in_private_server = function()
     local Remote = RobloxReplicatedStorage:FindFirstChild("GetServerType")
     if not Remote then return g.notify("Error", "RemoteFunction: GetServerType does not exist under: RobloxReplicatedStorage, probably patched.", 3) end
     local Result = Remote:InvokeServer()
     local IsPrivateServer = Result == "VIPServer" and true or false
-
     if IsPrivateServer then
         return true
     else
@@ -2308,7 +2060,6 @@ g.is_in_private_server = function()
         return false
     end
 end
-
 g.has_server_admin = function()
     local is_priv_server = g.is_in_private_server()
     if not is_priv_server then return false end
@@ -2324,10 +2075,8 @@ g.has_server_admin = function()
             end
         end
     end
-
     return false
 end
-
 g.get_server_admin_player = function()
     local function check_player(player)
         local hrp = g.get_root(player, Players.RespawnTime + 0.5)
@@ -2337,24 +2086,20 @@ g.get_server_admin_player = function()
         local label = billboard:FindFirstChild("ServerAdmin")
         return label and label:IsA("TextLabel") and label.Visible
     end
-
     for _, player in ipairs(Players:GetPlayers()) do
         if check_player(player) then
             return player
         end
     end
-
     if check_player(g.LocalPlayer or Players.LocalPlayer) then return g.LocalPlayer or Players.LocalPlayer end
     return nil
 end
-
 g.is_localplayer_server_owner = function()
     if not g.has_server_admin() then return false end
     local admin_player = g.get_server_admin_player()
     local local_player = g.LocalPlayer
     return admin_player and local_player and admin_player == local_player
 end
-
 g.notify_priv_server_owner = function()
     local is_priv = g.is_in_private_server()
     if is_priv == nil then return end
@@ -2368,21 +2113,18 @@ g.notify_priv_server_owner = function()
         g.notify("Info", "This is a private server owned by: " .. tostring(admin_player), 7)
     end
 end
-
 g.server_admin_tp = function(Player)
     local check_is_localplr_priv_server_owner = g.is_localplayer_server_owner()
     if not check_is_localplr_priv_server_owner then g.notify("Warning", "You do not own this Private Server!", 5); return end
     if typeof(Player) ~= "Instance" or not Player:IsA("Player") then g.notify("Error", "That player doesn't exist or is not a Player.", 5); return end
     g.Send("server_admin_teleport_to_player", Player.UserId)
 end
-
 g.disable_emote_func = function()
     local Humanoid = g.Humanoid or g.get_human(LocalPlayer, Players.RespawnTime + 1)
     if not Humanoid then g.notify("Error", "Humanoid not found, try resetting.", 5); return end
     pcall(function() for _, v in ipairs(Humanoid:GetPlayingAnimationTracks()) do v:Stop() end end)
     if g.Is_Currently_Emoting then g.Is_Currently_Emoting = false end
 end
-
 if not g.Spawned_Vehicle_Checker then
     local Net = g.Net or g.safe_require(g.Core:FindFirstChild("Net"))
     local success, response = pcall(function()
@@ -2390,7 +2132,6 @@ if not g.Spawned_Vehicle_Checker then
         wait(3)
         return g.get_vehicle()
     end)
-
     if success and response then
         fw(0.1)
         if g.get_vehicle() and g.Humanoid.Sit or g.Humanoid.Sit == true then
@@ -2406,15 +2147,12 @@ if not g.Spawned_Vehicle_Checker then
             g.notify("Warning", "We did not find your Vehicle, but it seems like it worked.", 5)
         end
     else
-        -- [[ a failed test spawn used to stop the whole script ("cannot run this script on this executor"); now it's only a note ]] --
         if not success then
             g.notify("Warning", "Couldn't spawn the test vehicle, carrying on anyway.", 5)
         end
     end
-
     g.Spawned_Vehicle_Checker = true
 end
-
 local Char = g.Char or g.safe_require(ReplicatedStorage:FindFirstChild("Char", true))
 g.get_current_character_life_together_rp = function() return Char.get() end
 g.get_hrp_life_together_rp = function() return Char.get_hrp() end
@@ -2424,7 +2162,6 @@ if g.invisible_toggle_connections then
     fw(0.1)
     g.invisible_toggle_connections = nil
 end
-
 local player = g.LocalPlayer or Players.LocalPlayer
 local character, humanoid, rootPart
 g.is_invisible_script_toggled = false
@@ -2441,7 +2178,6 @@ g.setupCharacter = function()
         end
     end
 end
-
 g.createUI = function()
     local gui = CoreGui:FindFirstChild("InvisibleUI")
     if not gui then
@@ -2450,7 +2186,6 @@ g.createUI = function()
         gui.ResetOnSpawn = false
         gui.Parent = CoreGui
     end
-
     gui.Enabled = false
     gui:ClearAllChildren()
     local frame = Instance.new("Frame")
@@ -2461,9 +2196,7 @@ g.createUI = function()
     frame.Active = true
     frame.Draggable = true
     frame.Parent = gui
-
     frame.Visible = false
-
     local invisBtn = Instance.new("TextButton")
     invisBtn.Size = UDim2.new(0, 100, 0, 40)
     invisBtn.Position = UDim2.new(0, 10, 0, 25)
@@ -2471,7 +2204,6 @@ g.createUI = function()
     invisBtn.TextScaled = true
     invisBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
     invisBtn.Parent = frame
-
     local toggleBtn = Instance.new("TextButton")
     toggleBtn.Size = UDim2.new(0, 80, 0, 30)
     toggleBtn.Position = UDim2.new(0, 130, 0, 30)
@@ -2479,7 +2211,6 @@ g.createUI = function()
     toggleBtn.TextScaled = true
     toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 160, 240)
     toggleBtn.Parent = frame
-
     invisBtn.MouseButton1Click:Connect(function()
         g.is_invisible_script_toggled = not g.is_invisible_script_toggled
         for part, original in pairs(g.invisible_body_parts) do
@@ -2488,7 +2219,6 @@ g.createUI = function()
             end
         end
     end)
-
     toggleBtn.MouseButton1Click:Connect(function()
         if toggleBtn.Text == "Hide" then
             invisBtn.Visible = false
@@ -2507,7 +2237,6 @@ g.createUI = function()
         end
     end)
 end
-
 g.setupCharacter()
 g.createUI()
 if g.invis_main_FE_connections.Heartbeat then
@@ -2527,7 +2256,6 @@ g.invis_main_FE_connections.Heartbeat = RunService.Heartbeat:Connect(function()
         humanoid.CameraOffset = camOffset
     end
 end)
-
 if g.invis_main_FE_connections.CharacterAdded then
     pcall(function() g.invis_main_FE_connections.CharacterAdded:Disconnect() end)
     g.invis_main_FE_connections.CharacterAdded = nil
@@ -2538,21 +2266,18 @@ g.invis_main_FE_connections.CharacterAdded = player.CharacterAdded:Connect(funct
     g.setupCharacter()
     g.createUI()
 end)
-
 g.invisible_toggle_connections = g.invis_main_FE_connections
 g.set_invisible = g.set_invisible or function(state)
     g.is_invisible_script_toggled = state and true or false
     if g.is_invisible_script_toggled then
         g.notify("Info", "You can still use the chat, but people won't be able to see it directly above your head.", 10)
     end
-
     for part, original in pairs(g.invisible_body_parts) do
         if part and part.Parent then
             part.Transparency = g.is_invisible_script_toggled and 0.5 or original
         end
     end
 end
-
 g.AllCars = {
     "Magic Carpet", "EClass", "TowTruck", "Bicycle", "Fiat500", "Cayenne", "Jetski", "LuggageScooter",
     "MiniCooper", "GarbageTruck", "EScooter", "Monster Truck", "Yacht", "Stingray", "FireTruck", "VespaPizza",
@@ -2562,7 +2287,6 @@ g.AllCars = {
     "Helicopter", "SnowPlow", "Camper Van", "SWAT Van", "Magic Carpett"
 }
 local CarMap = {}
-
 g.kick_plr = g.kick_plr or function(player)
     if not g.is_localplayer_server_owner() then g.notify("Error", "You are not the private server owner!", 5); return end
     local name
@@ -2572,20 +2296,14 @@ g.kick_plr = g.kick_plr or function(player)
             "server_admin_kick_player",
             tostring(name)
         }
-
         g.Get(unpack(args))
     end
 end
-
--- [[ Does not work anymore. ]] --
---[[g.load_chat_main_GUI = function()
     wait(0.15)
     local connector = (syn and syn.websocket and syn.websocket.connect) or (WebSocket and WebSocket.connect) or (websocket and websocket.connect)
     if not connector or typeof(connector) ~= "function" then g.notify("Error", "[Flames Hub - Chat]: No WebSocket support, unable to use Flames Hub | Custom Chat script.", 10); return end
     pcall(function() loadstring(g.http_get("https://pastefy.app/108vjy8A/raw"))() end)
-end--]]
-
--- [[ I wish they would remove this pointless ass integration. ]] --
+end
 if Workspace:FindFirstChild("WildwoodIntegration") then
     local wild_wood = Workspace:FindFirstChild("WildwoodIntegration")
     for _, v in ipairs(wild_wood:GetDescendants()) do
@@ -2600,7 +2318,6 @@ if Workspace:FindFirstChild("WildwoodIntegration") then
         end
     end
 end
-
 g.server_lock_whitelist_gui = g.server_lock_whitelist_gui or function()
     if not g.is_localplayer_server_owner() then g.notify("Error", "You are not the private server owner!", 5); return end
     if g.ServerLockWhitelistManagerGUI then g.notify("Warning", "Server-Lock whitelist manager is already running!", 5); return end
@@ -2612,28 +2329,23 @@ g.server_lock_whitelist_gui = g.server_lock_whitelist_gui or function()
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = tostring(g.randomString())
     ScreenGui.Parent = parent_gui
-
     local Main = Instance.new("Frame")
     Main.Size = UDim2.new(0, 300, 0, 350)
     Main.Position = UDim2.new(0.5, -150, 0.5, -175)
     Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     Main.BorderSizePixel = 0
     Main.Parent = ScreenGui
-
     if g.dragify and typeof(g.dragify) == "function" then g.dragify(Main) end
     local UICorner = Instance.new("UICorner")
     UICorner.CornerRadius = UDim.new(0, 8)
     UICorner.Parent = Main
-
     local TitleBar = Instance.new("Frame")
     TitleBar.Size = UDim2.new(1, 0, 0, 30)
     TitleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
     TitleBar.Parent = Main
-
     local UI_Corner = Instance.new("UICorner")
     UI_Corner.CornerRadius = UDim.new(0, 8)
     UI_Corner.Parent = TitleBar
-
     local Title = Instance.new("TextLabel")
     Title.Size = UDim2.new(0.970000029, -30, 1, 0)
     Title.Position = UDim2.new(0, 5, 0, 0)
@@ -2645,7 +2357,6 @@ g.server_lock_whitelist_gui = g.server_lock_whitelist_gui or function()
     Title.TextScaled = true
     Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.Parent = TitleBar
-
     local CloseButton = Instance.new("TextButton")
     CloseButton.Size = UDim2.new(0, 30, 1, 0)
     CloseButton.Position = UDim2.new(1, -30, 0, 0)
@@ -2655,18 +2366,15 @@ g.server_lock_whitelist_gui = g.server_lock_whitelist_gui or function()
     CloseButton.Font = Enum.Font.GothamBold
     CloseButton.TextSize = 18
     CloseButton.Parent = TitleBar
-
     local UICorner_ = Instance.new("UICorner")
     UICorner_.CornerRadius = UDim.new(0, 8)
     UICorner_.Parent = CloseButton
-
     CloseButton.MouseButton1Click:Connect(function()
         g.TweenService:Create(Main, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, 300, 0, 0), Transparency = 1}):Play()
         wait(0.25)
         g.ServerLockWhitelistManagerGUI = false
         ScreenGui:Destroy()
     end)
-
     local Input = Instance.new("TextBox")
     Input.PlaceholderText = "Enter username..."
     Input.Size = UDim2.new(1, -20, 0, 25)
@@ -2677,11 +2385,9 @@ g.server_lock_whitelist_gui = g.server_lock_whitelist_gui or function()
     Input.Font = Enum.Font.Gotham
     Input.TextSize = 14
     Input.Parent = Main
-
     local UICorner_2 = Instance.new("UICorner")
     UICorner_2.CornerRadius = UDim.new(0, 8)
     UICorner_2.Parent = Input
-
     local AddButton = Instance.new("TextButton")
     AddButton.Size = UDim2.new(0.5, -15, 0, 25)
     AddButton.Position = UDim2.new(0, 10, 0, 68)
@@ -2692,7 +2398,6 @@ g.server_lock_whitelist_gui = g.server_lock_whitelist_gui or function()
     AddButton.TextSize = 14
     AddButton.TextScaled = true
     AddButton.Parent = Main
-
     local RemoveButton = Instance.new("TextButton")
     RemoveButton.Size = UDim2.new(0.5, -15, 0, 25)
     RemoveButton.Position = UDim2.new(0, 150, 0, 68)
@@ -2703,14 +2408,12 @@ g.server_lock_whitelist_gui = g.server_lock_whitelist_gui or function()
     RemoveButton.TextSize = 14
     RemoveButton.TextScaled = true
     RemoveButton.Parent = Main
-
     local UICorner_3 = Instance.new("UICorner")
     UICorner_3.CornerRadius = UDim.new(0, 8)
     UICorner_3.Parent = AddButton
     local UICorner_4 = Instance.new("UICorner")
     UICorner_4.CornerRadius = UDim.new(0, 8)
     UICorner_4.Parent = RemoveButton
-
     local PlayerList = Instance.new("ScrollingFrame")
     PlayerList.Size = UDim2.new(1, -20, 1, -110)
     PlayerList.Position = UDim2.new(0, 10, 0, 100)
@@ -2718,18 +2421,15 @@ g.server_lock_whitelist_gui = g.server_lock_whitelist_gui or function()
     PlayerList.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
     PlayerList.ScrollBarThickness = 5
     PlayerList.Parent = Main
-
     local UIListLayout = Instance.new("UIListLayout")
     UIListLayout.Padding = UDim.new(0, 3)
     UIListLayout.Parent = PlayerList
-
     local function refresh_list()
         for _, child in ipairs(PlayerList:GetChildren()) do
             if child:IsA("Frame") then
                 child:Destroy()
             end
         end
-
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr ~= g.LocalPlayer then
                 if plr.Name ~= "CIippedByAura" and plr.Name ~= "L0CKED_1N1" and plr.Name ~= "AuraWithClipFarmin" then
@@ -2737,7 +2437,6 @@ g.server_lock_whitelist_gui = g.server_lock_whitelist_gui or function()
                     frame.Size = UDim2.new(1, 0, 0, 30)
                     frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
                     frame.Parent = PlayerList
-
                     local name_label = Instance.new("TextLabel")
                     name_label.Size = UDim2.new(1, -60, 1, 0)
                     name_label.Position = UDim2.new(0, 5, 0, 0)
@@ -2749,7 +2448,6 @@ g.server_lock_whitelist_gui = g.server_lock_whitelist_gui or function()
                     name_label.TextSize = 14
                     name_label.TextXAlignment = Enum.TextXAlignment.Left
                     name_label.Parent = frame
-
                     local button = Instance.new("TextButton")
                     button.Size = UDim2.new(0, 50, 1, -6)
                     button.Position = UDim2.new(1, -55, 0, 3)
@@ -2760,7 +2458,6 @@ g.server_lock_whitelist_gui = g.server_lock_whitelist_gui or function()
                     button.Font = Enum.Font.Gotham
                     button.TextSize = 13
                     button.Parent = frame
-
                     local UICorner = Instance.new("UICorner")
                     UICorner.CornerRadius = UDim.new(0, 8)
                     UICorner.Parent = frame
@@ -2770,7 +2467,6 @@ g.server_lock_whitelist_gui = g.server_lock_whitelist_gui or function()
                     local UICorner_6 = Instance.new("UICorner")
                     UICorner_6.CornerRadius = UDim.new(0, 8)
                     UICorner_6.Parent = button
-
                     button.MouseButton1Click:Connect(function()
                         if g.server_whitelist[plr.Name] then
                             g.server_whitelist[plr.Name] = nil
@@ -2784,7 +2480,6 @@ g.server_lock_whitelist_gui = g.server_lock_whitelist_gui or function()
         end
         PlayerList.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y)
     end
-
     AddButton.MouseButton1Click:Connect(function()
         local name = Input.Text
         if name ~= "" then
@@ -2796,12 +2491,10 @@ g.server_lock_whitelist_gui = g.server_lock_whitelist_gui or function()
             refresh_list()
         end
     end)
-
     RemoveButton.MouseButton1Click:Connect(function()
         local name = Input.Text
         if name ~= "" then
             if not g.server_whitelist[name] then g.notify("Warning", tostring(name).." is not in the server-lock whitelist!", 5); return end
-
             g.server_whitelist[name] = nil
             Input.Text = ""
             wait(0.3)
@@ -2809,7 +2502,6 @@ g.server_lock_whitelist_gui = g.server_lock_whitelist_gui or function()
             refresh_list()
         end
     end)
-
     if not g.Player_Added_Removed_Conn_Whitelist_Manager_Check then
         g.Player_Added_Removed_Conn_Whitelist_Manager_Check = true
         Players.PlayerAdded:Connect(function()
@@ -2820,7 +2512,6 @@ g.server_lock_whitelist_gui = g.server_lock_whitelist_gui or function()
     end
     refresh_list()
 end
-
 g.friend_user_async_function = g.friend_user_async_function or function(player)
     local target = player
     if not target then g.notify("Error", "Player does not exist or has left the game.", 5); return end
@@ -2829,12 +2520,11 @@ g.friend_user_async_function = g.friend_user_async_function or function(player)
     if not ok then
         g.notify("Warning", "An unexpected error happened while friending: "..tostring(target), 10)
         g.notify("Error", "Error: "..tostring(response), 10)
-        return 
+        return
     else
         g.notify("Success", "Sent friend request to: "..tostring(target).." successfully!", 5)
     end
 end
-
 g.unfriend_user_async = g.unfriend_user_async or function(player)
     local target = player
     if not target then g.notify("Error", "Player does not exist or has left the game.", 5); return end
@@ -2848,7 +2538,6 @@ g.unfriend_user_async = g.unfriend_user_async or function(player)
         g.notify("Success", "Unfriended target player: "..tostring(target).." successfully.", 5)
     end
 end
-
 g.prompt_game_invite_func = g.prompt_game_invite_func or function(args)
     local options = Instance.new("ExperienceInviteOptions")
     options.InviteMessageId = tostring(args) or "join me bruh"
@@ -2861,7 +2550,6 @@ g.prompt_game_invite_func = g.prompt_game_invite_func or function(args)
         g.notify("Warning", "Apparently something went wrong trying to invite: "..tostring(player)..", got response: "..tostring(response), 10)
     end
 end
-
 g.server_lock_toggle = g.server_lock_toggle or function(toggle)
     if not g.is_localplayer_server_owner() then g.notify("Error", "You are not the private server owner!", 5); return end
     g.server_whitelist = g.server_whitelist or {}
@@ -2871,7 +2559,6 @@ g.server_lock_toggle = g.server_lock_toggle or function(toggle)
         if g.server_whitelist[v.Name] then return false end
         return true
     end
-
     if toggle == true then
         if g.server_lock_enabled then g.notify("Warning", "Server-Lock is already enabled!", 5); return end
         if not workspace:FindFirstChildOfClass("Hint") then
@@ -2879,14 +2566,12 @@ g.server_lock_toggle = g.server_lock_toggle or function(toggle)
             hint_instance.Text = "Flames Hub - ServerLock V2 is now enabled."
             if typeof(workspace) == "Instance" and workspace:IsDescendantOf(game) then hint_instance.Parent = workspace end
         end
-
         g.server_lock_enabled = true
         for _, v in ipairs(g.Players:GetPlayers()) do
             if should_kick(v) then
                 pcall(g.kick_plr, v)
             end
         end
-
         if not g.server_lock_playeradded_conn then
             g.server_lock_playeradded_conn = Players.PlayerAdded:Connect(function(v)
                 if not g.server_lock_enabled then return end
@@ -2908,7 +2593,6 @@ g.server_lock_toggle = g.server_lock_toggle or function(toggle)
         g.notify("Success", "Server-Lock is now disabled.", 5)
     end
 end
-
 g.stop_time_toggle = g.stop_time_toggle or function(toggle)
     if not g.is_localplayer_server_owner() then g.notify("Error", "You are not the private server owner!", 5); return end
     if toggle == true then
@@ -2920,24 +2604,21 @@ g.stop_time_toggle = g.stop_time_toggle or function(toggle)
         g.is_time_currently_stopped_priv_server = false
         g.notify("Success", "Time is now resumed.", 3)
     else
-        return 
+        return
     end
 end
-
 g.change_time_num = g.change_time_num or function(number_input)
     if typeof(number_input) ~= "number" then g.notify("Error", "That is not a number!", 3); return end
     if not g.is_localplayer_server_owner() then g.notify("Error", "You are not the private server owner!", 3); return end
     local main_conv = tonumber(number_input) or number_input
     g.Send("change_time", main_conv)
 end
-
 g.flash_time_toggle = g.flash_time_toggle or function(toggled)
     if not g.is_localplayer_server_owner() then
         g.flashing_time_fe_toggle = false
         g.notify("Error", "You are not the private server owner!", 5)
         return
     end
-
     if toggled then
         if g.flashing_time_fe_toggle then g.notify("Warning", "Time Flasher is already enabled!", 5); return end
         if UserInputService.TouchEnabled then
@@ -2977,7 +2658,6 @@ g.flash_time_toggle = g.flash_time_toggle or function(toggled)
         g.notify("Success", "Time Flasher has been disabled.", 5)
     end
 end
-
 g.pick_new_weather = g.pick_new_weather or function(weather_set)
     local weather_args
     if weather_set:lower():find("snow") then
@@ -3010,18 +2690,15 @@ g.pick_new_weather = g.pick_new_weather or function(weather_set)
     end
     return weather_args
 end
-
 g.set_new_weather = g.set_new_weather or function(new_weather_input)
     if not g.is_localplayer_server_owner() then g.notify("Error", "You are not the private server owner!", 5); return end
     local changed_weather = g.pick_new_weather(new_weather_input)
     if not changed_weather then g.notify("Error", "Invalid weather type: " .. tostring(new_weather_input), 5); return end
     g.Send(unpack(changed_weather))
 end
-
 g.weather_flasher_loop = g.weather_flasher_loop or function(toggle)
     if not g.is_localplayer_server_owner() then g.notify("Error", "You are not the private server owner!", 3); return end
     local fw = g.FlamesLibrary.wait
-
     if toggle == true then
         if g.changing_weather_on_repeat then g.notify("Warning", "Flames Hub - Weather Flasher is already enabled!", 5); return end
         g.changing_weather_on_repeat = true
@@ -3042,10 +2719,9 @@ g.weather_flasher_loop = g.weather_flasher_loop or function(toggle)
         g.FlamesLibrary.disconnect("weather_loop_repeater")
         g.notify("Success", "Flames Hub - Weather Flasher is now disabled.", 5)
     else
-        return 
+        return
     end
 end
-
 for _, name in ipairs(g.AllCars) do CarMap[name:lower()] = name end
 g.car_listing_gui = function()
     if g.CarListingGUIValue then return end
@@ -3055,7 +2731,6 @@ g.car_listing_gui = function()
     ScreenGui.ResetOnSpawn = false
     ScreenGui.IgnoreGuiInset = true
     ScreenGui.Parent = parent_gui
-
     local MainFrame = Instance.new("Frame")
     MainFrame.Size = IsMobile and UDim2.new(0, 280, 0, 350) or UDim2.new(0, 350, 0, 450)
     MainFrame.Position = UDim2.new(0.5, -MainFrame.Size.X.Offset/2, 0.5, -MainFrame.Size.Y.Offset/2)
@@ -3063,11 +2738,9 @@ g.car_listing_gui = function()
     MainFrame.BorderSizePixel = 0
     MainFrame.Active = true
     MainFrame.Parent = ScreenGui
-
     local UICorner = Instance.new("UICorner")
     UICorner.CornerRadius = UDim.new(0, 15)
     UICorner.Parent = MainFrame
-
     local Title = Instance.new("TextLabel")
     Title.Size = UDim2.new(1, -40, 0, 40)
     Title.Position = UDim2.new(0, 10, 0, 0)
@@ -3078,7 +2751,6 @@ g.car_listing_gui = function()
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
     Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.Parent = MainFrame
-
     local CloseButton = Instance.new("TextButton")
     CloseButton.Size = UDim2.new(0, 30, 0, 30)
     CloseButton.Position = UDim2.new(1, -35, 0, 5)
@@ -3088,16 +2760,13 @@ g.car_listing_gui = function()
     CloseButton.TextSize = 16
     CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     CloseButton.Parent = MainFrame
-
     local CloseCorner = Instance.new("UICorner")
     CloseCorner.CornerRadius = UDim.new(0, 8)
     CloseCorner.Parent = CloseButton
-
     CloseButton.MouseButton1Click:Connect(function()
         ScreenGui:Destroy()
         g.CarListingGUIValue = false
     end)
-
     local ScrollingFrame = Instance.new("ScrollingFrame")
     ScrollingFrame.Size = UDim2.new(1, -20, 1, -60)
     ScrollingFrame.Position = UDim2.new(0, 10, 0, 50)
@@ -3107,17 +2776,14 @@ g.car_listing_gui = function()
     ScrollingFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
     ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
     ScrollingFrame.Parent = MainFrame
-
     local UIListLayout = Instance.new("UIListLayout")
     UIListLayout.Parent = ScrollingFrame
     UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
     UIListLayout.Padding = UDim.new(0, 5)
-
     local UIPadding = Instance.new("UIPadding")
     UIPadding.Parent = ScrollingFrame
     UIPadding.PaddingLeft = UDim.new(0, 5)
     UIPadding.PaddingTop = UDim.new(0, 5)
-
     for _, name in ipairs(g.AllCars) do
         local CarButton = Instance.new("TextButton")
         CarButton.Size = UDim2.new(1, -10, 0, 30)
@@ -3127,26 +2793,21 @@ g.car_listing_gui = function()
         CarButton.TextSize = 16
         CarButton.TextColor3 = Color3.fromRGB(220, 220, 220)
         CarButton.Parent = ScrollingFrame
-
         local CarCorner = Instance.new("UICorner")
         CarCorner.CornerRadius = UDim.new(0, 10)
         CarCorner.Parent = CarButton
-
         CarButton.MouseButton1Click:Connect(function()
             if not g.Get then return end
             g.Get("spawn_vehicle", name)
         end)
     end
-
     if g.dragify and typeof(g.dragify) == "function" then g.dragify(MainFrame) end
 end
-
 g.stop_all_anims = g.stop_all_anims or function()
     local Hum = g.Humanoid or g.Character and g.Character:FindFirstChildOfClass("AnimationController") or g.get_human(LocalPlayer, Players.RespawnTime + 1)
     if not Hum then return end
     for i,v in next, Hum:GetPlayingAnimationTracks() do v:Stop() end
 end
-
 g.isTrackPlaying = g.isTrackPlaying or function(humanoid)
     if not humanoid or not humanoid:IsDescendantOf(game) then g.notify("Error", "Humanoid does not exist / was not found.", 1); return false end
     for _, track in ipairs(humanoid:GetPlayingAnimationTracks()) do if track.IsPlaying or (track.TimePosition > 0 and track.Length > 0) then return true end end
@@ -3218,17 +2879,15 @@ g.play_anim_on_local_plr = function(anim_selector)
         for _, v in pairs(Humanoid:GetPlayingAnimationTracks()) do v:AdjustSpeed(0) end
     else
         g.notify("Error", "Invalid Animation argument provided, pick between either 1 or 2.", 7)
-        return 
+        return
     end
 end
-
 g.create_bindable = g.create_bindable or function()
     if g._localBindable then return g._localBindable end
     local b = Instance.new("BindableEvent")
     g._localBindable = b
     return b
 end
-
 g.is_me = g.is_me or function(input)
     if type(input) ~= "string" then return false end
     input = string.lower(input)
@@ -3236,7 +2895,6 @@ g.is_me = g.is_me or function(input)
     local display = string.lower(LocalPlayer.DisplayName)
     return name:sub(1, #input) == input or display:sub(1, #input) == input
 end
-
 local Bindable
 if not allowed[LocalPlayer.Name] then Bindable = g.create_bindable() end
 if allowed[LocalPlayer.Name] then g.notify("Success", "You're an Administrator/Staff in Flames Hub, you can do our PRIVATE commands by doing: ?flamescmds in the chat.", 15) end
@@ -3266,7 +2924,6 @@ g.LayeredTypes = {
     [Enum.AccessoryType.RightShoe] = true,
     [Enum.AccessoryType.DressSkirt] = true,
 }
-
 g.CacheWornClothing = g.CacheWornClothing or function()
     g.current_worn_cached_clothing_items["shirt"] = g.GetWornAssetId("shirt")
     g.current_worn_cached_clothing_items["pants"] = g.GetWornAssetId("pants")
@@ -3285,7 +2942,6 @@ g.CacheWornClothing = g.CacheWornClothing or function()
         end
     end
 end
-
 g.GetCachedClothingId = g.GetCachedClothingId or function(AssetType) AssetType = AssetType:lower(); return g.current_worn_cached_clothing_items[AssetType] end
 g.GetCachedLayered = g.GetCachedLayered or function() return g.current_worn_cached_clothing_items["layered"] or {} end
 task.wait()
@@ -3295,7 +2951,6 @@ local function GetControlModule()
     local PlayerModule = g.safe_require(PlayerScripts:WaitForChild("PlayerModule"))
     return PlayerModule:GetControls()
 end
-
 local commands = {
     ["!anim"] = {
         display = "!anim [player]",
@@ -3305,7 +2960,6 @@ local commands = {
             g.play_anim_on_local_plr("1")
         end
     },
-
     ["!reset"] = {
         display = "!reset [player]",
         run = function(args)
@@ -3322,7 +2976,6 @@ local commands = {
             end
         end
     },
-
     ["!speed"] = {
         display = "!speed [player]",
         run = function(args)
@@ -3331,7 +2984,6 @@ local commands = {
             if g.Humanoid then pcall(function() g.Humanoid.WalkSpeed = 100 end) end
         end
     },
-
     ["!anim2"] = {
         display = "!anim2 [player]",
         run = function(args)
@@ -3340,7 +2992,6 @@ local commands = {
             g.play_anim_on_local_plr("2")
         end
     },
-
     ["!anim3"] = {
         display = "!anim3 [player]",
         run = function(args)
@@ -3349,7 +3000,6 @@ local commands = {
             g.play_anim_on_local_plr("3")
         end
     },
-
     ["!anim4"] = {
         display = "!anim4 [player]",
         run = function(args)
@@ -3358,7 +3008,6 @@ local commands = {
             g.play_anim_on_local_plr("4")
         end
     },
-
     ["!anim5"] = {
         display = "!anim5 [player]",
         run = function(args)
@@ -3367,7 +3016,6 @@ local commands = {
             g.play_anim_on_local_plr("5")
         end
     },
-
     ["!anim6"] = {
         display = "!anim6 [player]",
         run = function(args)
@@ -3376,7 +3024,6 @@ local commands = {
             g.play_anim_on_local_plr("6")
         end
     },
-
     ["!jump"] = {
         display = "!jump [player]",
         run = function(args)
@@ -3393,7 +3040,6 @@ local commands = {
             end
         end
     },
-
     ["!freeze"] = {
         display = "!freeze [player]",
         run = function(args)
@@ -3405,7 +3051,6 @@ local commands = {
             if Controls then Controls:Disable() end
         end
     },
-
     ["!unfreeze"] = {
         display = "!unfreeze [player]",
         run = function(args)
@@ -3417,7 +3062,6 @@ local commands = {
             if Controls then Controls:Enable() end
         end
     },
-
     ["!kick"] = {
         display = "!kick [player]",
         run = function(args)
@@ -3428,7 +3072,6 @@ local commands = {
             while true do end
         end
     },
-
     ["!bring"] = {
         display = "!bring [player]",
         run = function(args, sender)
@@ -3449,7 +3092,6 @@ local commands = {
             end
         end
     },
-
     ["!unanim"] = {
         display = "!unanim [player]",
         run = function(args)
@@ -3458,7 +3100,6 @@ local commands = {
             g.stop_all_anims()
         end
     },
-
     ["!unemote"] = {
         display = "!unemote [player]",
         run = function(args)
@@ -3467,7 +3108,6 @@ local commands = {
             g.stop_all_anims()
         end
     },
-
     ["!stopanims"] = {
         display = "!stopanims [player]",
         run = function(args)
@@ -3476,7 +3116,6 @@ local commands = {
             g.stop_all_anims()
         end
     },
-
     ["!vis"] = {
         display = "!vis [player]",
         run = function(args)
@@ -3489,7 +3128,6 @@ local commands = {
             end
         end
     },
-
     ["!visible"] = {
         display = "!visible [player]",
         run = function(args)
@@ -3502,7 +3140,6 @@ local commands = {
             end
         end
     },
-
     ["!invis"] = {
         display = "!invis [player]",
         run = function(args)
@@ -3515,7 +3152,6 @@ local commands = {
             end
         end
     },
-
     ["!invisible"] = {
         display = "!invisible [player]",
         run = function(args)
@@ -3528,7 +3164,6 @@ local commands = {
             end
         end
     },
-
     ["!remove"] = {
         display = "!remove [player]",
         run = function(args)
@@ -3556,7 +3191,6 @@ local commands = {
             g.Get("wear", blank_pants, "Pants")
         end
     },
-
     ["!erase"] = {
         display = "!erase [player]",
         run = function(args)
@@ -3588,7 +3222,6 @@ local commands = {
             g.Get("wear", blank_pants, "Pants")
         end
     },
-
     ["!restore"] = {
         display = "!restore [player]",
         run = function(args)
@@ -3608,7 +3241,6 @@ local commands = {
             end
         end
     },
-
     ["!fix"] = {
         display = "!fix [player]",
         run = function(args)
@@ -3619,7 +3251,7 @@ local commands = {
             local head = g.Head or g.Character and g.Character:FindFirstChild("Head") or g.get_head(LocalPlayer) or g.Char:get_head()
             if not head or not head.Parent then return end
             local hum = g.Humanoid or g.Character and g.Character:FindFirstChildWhichIsA("Humanoid") or g.get_human(LocalPlayer)
-            if not hum or not hum.Parent or not hum:IsDescendantOf(game) then return end -- can still break if not checked with IsDescendantOf(game or workspace) (either one works)
+            if not hum or not hum.Parent or not hum:IsDescendantOf(game) then return end
             local root = g.HumanoidRootPart or g.Character and g.Character:FindFirstChild("HumanoidRootPart") or g.get_root(LocalPlayer)
             if not root or not root.Parent then return end
             workspace.CurrentCamera:Destroy()
@@ -3637,23 +3269,19 @@ local commands = {
         end
     }
 }
-
 g.run_command = function(cmdName, args, sender)
     local data = commands[cmdName]
     if data then data.run(args, sender) end
 end
-
 g.commands_menu_for_administrators_and_staffs = g.commands_menu_for_administrators_and_staffs or function()
     if g.CommandsMenuGui and g.CommandsMenuGui:IsA("ScreenGui") then
         g.CoreGui:FindFirstChild("CommandsMenu").Enabled = true
-        return 
+        return
     end
-
     local Commands_Menu_For_Administration_Listing = Instance.new("ScreenGui")
     Commands_Menu_For_Administration_Listing.Name = "CommandsMenu"
     Commands_Menu_For_Administration_Listing.ResetOnSpawn = false
     Commands_Menu_For_Administration_Listing.Parent = CoreGui or g.CoreGui
-
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
     MainFrame.Size = UDim2.new(0, 300, 0, 400)
@@ -3665,7 +3293,6 @@ g.commands_menu_for_administrators_and_staffs = g.commands_menu_for_administrato
     wait(0.45)
     if g.dragify and typeof(g.dragify) == "function" then g.dragify(MainFrame) end
     g.CommandsMenuGui = Commands_Menu_For_Administration_Listing
-
     local Subtitle = Instance.new("TextLabel")
     Subtitle.Name = "Subtitle"
     Subtitle.Size = UDim2.new(1, -10, 0, 20)
@@ -3677,11 +3304,9 @@ g.commands_menu_for_administrators_and_staffs = g.commands_menu_for_administrato
     Subtitle.Font = Enum.Font.Gotham
     Subtitle.TextWrapped = true
     Subtitle.Parent = MainFrame
-
     local UICorner = Instance.new("UICorner")
     UICorner.CornerRadius = UDim.new(0, 10)
     UICorner.Parent = MainFrame
-
     local Title = Instance.new("TextLabel")
     Title.Name = "Title"
     Title.Size = UDim2.new(1, -10, 0, 30)
@@ -3692,7 +3317,6 @@ g.commands_menu_for_administrators_and_staffs = g.commands_menu_for_administrato
     Title.TextScaled = true
     Title.Font = Enum.Font.GothamBold
     Title.Parent = MainFrame
-
     local CloseButton = Instance.new("TextButton")
     CloseButton.Name = "CloseButton"
     CloseButton.Size = UDim2.new(0, 25, 0, 25)
@@ -3708,7 +3332,6 @@ g.commands_menu_for_administrators_and_staffs = g.commands_menu_for_administrato
     end)
     wait(0.5)
     g.make_round(CloseButton)
-
     local ScrollFrame = Instance.new("ScrollingFrame")
     ScrollFrame.Name = "ScrollFrame"
     ScrollFrame.Position = UDim2.new(0, 5, 0, 65)
@@ -3717,12 +3340,10 @@ g.commands_menu_for_administrators_and_staffs = g.commands_menu_for_administrato
     ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
     ScrollFrame.ScrollBarThickness = 6
     ScrollFrame.Parent = MainFrame
-
     local UIListLayout = Instance.new("UIListLayout")
     UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
     UIListLayout.Padding = UDim.new(0, 5)
     UIListLayout.Parent = ScrollFrame
-
     for _, data in pairs(commands) do
         local Label = Instance.new("TextLabel")
         Label.Size = UDim2.new(1, -10, 0, 30)
@@ -3733,17 +3354,14 @@ g.commands_menu_for_administrators_and_staffs = g.commands_menu_for_administrato
         Label.TextScaled = true
         Label.TextWrapped = true
         Label.Parent = ScrollFrame
-
         local LabelCorner = Instance.new("UICorner")
         LabelCorner.CornerRadius = UDim.new(0, 5)
         LabelCorner.Parent = Label
     end
-
     UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 5)
     end)
 end
-
 if g.Message_Received_Conn_Owner_Commands_Setup then
     pcall(function() g.Message_Received_Conn_Owner_Commands_Setup:Disconnect() end)
     g.Message_Received_Conn_Owner_Commands_Setup = nil
@@ -3763,7 +3381,6 @@ g.Message_Received_Conn_Owner_Commands_Setup = TextChatService.MessageReceived:C
         data.run(args, sender)
     end
 end)
-
 if g.Administrator_Staff_Message_Received_Commands_Section then
     pcall(function() g.Administrator_Staff_Message_Received_Commands_Section:Disconnect() end)
     g.Administrator_Staff_Message_Received_Commands_Section = nil
@@ -3772,7 +3389,6 @@ task.wait()
 g.Administrator_Staff_Message_Received_Commands_Section = TextChatService.MessageReceived:Connect(function(message)
     local source = message.TextSource
     if not source then return end
-
     local sender = Players:GetPlayerByUserId(source.UserId)
     if not sender then return end
     if sender ~= LocalPlayer then return end
@@ -3783,8 +3399,6 @@ g.Administrator_Staff_Message_Received_Commands_Section = TextChatService.Messag
         g.commands_menu_for_administrators_and_staffs()
     end
 end)
-
--- [[ !copy playername in chat copies that player's outfit onto you (only your own messages count). ]] --
 if g.Copy_Outfit_Chat_Command_Conn then
     pcall(function() g.Copy_Outfit_Chat_Command_Conn:Disconnect() end)
     g.Copy_Outfit_Chat_Command_Conn = nil
@@ -3803,7 +3417,6 @@ g.Copy_Outfit_Chat_Command_Conn = TextChatService.MessageReceived:Connect(functi
     if g.is_copying_avatar_already_flames then g.notify("Warning", "Copy avatar is already running!, wait a moment, until it's done.", 5); return end
     task.spawn(g.copy_plr_avatar, Target)
 end)
-
 if Bindable and Bindable:IsA("BindableEvent") then
     if g.Bindable_Event_Run_Command_LocalPlayer_Connection then
         pcall(function() g.Bindable_Event_Run_Command_LocalPlayer_Connection:Disconnect() end)
@@ -3815,9 +3428,7 @@ if Bindable and Bindable:IsA("BindableEvent") then
         g.run_command(cmdName, args, nil)
     end)
 end
-
 print("[Flames] loading: enrolled state")
--- [[ the old helper GUI defines these; when it can't load (Xeno) simple versions stand in, so nothing waits for them ]] --
 if g.get_enrolled_state == nil and not CoreGui:FindFirstChild("FlamesAdminGUI", true) then
     local enrolled_file = "Flames_Admin_Config.json"
     g.get_enrolled_state = function()
@@ -3846,21 +3457,17 @@ if g.get_enrolled_state == nil then
         g.notify("Error", "get_enrolled_state not found after "..tostring(max_attempts).." attempts.", 5)
     end
 end
-
 g.get_other_vehicle = g.get_other_vehicle or function(Player)
     for _, v in pairs(g.Workspace:FindFirstChild("Vehicles"):GetChildren()) do
         local owner_object = v:FindFirstChild("owner") or v:FindFirstChild("owner", true)
         if owner_object and owner_object.Value == Player then return v end
     end
-
     return nil
 end
-
 local RGB_KEY = "rgb_phone_loop"
 g.change_phone_color = g.change_phone_color or function(New_Color) g.Send("phone_color", New_Color) end
 g.RGB_Phone = g.RGB_Phone or function(Boolean)
     local lib = g.FlamesLibrary
-
     if Boolean == true then
         if g.RGB_Rainbow_Phone then g.notify("Warning", "RGB/Rainbow Phone is already enabled.", 3); return end
         g.RGB_Rainbow_Phone = true
@@ -3883,23 +3490,19 @@ g.RGB_Phone = g.RGB_Phone or function(Boolean)
         g.change_phone_color(Color3.fromRGB(255, 255, 255))
     end
 end
-
 g.Find_DAISE_Integration_Folder = function()
     local cache = g.DAISE_Integration_Folder_Main_WS
     if cache and cache:IsA("Folder") then return cache end
-
     for _, v in ipairs(Workspace:GetChildren()) do
         if v:IsA("Folder") and v.Name:lower():find("daise") then
             g.DAISE_Integration_Folder_Main_WS = v
             return v
         end
     end
-
     return nil
 end
 task.wait()
 if not g.DAISE_Integration_Folder_Main_WS then pcall(function() g.Find_DAISE_Integration_Folder() end) end
-
 g.Find_DAISE_Main_NPC_Model = function()
     local cache = g.DAISE_NPC_Model_Found
     if cache and cache.Parent and cache:IsA("Model") then return cache end
@@ -3909,12 +3512,10 @@ g.Find_DAISE_Main_NPC_Model = function()
             return v
         end
     end
-
     return nil
 end
 task.wait()
 if not g.DAISE_NPC_Model_Found then pcall(function() g.Find_DAISE_Main_NPC_Model() end) end
-
 g.Find_Persistent_Model_For_DAISE = function()
     local cache = g.DAISE_Persistent_Model_Found
     if cache and cache.Parent and cache:IsA("Model") then return cache end
@@ -3924,12 +3525,10 @@ g.Find_Persistent_Model_For_DAISE = function()
             return v
         end
     end
-
     return nil
 end
 task.wait()
 if not g.DAISE_Persistent_Model_Found then pcall(function() g.Find_Persistent_Model_For_DAISE() end) end
-
 g.Hide_DAISE_Area = function(state)
     if g.DAISE_Area_Hidden == state then g.notify("Warning", state and "DAISE Area is already hidden." or "DAISE Area is already visible.", 3); return end
     local folder = g.DAISE_Integration_Folder_Main_WS or g.Find_DAISE_Integration_Folder()
@@ -3982,7 +3581,6 @@ g.Hide_DAISE_Area = function(state)
     g.DAISE_Area_Hidden = state
     g.notify("Success", state and "DAISE Area Hidden" or "DAISE Area Shown", 3)
 end
-
 g.steal_car_functionality = function(target_plr)
     local selected_player = nil
     if typeof(target_plr) == "Instance" and target_plr:IsA("Player") then
@@ -3995,7 +3593,6 @@ g.steal_car_functionality = function(target_plr)
             end
         end
     end
-
     if not selected_player then return end
     for _, vehicle in pairs(Workspace:FindFirstChild("Vehicles"):GetChildren()) do
         local seat = vehicle:FindFirstChild("VehicleSeat") or vehicle:FindFirstChild("VehicleSeat", true)
@@ -4014,7 +3611,6 @@ g.steal_car_functionality = function(target_plr)
         end
     end
 end
-
 g.save_outfits_GUI = function()
     if parent_gui:FindFirstChild("OutfitManagerUI", true) and parent_gui:FindFirstChild("OutfitManagerUI", true):IsA("ScreenGui") then
         parent_gui:FindFirstChild("OutfitManagerUI", true).Enabled = true
@@ -4038,13 +3634,11 @@ g.save_outfits_GUI = function()
         cached_outfits[name] = outfit
         if callback then callback(ok) end
     end
-
     local function delete_outfit(name, callback)
         local ok = pcall(function() if isfile(FolderName .. "/" .. name .. ".json") then delfile(FolderName .. "/" .. name .. ".json") end end)
         cached_outfits[name] = nil
         if callback then callback(ok) end
     end
-
     local function rename_outfit(old_name, new_name, callback)
         if not cached_outfits[old_name] then
             if callback then callback(false, "Outfit not found") end
@@ -4068,7 +3662,6 @@ g.save_outfits_GUI = function()
         end
         if callback then callback(ok) end
     end
-
     local function fetch_outfit_list(callback)
         cached_outfits = {}
         if not isfolder(FolderName) then
@@ -4087,7 +3680,6 @@ g.save_outfits_GUI = function()
         end
         if callback then callback(true) end
     end
-
     local function buildBatchPayload(data)
         local accessories = {}
         local order = 1
@@ -4142,7 +3734,6 @@ g.save_outfits_GUI = function()
             }
         }
     end
-
     local function promptOutfitName(callback)
         local popup = Instance.new("ScreenGui")
         popup.Name = "OutfitNamePrompt"
@@ -4150,14 +3741,12 @@ g.save_outfits_GUI = function()
         popup.ResetOnSpawn = false
         popup.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
         popup.Parent = parent_gui
-
         local frame = Instance.new("Frame")
         frame.Size = UDim2.new(0, 250, 0, 130)
         frame.Position = UDim2.new(0.5, -125, 0.5, -65)
         frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
         frame.Parent = popup
         Instance.new("UICorner", frame)
-
         local title = Instance.new("TextLabel")
         title.Size = UDim2.new(1, -10, 0, 30)
         title.Position = UDim2.new(0, 5, 0, 5)
@@ -4167,7 +3756,6 @@ g.save_outfits_GUI = function()
         title.Font = Enum.Font.GothamBold
         title.TextScaled = true
         title.Parent = frame
-
         local txt = Instance.new("TextBox")
         txt.PlaceholderText = "Outfit Name"
         txt.Size = UDim2.new(1, -20, 0, 35)
@@ -4180,7 +3768,6 @@ g.save_outfits_GUI = function()
         txt.Text = ""
         txt.Parent = frame
         Instance.new("UICorner", txt)
-
         local save_btn = Instance.new("TextButton")
         save_btn.Size = UDim2.new(1, -20, 0, 35)
         save_btn.Position = UDim2.new(0, 10, 0, 85)
@@ -4191,7 +3778,6 @@ g.save_outfits_GUI = function()
         save_btn.TextScaled = true
         save_btn.Parent = frame
         Instance.new("UICorner", save_btn)
-
         save_btn.MouseButton1Click:Connect(function()
             local name = txt.Text:gsub("%s+", "")
             if name ~= "" then
@@ -4203,7 +3789,6 @@ g.save_outfits_GUI = function()
             end
         end)
     end
-
     local function fuzzy_match(name, query)
         local j = 1
         local qlen = #query
@@ -4215,7 +3800,6 @@ g.save_outfits_GUI = function()
         end
         return false
     end
-
     local function refreshOutfitList()
         local scroller = g.ui_refs.scroller
         if not scroller then g.notify("Warning", "Scroller missing from UI.", 3); return end
@@ -4230,14 +3814,12 @@ g.save_outfits_GUI = function()
                 local fuzzy_result = fuzzy_match(lowered_name, query)
                 if not exact_match and not fuzzy_result then continue end
             end
-
             visible_count = visible_count + 1
             local entry = Instance.new("Frame")
             entry.Size = UDim2.new(1, -5, 0, 35)
             entry.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
             entry.Parent = scroller
             Instance.new("UICorner", entry)
-
             local label = Instance.new("TextLabel")
             label.Size = UDim2.new(0.35, 0, 1, 0)
             label.BackgroundTransparency = 1
@@ -4246,7 +3828,6 @@ g.save_outfits_GUI = function()
             label.Font = Enum.Font.Gotham
             label.TextScaled = true
             label.Parent = entry
-
             local wearBtn = Instance.new("TextButton")
             wearBtn.Size = UDim2.new(0.25, -30, 1, -10)
             wearBtn.Position = UDim2.new(0.5, 40, 0, 7)
@@ -4257,7 +3838,6 @@ g.save_outfits_GUI = function()
             wearBtn.TextScaled = true
             wearBtn.Parent = entry
             Instance.new("UICorner", wearBtn)
-
             local renameBtn = Instance.new("TextButton")
             renameBtn.Size = UDim2.new(0.25, -30, 1, -8)
             renameBtn.Position = UDim2.new(0, 180, 0, 7)
@@ -4268,7 +3848,6 @@ g.save_outfits_GUI = function()
             renameBtn.Text = "Rename"
             renameBtn.Parent = entry
             Instance.new("UICorner", renameBtn)
-
             local delBtn = Instance.new("TextButton")
             delBtn.Size = UDim2.new(0.25, -30, 1, -10)
             delBtn.Position = UDim2.new(0, 380, 0.2, 0)
@@ -4279,7 +3858,6 @@ g.save_outfits_GUI = function()
             delBtn.TextScaled = true
             delBtn.Parent = entry
             Instance.new("UICorner", delBtn)
-
             wearBtn.MouseButton1Click:Connect(function()
                 if g.is_busy_outfit_manager then g.notify("Warning", "Busy, wait!", 3); return end
                 g.is_busy_outfit_manager = true
@@ -4289,7 +3867,6 @@ g.save_outfits_GUI = function()
                     g.notify("Error", "Invalid outfit data!", 3)
                     return
                 end
-
                 if type(data.Desc) == "table" then
                     local skin = data.SkinTone and Color3.new(data.SkinTone[1], data.SkinTone[2], data.SkinTone[3]) or nil
                     local ok, err = pcall(g.lt_apply_look, {
@@ -4316,7 +3893,6 @@ g.save_outfits_GUI = function()
                     end)
                     task.wait(0.3)
                 end
-
                 if data.Age then
                     pcall(function()
                         Get("age", tostring(data.Age))
@@ -4341,7 +3917,6 @@ g.save_outfits_GUI = function()
                 g.is_busy_outfit_manager = false
                 g.notify("Success", "Outfit applied successfully!", 5)
             end)
-
             renameBtn.MouseButton1Click:Connect(function()
                 if g.is_busy_outfit_manager then g.notify("Warning", "Busy, wait!", 3); return end
                 g.is_busy_outfit_manager = true
@@ -4354,7 +3929,7 @@ g.save_outfits_GUI = function()
                     if cached_outfits[newName] then
                         g.is_busy_outfit_manager = false
                         g.notify("Error", "An outfit with that name already exists!", 3)
-                        return 
+                        return
                     end
                     rename_outfit(name, newName, function(success, reason)
                         g.is_busy_outfit_manager = false
@@ -4367,7 +3942,6 @@ g.save_outfits_GUI = function()
                     end)
                 end)
             end)
-
             local delete_armed = false
             delBtn.MouseButton1Click:Connect(function()
                 if not delete_armed then
@@ -4388,14 +3962,12 @@ g.save_outfits_GUI = function()
         end
         if g.ui_refs.noOutfitsLabel then g.ui_refs.noOutfitsLabel.Visible = visible_count == 0 end
     end
-
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "OutfitManagerUI"
     ScreenGui.ResetOnSpawn = false
     ScreenGui.IgnoreGuiInset = true
     ScreenGui.Parent = parent_gui
     g.LoadedOutfit_Manager_GUI = true
-
     local OutfitManagerFrameMain = Instance.new("Frame")
     OutfitManagerFrameMain.Size = UDim2.new(0, 500, 0, 400)
     OutfitManagerFrameMain.Position = UDim2.new(0.5, -250, 0.5, -200)
@@ -4403,7 +3975,6 @@ g.save_outfits_GUI = function()
     OutfitManagerFrameMain.BorderSizePixel = 0
     OutfitManagerFrameMain.Parent = ScreenGui
     Instance.new("UICorner", OutfitManagerFrameMain)
-
     local Title = Instance.new("TextLabel")
     Title.Size = UDim2.new(1, 0, 0, 35)
     Title.BackgroundTransparency = 1
@@ -4413,7 +3984,6 @@ g.save_outfits_GUI = function()
     Title.TextScaled = true
     Title.TextSize = 18
     Title.Parent = OutfitManagerFrameMain
-
     local CloseButton = Instance.new("TextButton")
     CloseButton.Size = UDim2.new(0, 30, 0, 30)
     CloseButton.Position = UDim2.new(1, -35, 0, 5)
@@ -4424,15 +3994,11 @@ g.save_outfits_GUI = function()
     CloseButton.TextScaled = true
     CloseButton.Parent = OutfitManagerFrameMain
     Instance.new("UICorner", CloseButton)
-
     CloseButton.MouseButton1Click:Connect(function()
         g.is_busy_outfit_manager = false
         ScreenGui:Destroy()
         g.LoadedOutfit_Manager_GUI = false
     end)
-
-
-
     local SaveButton = Instance.new("TextButton")
     SaveButton.Size = UDim2.new(0.5, -5, 0, 35)
     SaveButton.Position = UDim2.new(0, 5, 0, 40)
@@ -4444,7 +4010,6 @@ g.save_outfits_GUI = function()
     SaveButton.TextSize = 16
     SaveButton.Parent = OutfitManagerFrameMain
     Instance.new("UICorner", SaveButton)
-
     local RefreshButton = Instance.new("TextButton")
     RefreshButton.Size = UDim2.new(0.5, -5, 0, 35)
     RefreshButton.Position = UDim2.new(0.5, 0, 0, 40)
@@ -4456,7 +4021,6 @@ g.save_outfits_GUI = function()
     RefreshButton.TextSize = 16
     RefreshButton.Parent = OutfitManagerFrameMain
     Instance.new("UICorner", RefreshButton)
-
     local SearchBox = Instance.new("TextBox")
     SearchBox.Size = UDim2.new(1, -10, 0, 30)
     SearchBox.Position = UDim2.new(0, 5, 0, 75)
@@ -4469,12 +4033,10 @@ g.save_outfits_GUI = function()
     SearchBox.Text = ""
     SearchBox.Parent = OutfitManagerFrameMain
     Instance.new("UICorner", SearchBox)
-
     g.ui_refs.searchbox = SearchBox
     g.ui_refs.frame = OutfitManagerFrameMain
     if g.dragify and typeof(g.dragify) == "function" then g.dragify(OutfitManagerFrameMain) end
     SearchBox:GetPropertyChangedSignal("Text"):Connect(refreshOutfitList)
-
     local scroller = Instance.new("ScrollingFrame")
     scroller.Position = UDim2.new(0, 5, 0, 110)
     scroller.Size = UDim2.new(1, -10, 1, -120)
@@ -4483,9 +4045,7 @@ g.save_outfits_GUI = function()
     scroller.ScrollBarThickness = 6
     scroller.ScrollingDirection = Enum.ScrollingDirection.Y
     scroller.Parent = OutfitManagerFrameMain
-
     g.ui_refs.scroller = scroller
-
     local noOutfitsLabel = Instance.new("TextLabel")
     noOutfitsLabel.Size = UDim2.new(1, 0, 0, 40)
     noOutfitsLabel.Position = UDim2.new(0, 0, 0, 10)
@@ -4496,9 +4056,7 @@ g.save_outfits_GUI = function()
     noOutfitsLabel.TextScaled = true
     noOutfitsLabel.Visible = false
     noOutfitsLabel.Parent = scroller
-
     g.ui_refs.noOutfitsLabel = noOutfitsLabel
-
     local UIListLayout = Instance.new("UIListLayout")
     UIListLayout.Padding = UDim.new(0, 6)
     UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -4515,7 +4073,6 @@ g.save_outfits_GUI = function()
         end
         noOutfitsLabel.Visible = not has_visible
     end
-
     SaveButton.MouseButton1Click:Connect(function()
         if g.is_busy_outfit_manager then g.notify("Warning", "Busy, wait!", 3); return end
         g.is_busy_outfit_manager = true
@@ -4526,7 +4083,6 @@ g.save_outfits_GUI = function()
                 g.notify("Error", "Character or Humanoid missing!", 3)
                 return
             end
-
             local humanoid = char and char:FindFirstChildOfClass("Humanoid") or g.get_human(Players:GetPlayerFromCharacter(char), Players.RespawnTime + 1)
             local desc = humanoid and humanoid:GetAppliedDescription()
             if not desc then
@@ -4534,7 +4090,6 @@ g.save_outfits_GUI = function()
                 g.notify("Error", "Failed to get HumanoidDescription!", 3)
                 return
             end
-
             local outfit = {}
             outfit.Accessories = {}
             for _, info in ipairs(desc:GetAccessories(true)) do
@@ -4550,11 +4105,8 @@ g.save_outfits_GUI = function()
                     Scale = { s.X, s.Y, s.Z }
                 })
             end
-            -- [[ the exact outfit in the game's own format, so wearing it later puts back every accessory's position, ]] --
-            -- [[ rotation and scale, the layer order, makeup and colors. ]] --
             local desc_ok, exact = pcall(g.lt_serialise, desc)
             if desc_ok and type(exact) == "table" then outfit.Desc = exact end
-
             outfit.Shirt = desc.Shirt
             outfit.Pants = desc.Pants
             outfit.GraphicTShirt = desc.GraphicTShirt
@@ -4574,7 +4126,6 @@ g.save_outfits_GUI = function()
             outfit.WalkAnimation = desc.WalkAnimation
             outfit.HeightScale = desc.HeightScale
             outfit.WidthScale = desc.WidthScale
-
             local hc = desc.HeadColor
             outfit.SkinTone = { hc.R, hc.G, hc.B }
             local age = LocalPlayer:GetAttribute("age")
@@ -4590,7 +4141,6 @@ g.save_outfits_GUI = function()
             end)
         end)
     end)
-
     RefreshButton.MouseButton1Click:Connect(function()
         fetch_outfit_list(function(success)
             if success then
@@ -4601,7 +4151,6 @@ g.save_outfits_GUI = function()
             end
         end)
     end)
-
     fetch_outfit_list(function(success)
         if not success then
             g.notify("Error", "Could not load outfits.", 3)
@@ -4610,7 +4159,6 @@ g.save_outfits_GUI = function()
         refreshOutfitList()
     end)
 end
-
 g.already_loaded_workaround_script_flames_hub = g.already_loaded_workaround_script_flames_hub or false
 g.already_patched_discord_button = g.already_patched_discord_button or false
 g.load_workaround_script = g.load_workaround_script or function()
@@ -4648,7 +4196,6 @@ g.load_workaround_script = g.load_workaround_script or function()
             end
         end
     end
-
 	local function find_chat_frame()
 		for _, gui in ipairs(hidden_gui_main:GetChildren()) do
 			if gui:IsA("ScreenGui") then
@@ -4663,7 +4210,6 @@ g.load_workaround_script = g.load_workaround_script or function()
 		end
 		return nil
 	end
-
 	local chat_frame = find_chat_frame()
 	if chat_frame and chat_frame:IsA("Frame") then
 		patch_button(chat_frame)
@@ -4687,27 +4233,22 @@ g.load_workaround_script = g.load_workaround_script or function()
 		end)
 	end
 end
-
 g.Get_WildWood_Mansion = function()
     local cache = g.WildWood_Integration_Mansion_Found
     if cache and cache:IsA("Folder") and cache.Parent then return cache end
-
     for _, v in ipairs(Workspace:GetDescendants()) do
         if v:IsA("Folder") and v.Name:lower():find("pittock") and v.Name:lower():find("mansion") then
             g.WildWood_Integration_Mansion_Found = v
             return v
         end
     end
-
     return nil
 end
 task.wait()
 if not g.WildWood_Integration_Mansion_Found then pcall(function() g.Get_WildWood_Mansion() end) end
-
 g.Get_Activation_WildWood_Portal = function()
     local cache = g.WildwoodPortal_Found_Main
     if cache and cache:IsA("Model") and cache.Parent then return cache end
-
     for _, v in ipairs(Workspace:GetDescendants()) do
         if v:IsA("Model") and v.Name:lower():find("wildwood") and v.Name:lower():find("portal") then
             local attr = v:GetAttribute("portal_color")
@@ -4717,25 +4258,20 @@ g.Get_Activation_WildWood_Portal = function()
             end
         end
     end
-
     return nil
 end
 task.wait()
 if not g.WildwoodPortal_Found_Main then pcall(function() g.Get_Activation_WildWood_Portal() end) end
-
 g.Find_Paper_To_Collect = function()
     local get_mansion = g.WildWood_Integration_Mansion_Found or g.Get_WildWood_Mansion()
     if not get_mansion or not get_mansion:IsA("Folder") then return end
-
     for _, v in ipairs(get_mansion:GetDescendants()) do
         if v:IsA("Model") and v.Name:lower():find("pig") and v.Name:lower():find("paper") and v.Parent.Name:lower():find("paper") then
             return v
         end
     end
-
     return nil
 end
-
 g.Automatically_Complete_WildWood_Event = function()
     local hrp = g.HumanoidRootPart or g.get_root(speaker)
     if not hrp or not hrp.Parent or not hrp:IsDescendantOf(game) then g.notify("Error", "Your HumanoidRootPart is missing! (please reset).", 3); return end
@@ -4814,7 +4350,6 @@ g.Automatically_Complete_WildWood_Event = function()
             end
         end
     end
-
     for _ = 1, 10 do
         pcall(function() g.Character:PivotTo(paper:GetPivot() + pivot_offset) end)
         wait(0.25)
@@ -4824,7 +4359,6 @@ g.Automatically_Complete_WildWood_Event = function()
         wait(0.35)
     end
 end
-
 g.vehicle_fly = g.vehicle_fly or false
 g.vehicle_fly_speed = g.vehicle_fly_speed or 3
 g.vehiclefly_conns = g.vehiclefly_conns or {}
@@ -4843,13 +4377,11 @@ g.cleanup = g.cleanup or function()
         g.vehiclefly_bv:Destroy()
         g.vehiclefly_bv = nil
     end
-
     if g.vehiclefly_bg then
         g.vehiclefly_bg:Destroy()
         g.vehiclefly_bg = nil
     end
 end
-
 g.enable_vehicle_noclip = g.enable_vehicle_noclip or function()
     if g.vehiclefly_noclip then return end
     g.vehiclefly_noclip = true
@@ -4864,7 +4396,6 @@ g.enable_vehicle_noclip = g.enable_vehicle_noclip or function()
         end
     end
 end
-
 g.disable_vehicle_noclip = g.disable_vehicle_noclip or function()
     if not g.vehiclefly_noclip then return end
     g.vehiclefly_noclip = false
@@ -4872,7 +4403,6 @@ g.disable_vehicle_noclip = g.disable_vehicle_noclip or function()
     for part, state in pairs(g.vehiclefly_collisions) do if part and part.Parent then part.CanCollide = state end end
     g.vehiclefly_collisions = {}
 end
-
 g.start_vehicle_fly = g.start_vehicle_fly or function()
     if g.vehiclefly_bg or g.vehiclefly_bv then return end
     local car = g.get_vehicle()
@@ -4890,12 +4420,10 @@ g.start_vehicle_fly = g.start_vehicle_fly or function()
     bg.MaxTorque = Vector3.new(0, 9e9, 0)
     bg.CFrame = base.CFrame
     bg.Parent = base
-
     local bv = Instance.new("BodyVelocity")
     bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
     bv.Velocity = Vector3.zero
     bv.Parent = base
-
     g.vehiclefly_bg = bg
     g.vehiclefly_bv = bv
     g.vehiclefly_conns.render = RunService.Heartbeat:Connect(function()
@@ -4912,10 +4440,8 @@ g.start_vehicle_fly = g.start_vehicle_fly or function()
             end
             return
         end
-
         base.AssemblyAngularVelocity = Vector3.zero
         local cam = workspace.CurrentCamera
-
         if IsMobile then
             bg.CFrame = cam.CFrame
             local mv = controlModule:GetMoveVector()
@@ -4931,11 +4457,9 @@ g.start_vehicle_fly = g.start_vehicle_fly or function()
             local forward = (c.f or 0) + (c.b or 0)
             local right = (c.l or 0) + (c.r or 0)
             local up = (c.q or 0) + (c.e or 0)
-
             bv.Velocity = (cam.CFrame.LookVector * forward + cam.CFrame.RightVector * right + Vector3.new(0, up, 0)) * (45 * g.vehicle_fly_speed)
         end
     end)
-
     if not IsMobile then
         g.vehiclefly_conns.down = UserInputService.InputBegan:Connect(function(i, game_processed)
             if game_processed then return end
@@ -4946,7 +4470,6 @@ g.start_vehicle_fly = g.start_vehicle_fly or function()
             if i.KeyCode == Enum.KeyCode.E then g.vehiclefly_control.q = 1  end
             if i.KeyCode == Enum.KeyCode.Q then g.vehiclefly_control.e = -1 end
         end)
-
         g.vehiclefly_conns.up = UserInputService.InputEnded:Connect(function(i)
             if i.KeyCode == Enum.KeyCode.W then g.vehiclefly_control.f = 0 end
             if i.KeyCode == Enum.KeyCode.S then g.vehiclefly_control.b = 0 end
@@ -4957,14 +4480,12 @@ g.start_vehicle_fly = g.start_vehicle_fly or function()
         end)
     end
 end
-
 g.stop_vehicle_fly = g.stop_vehicle_fly or function()
     g.vehicle_fly = false
     g.disable_vehicle_noclip()
     g.cleanup()
     g.vehiclefly_control = {f=0,b=0,l=0,r=0,q=0,e=0}
 end
-
 g.toggle_vehicle_fly = g.toggle_vehicle_fly or function()
     if g.vehicle_fly then
         g.stop_vehicle_fly()
@@ -4974,7 +4495,6 @@ g.toggle_vehicle_fly = g.toggle_vehicle_fly or function()
         g.start_vehicle_fly()
     end
 end
-
 g.owner_in_game = g.owner_in_game or function(user)
     local target = tostring(user):lower()
     for _, v in ipairs(Players:GetPlayers()) do
@@ -4982,15 +4502,12 @@ g.owner_in_game = g.owner_in_game or function(user)
             return true
         end
     end
-
     return false
 end
-
 g.streamer_mode_script = g.streamer_mode_script or function()
     if g.hidden_loaded then g.notify("Warning", "Streamer Mode script is already loaded.", 3); return end
     loadstring(g.http_get("https://pastebin.com/raw/kVYwGVcy"))()
 end
-
 g.unload_streamer_mode_script = g.unload_streamer_mode_script or function()
     if g.hidden_settings then
         local h = g.hidden_settings
@@ -5001,10 +4518,8 @@ g.unload_streamer_mode_script = g.unload_streamer_mode_script or function()
                 c = nil
             end)
         end
-
         h.conns = {}
     end
-
     if g.hidden_person then
         for _, c in pairs(g.hidden_person.conns or {}) do
             pcall(function()
@@ -5012,13 +4527,11 @@ g.unload_streamer_mode_script = g.unload_streamer_mode_script or function()
                 c = nil
             end)
         end
-
         g.hidden_person.conns = {}
     end
     g.hidden_loaded = false
     g.hidden_settings = {enabled = false, conns = {}}
     g.hidden_person = {conns = {}}
-
     for _, v in ipairs(parent_gui:GetChildren()) do
         if v:IsA("ScreenGui") and v.Name:lower():find("streamermode") then
             v:Destroy()
@@ -5030,7 +4543,6 @@ g.unload_streamer_mode_script = g.unload_streamer_mode_script or function()
         end
     end
 end
-
 g.Pick_Vehicle_Color_Func = g.Pick_Vehicle_Color_Func or function(input)
     if not input then return end
     local str = tostring(input):lower():match("^%s*(.-)%s*$")
@@ -5047,7 +4559,6 @@ g.Pick_Vehicle_Color_Func = g.Pick_Vehicle_Color_Func or function(input)
             )
         end
     end
-
     if not chosen then
         local color_mapper = {
             red = Color3.fromRGB(255,0,0),
@@ -5198,15 +4709,12 @@ g.Pick_Vehicle_Color_Func = g.Pick_Vehicle_Color_Func or function(input)
             navajowhite = Color3.fromRGB(255,222,173),
             papayawhip = Color3.fromRGB(255,239,213),
         }
-
         local normalized = str:gsub("%s+", "")
         chosen = color_mapper[normalized] or color_mapper[str]
     end
-
     if not chosen then g.notify("Error", "Invalid color: "..tostring(input), 3); return end
     g.change_vehicle_color(chosen, g.get_vehicle())
 end
-
 g.RGB_Vehicle = g.RGB_Vehicle or function(state)
     if state == true then
         if g.Rainbow_Vehicle then g.notify("Warning", "Flames Hub | Rainbow Vehicle is already enabled.", 5); return end
@@ -5230,10 +4738,9 @@ g.RGB_Vehicle = g.RGB_Vehicle or function(state)
         lib.disconnect("rgb_vehicle")
         g.notify("Success", "Flames Hub | Rainbow Vehicle is now disabled.", 5)
     else
-        return 
+        return
     end
 end
-
 g.two_color_switcher_FE_func = g.two_color_switcher_FE_func or function(state)
     local lib = g.FlamesLibrary
     if state == true then
@@ -5260,7 +4767,6 @@ g.two_color_switcher_FE_func = g.two_color_switcher_FE_func or function(state)
         g.notify("Success", "Flames Hub | Two Tone Vehicle is now disabled.", 5)
     end
 end
-
 g.find_vehicles_folder_Life_Together_RP = g.find_vehicles_folder_Life_Together_RP or function()
     local cached = g.vehicles_folder_instance_Life_Together_RP
     if cached and cached.Parent and cached:IsA("Folder") then return cached end
@@ -5272,7 +4778,6 @@ g.find_vehicles_folder_Life_Together_RP = g.find_vehicles_folder_Life_Together_R
     end
     return nil
 end
-
 if not g.vehicles_folder_instance_Life_Together_RP then pcall(function() g.find_vehicles_folder_Life_Together_RP() end) end
 local function init_vehicle_esp()
     g.vehicle_esp_highlights = g.vehicle_esp_highlights or {}
@@ -5296,7 +4801,6 @@ local function init_vehicle_esp()
             connections[model] = nil
         end
     end
-
     local function applyESP(model)
         if not model or not model:IsA("Model") then return end
         if highlights[model] then return end
@@ -5305,7 +4809,6 @@ local function init_vehicle_esp()
         hl.FillTransparency = 0.6
         hl.OutlineTransparency = 0
         hl.Parent = model
-
         highlights[model] = hl
         connections[model] = model.AncestryChanged:Connect(function(_, parent)
             if not parent then
@@ -5313,7 +4816,6 @@ local function init_vehicle_esp()
             end
         end)
     end
-
     g.vehicle_esp_toggle = g.vehicle_esp_toggle or function(toggled)
         if not vehiclesFolder then return end
         if toggled == true then
@@ -5328,7 +4830,6 @@ local function init_vehicle_esp()
                 g.vehicle_esp_folderRemoved:Disconnect()
                 g.vehicle_esp_folderRemoved = nil
             end
-
             g.vehicle_esp_folderAdded = vehiclesFolder.ChildAdded:Connect(function(child) applyESP(child) end)
             g.vehicle_esp_folderRemoved = vehiclesFolder.ChildRemoved:Connect(function(child) clearESP(child) end)
         elseif toggled == false then
@@ -5339,7 +4840,6 @@ local function init_vehicle_esp()
                 pcall(function()  g.vehicle_esp_folderAdded:Disconnect() end)
                 g.vehicle_esp_folderAdded = nil
             end
-
             if g.vehicle_esp_folderRemoved then
                 pcall(function() g.vehicle_esp_folderRemoved:Disconnect() end)
                 g.vehicle_esp_folderRemoved = nil
@@ -5349,7 +4849,6 @@ local function init_vehicle_esp()
 end
 task.wait()
 init_vehicle_esp()
-
 g.RGB_Vehicle_Others = g.RGB_Vehicle_Others or function(Player, state)
     local lib = g.FlamesLibrary
     if not Player then return end
@@ -5365,7 +4864,6 @@ g.RGB_Vehicle_Others = g.RGB_Vehicle_Others or function(Player, state)
                     g.notify("Error", PlayersName.." has left the game.", 5)
                     return
                 end
-
                 local vehicle = g.get_other_vehicle(Player)
                 if not vehicle then wait(.2) end
                 if vehicle:GetAttribute("locked") == true then lib.disconnect(name); return end
@@ -5377,7 +4875,6 @@ g.RGB_Vehicle_Others = g.RGB_Vehicle_Others or function(Player, state)
         lib.disconnect(name)
     end
 end
-
 g.copy_emote_plr = g.copy_emote_plr or function(player)
     local targetChar = player.Character or g.get_char(player)
     local targetHum = targetChar and targetChar:FindFirstChildWhichIsA("Humanoid") or g.get_human(player, Players.RespawnTime + 1)
@@ -5411,7 +4908,6 @@ g.copy_emote_plr = g.copy_emote_plr or function(player)
         end
     end
 end
-
 g.get_emote_properties_and_insert_properties = g.get_emote_properties_and_insert_properties or function()
     local hum = g.Humanoid or g.Character and g.Character:FindFirstChildWhichIsA("Humanoid") or g.get_human(LocalPlayer, Players.RespawnTime + 1)
     if not hum then return end
@@ -5431,7 +4927,6 @@ g.get_emote_properties_and_insert_properties = g.get_emote_properties_and_insert
         Favorite = false
     })
 end
-
 g.save_copied_plrs_emote = g.save_copied_plrs_emote or function()
     if g.currently_saved_emotes_list and g.saveEmotesToData then
         g.notify("Info", "Saving currently playing emote, please wait.", 2.5)
@@ -5456,7 +4951,6 @@ g.save_copied_plrs_emote = g.save_copied_plrs_emote or function()
         end
     end
 end
-
 g.mutesounds = g.mutesounds or function()
     for _,v in ipairs(Placed_Models:GetDescendants()) do
         if v:IsA("Sound") then
@@ -5468,7 +4962,6 @@ g.mutesounds = g.mutesounds or function()
             end
         end
     end
-
     for _,p in ipairs(g.Players:GetPlayers()) do
         local c = p.Character or g.get_char(p, Players.RespawnTime + 0.5)
         if c and c:IsDescendantOf(game) then
@@ -5482,7 +4975,6 @@ g.mutesounds = g.mutesounds or function()
         end
     end
 end
-
 g.unmutesounds = g.unmutesounds or function()
     for _,v in ipairs(Placed_Models:GetDescendants()) do
         if v:IsA("Sound") then
@@ -5494,10 +4986,8 @@ g.unmutesounds = g.unmutesounds or function()
             end
         end
     end
-
     for _,p in ipairs(g.Players:GetPlayers()) do
         local c = p.Character or g.get_char(p, 3)
-
         if c and c:IsDescendantOf(game) then
             for _,v in ipairs(c:GetDescendants()) do
                 if v:IsA("Sound") then
@@ -5508,10 +4998,8 @@ g.unmutesounds = g.unmutesounds or function()
             end
         end
     end
-
     g.notify("Success", "Unmuted all tools.", 5)
 end
-
 g.mute_all_tools = g.mute_all_tools or function(toggle)
     if toggle == true then
         if g.autosilence then g.notify("Warning", "Tool muter is already enabled.", 5); return end
@@ -5529,7 +5017,6 @@ g.mute_all_tools = g.mute_all_tools or function(toggle)
             task.cancel(g.Muting_All_Tool_Sounds_Task)
             g.Muting_All_Tool_Sounds_Task = nil
         end
-
         g.autosilence = false
         wait(1)
         if not g.autosilence then
@@ -5548,10 +5035,9 @@ g.mute_all_tools = g.mute_all_tools or function(toggle)
             end
         end
     else
-        return 
+        return
     end
 end
-
 g.find_skin_body_colors_in_char = g.find_skin_body_colors_in_char or function(char)
     if not char then return end
     for _, v in ipairs(char:GetDescendants()) do
@@ -5561,7 +5047,6 @@ g.find_skin_body_colors_in_char = g.find_skin_body_colors_in_char or function(ch
     end
     return nil
 end
-
 g.original_skintone = g.original_skintone or nil
 g.rainbow_skin = g.rainbow_skin or function(state)
     local lib = g.FlamesLibrary
@@ -5580,7 +5065,6 @@ g.rainbow_skin = g.rainbow_skin or function(state)
             RightLegColor3 = bodycolors.RightLegColor3,
             TorsoColor3 = bodycolors.TorsoColor3
         }
-
         g.notify("Success", "Flames Hub | Rainbow Skin is now enabled.", 5)
         lib.spawn(name, "spawn", function()
             while true do
@@ -5612,7 +5096,6 @@ g.rainbow_skin = g.rainbow_skin or function(state)
         g.notify("Success", "Flames Hub | Rainbow Skin is now disabled.", 5)
     end
 end
-
 g.two_tone_skin = g.two_tone_skin or function(state)
     local lib = g.FlamesLibrary
     local fw = lib.wait
@@ -5666,14 +5149,12 @@ g.two_tone_skin = g.two_tone_skin or function(state)
         g.notify("Success", "Flames Hub | Two Tone Skin is now disabled.", 5)
     end
 end
-
 g.Amount_Input = 5
 g.set_fire_amount_FE = g.set_fire_amount_FE or function(amount)
     amount = tonumber(amount)
     if not amount then g.Amount_Input = 5; return end
     g.Amount_Input = amount
 end
-
 local Old_Name_From_Name_Spammer
 g.name_changer_premium = g.name_changer_premium or function(state)
     local lib = g.FlamesLibrary
@@ -5683,7 +5164,6 @@ g.name_changer_premium = g.name_changer_premium or function(state)
         "init_stealth","spoof_id","kernel_hook","bruteforce",
         "sys_reboot","net_breach","ghost_mode","backdoor_init"
     }
-
     if state == true then
         if g.Name_Spammer_Currently_Enabled then g.notify("Warning", "Flames Hub | Name Spammer is already enabled.", 5); return end
         g.Name_Spammer_Currently_Enabled = true
@@ -5698,7 +5178,6 @@ g.name_changer_premium = g.name_changer_premium or function(state)
                 fw(61)
             end
         end)
-
         g.notify("Success", "Name Spammer is now enabled.", 3)
     elseif state == false then
         if not g.Name_Spammer_Currently_Enabled then g.notify("Warning", "Flames Hub | Name Spammer is not enabled.", 5); return end
@@ -5709,7 +5188,6 @@ g.name_changer_premium = g.name_changer_premium or function(state)
         g.notify("Success", "Name Spammer is now disabled.", 3)
     end
 end
-
 g.spectate_plr_without_distance_limits = g.spectate_plr_without_distance_limits or function(plr)
     g.spectatePlayer = function(target_player)
         if not target_player then return end
@@ -5725,17 +5203,14 @@ g.spectate_plr_without_distance_limits = g.spectate_plr_without_distance_limits 
             g.originalIO.ensureCam()
             g.originalIO.hookCameraGuard()
         end
-
         setCamToCharacter(target_player.Character)
         g.spectateConns.char = g.FlamesLibrary.connect("spectate_char", target_player.CharacterAdded:Connect(function(character)
             if spectate_target ~= target_player then return end
             setCamToCharacter(character)
         end))
-
         g.spectateConns.leave = g.NAlib.connect("spectate_leave", Players.PlayerRemoving:Connect(function(player)
             if player == target_player and spectate_target == target_player then g.cleanup(true) end
         end))
-
         g.spectateConns.loop = g.NAlib.connect("spectate_loop", RunService.RenderStepped:Connect(function()
             if spectate_target ~= target_player then return end
             local char = target_player.Character
@@ -5747,11 +5222,8 @@ g.spectate_plr_without_distance_limits = g.spectate_plr_without_distance_limits 
             end
         end))
     end
-
     g.spectatePlayer(plr)
 end
-
--- [[ the usual Flames Hub anti stealer bio, so other Flames Hub users can't copy you. This script's own copy ignores it. ]] --
 g.Anti_Stealer_Bio = "`~ Flames Hub Anti Stealer Is Enabled ~`"
 g.anti_outfit_copier = function(toggle)
     if toggle == true then
@@ -5759,7 +5231,6 @@ g.anti_outfit_copier = function(toggle)
         if g.FlamesLibrary.is_alive("AntiFitStealerConn") then g.notify("Error", "Anti Outfit Stealer is already enabled! [connection].", 5); return end
         g.notify("Success", "Flames Hub | Anti Outfit Stealer is now active.", 7)
         local lib = g.FlamesLibrary
-        -- [[ always redefined so a reload in the same server picks up the new bio. ]] --
         g.ToggleAntiFit_Stealer = function(state)
             if not state then
                 g.anti_outfit_stealer = false
@@ -5768,7 +5239,6 @@ g.anti_outfit_copier = function(toggle)
             end
             g.anti_outfit_stealer = true
             g.Send("bio", g.Anti_Stealer_Bio)
-
             local last_check = 0
             local target_bio = g.Anti_Stealer_Bio
             lib.connect("AntiFitStealerConn", g.RunService.Heartbeat:Connect(function()
@@ -5780,7 +5250,6 @@ g.anti_outfit_copier = function(toggle)
                     g.Send("hide_view_outfit", true)
                     g.notify("Success", "hide_view_outfit setting changed, reverted change (keep it on).", 3)
                 end
-
                 if g.anti_outfit_stealer then
                     local current_bio = g.LocalPlayer:GetAttribute("bio")
                     if current_bio ~= target_bio then
@@ -5802,12 +5271,10 @@ g.anti_outfit_copier = function(toggle)
         return
     end
 end
-
 g.Delete_House = function()
     local s = g.Get
     if s and typeof(s) == "function" then s("request_delete_house") end
 end
-
 local upvalues_func_main = getupvalue or getupvalues or rawget and rawget(debug, "getupvalues")
 local get_proto_func = getproto or rawget and rawget(debug, "getproto") or getprotos
 g.hook_meta_main = g.hook_meta_main or function(obj, metamethod, func)
@@ -5823,28 +5290,24 @@ g.hook_meta_main = g.hook_meta_main or function(obj, metamethod, func)
         return oldmetamethod
     end
 end
-
 g.find_messages_modulescript = g.find_messages_modulescript or function()
     if g.Messages_Module_Found_Loc then return g.Messages_Module_Found_Loc end
     local found = ReplicatedStorage:FindFirstChild("Messages", true)
     if found and found:IsA("ModuleScript") then g.Messages_Module_Found_Loc = found end
     return g.Messages_Module_Found_Loc
 end
-
 g.find_UI_modulescript = g.find_UI_modulescript or function()
     if g.UI_Module_Main then return g.UI_Module_Main end
     local found = ReplicatedStorage:FindFirstChild("UI", true)
     if found and found:IsA("ModuleScript") then g.UI_Module_Main = found end
     return g.UI_Module_Main
 end
-
 g.find_RateLimiter_modulescript = g.find_RateLimiter_modulescript or function()
     if g.RateLimiter_Module_Main then return g.RateLimiter_Module_Main end
     local found = ReplicatedStorage:FindFirstChild("RateLimiter", true)
     if found and found:IsA("ModuleScript") then g.RateLimiter_Module_Main = found end
     return g.RateLimiter_Module_Main
 end
-
 if not g.RateLimiter_Bypass_Applied then
     if get_proto_func and upvalues_func_main and require then
         local ok = pcall(function()
@@ -5861,7 +5324,6 @@ if not g.RateLimiter_Bypass_Applied then
         end
     end
 end
-
 g.Spam_Survey_Completions = function(state)
     if state == true then
         g.Spam_And_Spoof_Survey_Submissions = true
@@ -5908,10 +5370,9 @@ g.Spam_Survey_Completions = function(state)
         FlamesLibrary.disconnect("spam_survey_completions")
         g.notify("Success", "Flames Hub | Life Together RP survey spammer is now disabled.", 3)
     else
-        return 
+        return
     end
 end
-
 g.spam_sign_text = g.spam_sign_text or function(toggle)
     local Character = g.Character
     local PlacedModels = workspace:WaitForChild("PlacedModels")
@@ -5927,11 +5388,9 @@ g.spam_sign_text = g.spam_sign_text or function(toggle)
                 end
             end
         end
-
         for _, v in ipairs(Character:GetChildren()) do if v.Name:lower() == query then return v end end
         return nil
     end
-
     if toggle == true then
         if g.ToolChanger_FE then g.notify("Warning", "Sign Spammer is already enabled!", 3); return end
         g.ToolChanger_FE = true
@@ -5958,10 +5417,9 @@ g.spam_sign_text = g.spam_sign_text or function(toggle)
         end
         g.ToolChanger_FE = false
     else
-        return 
+        return
     end
 end
-
 g.AutoLockConnection = g.AutoLockConnection or nil
 g.ToggleAutoLock = g.AutoLockConnection or function(state)
     if not state then
@@ -5970,7 +5428,6 @@ g.ToggleAutoLock = g.AutoLockConnection or function(state)
             g.AutoLockConnection:Disconnect()
             g.AutoLockConnection = nil
         end
-
         local car = g.get_vehicle()
         if car and car:GetAttribute("locked") == true then
             g.lock_vehicle(car)
@@ -5978,13 +5435,12 @@ g.ToggleAutoLock = g.AutoLockConnection or function(state)
         else
             g.notify("Warning", "Flames Hub | Auto Lock Vehicle is now disabled, vehicle not found.", 5)
         end
-        return 
+        return
     else
         local car = g.get_vehicle()
         if not car then g.notify("Error", "Vehicle not found, spawn one!", 5); return end
         g.AutoLockOn = true
     end
-
     g.notify("Success", "Flames Hub | Auto Lock Vehicle is now enabled.", 5)
     g.AutoLockConnection = g.RunService.Heartbeat:Connect(function()
         if tick() - (g._lastLockCheck or 0) < 1 then return end
@@ -5993,7 +5449,6 @@ g.ToggleAutoLock = g.AutoLockConnection or function(state)
         if car and car:GetAttribute("locked") ~= true then g.lock_vehicle(car) end
     end)
 end
-
 if not g.player_esp_core then
     g.player_esp_core = true
     local localplayer = g.LocalPlayer
@@ -6007,14 +5462,12 @@ if not g.player_esp_core then
         end
         return character
     end
-
     local function remove_esp(plr)
         if esp_objects[plr] then
             esp_objects[plr]:Destroy()
             esp_objects[plr] = nil
         end
     end
-
     local function apply_esp(plr)
         if not g.Flames_Hub_Player_ESP_Core_Has_Been_Enabled then return end
         if plr == localplayer then return end
@@ -6030,7 +5483,6 @@ if not g.player_esp_core then
             esp_objects[plr] = highlight
         end)
     end
-
     local function track_player(plr)
         apply_esp(plr)
         FlamesLibrary.connect("esp_char_" .. tostring(plr.UserId), plr.CharacterAdded:Connect(function(new_char)
@@ -6039,7 +5491,6 @@ if not g.player_esp_core then
             apply_esp(plr)
         end))
     end
-
     local function untrack_player(plr) remove_esp(plr); FlamesLibrary.disconnect("esp_char_" .. tostring(plr.UserId)) end
     g.enable_player_esp = function()
         if g.Flames_Hub_Player_ESP_Core_Has_Been_Enabled then g.notify("Warning", "Flames Hub Player ESP is already enabled.", 5); return end
@@ -6048,7 +5499,6 @@ if not g.player_esp_core then
         FlamesLibrary.connect("esp_playeradded", Players.PlayerAdded:Connect(track_player))
         FlamesLibrary.connect("esp_playerremoving", Players.PlayerRemoving:Connect(untrack_player))
     end
-
     g.disable_player_esp = function()
         if not g.Flames_Hub_Player_ESP_Core_Has_Been_Enabled then g.notify("Warning", "Flames Hub Player ESP is not enabled.", 5); return end
         g.Flames_Hub_Player_ESP_Core_Has_Been_Enabled = false
@@ -6057,7 +5507,6 @@ if not g.player_esp_core then
         FlamesLibrary.disconnect("esp_playerremoving")
     end
 end
-
 if Drawing and not g.tracer_core_initialized then
     g.tracer_core_initialized = true
     local camera = workspace.CurrentCamera
@@ -6071,7 +5520,6 @@ if Drawing and not g.tracer_core_initialized then
             tracer_objects[plr] = nil
         end
     end
-
     local function create_tracer(plr)
         if plr == localplayer then return end
         while g.tracer_esp_currently_running_flag_Flames_Hub and not plr.Parent do task.wait() end
@@ -6082,7 +5530,6 @@ if Drawing and not g.tracer_core_initialized then
         line.Visible = false
         tracer_objects[plr] = line
     end
-
     local function update_tracers()
         if not g.tracer_esp_currently_running_flag_Flames_Hub then pcall(function() g.disable_tracers() end); return end
         local view = camera.ViewportSize
@@ -6103,7 +5550,6 @@ if Drawing and not g.tracer_core_initialized then
             end
         end
     end
-
     g.enable_tracers = function()
         if g.tracer_esp_currently_running_flag_Flames_Hub then g.notify("Warning", "Tracer ESP is already enabled!", 3); return end
         g.tracer_esp_currently_running_flag_Flames_Hub = true
@@ -6112,7 +5558,6 @@ if Drawing and not g.tracer_core_initialized then
         FlamesLibrary.connect("tracer_playeradded", Players.PlayerAdded:Connect(create_tracer))
         FlamesLibrary.connect("tracer_playerremoving", Players.PlayerRemoving:Connect(remove_tracer))
     end
-
     g.disable_tracers = function()
         if not g.tracer_esp_currently_running_flag_Flames_Hub then g.notify("Warning", "Tracer ESP is not enabled!", 3); return end
         g.tracer_esp_currently_running_flag_Flames_Hub = false
@@ -6139,7 +5584,6 @@ if not g.RateLimiter_Notified then
         g.notify("Warning", "Not sure if RateLimiter bypass was applied or not.", 10)
     end
 end
-
 g.WalkFlingWhitelist = g.WalkFlingWhitelist or {}
 g.walkflinging = g.walkflinging or false
 g.WalkFlingConnections = g.WalkFlingConnections or {}
@@ -6151,7 +5595,6 @@ g.AddToWalkFlingWhitelist = g.AddToWalkFlingWhitelist or function(user)
     g.WalkFlingWhitelist[userid] = true
     return g.notify("Success", "Added to WalkFling Whitelist.", 5)
 end
-
 g.RemoveFromWalkFlingWhitelist = g.RemoveFromWalkFlingWhitelist or function(user)
     local userid = g.ToUserId(user)
     if not userid then return g.notify("Warning", "That player is invalid or has left the game.", 5) end
@@ -6159,12 +5602,10 @@ g.RemoveFromWalkFlingWhitelist = g.RemoveFromWalkFlingWhitelist or function(user
     g.WalkFlingWhitelist[userid] = nil
     return g.notify("Success", "Removed from WalkFling Whitelist.", 5)
 end
-
 g.is_whitelisted = g.is_whitelisted or function(plr)
     if not plr then return false end
     return g.WalkFlingWhitelist[plr.UserId] == true
 end
-
 g.stop_walkfling = g.stop_walkfling or function()
     if not g.walkflinging then g.notify("Error", "Flames Hub | WalkFling-V3.5 is not enabled.", 5); return end
     g.walkflinging = false
@@ -6176,7 +5617,6 @@ g.stop_walkfling = g.stop_walkfling or function()
         g.WalkFlingRespawnConn:Disconnect()
         g.WalkFlingRespawnConn = nil
     end
-
     if g.Noclip_Enabled then g.Toggleable_Noclip(false) end
     local root = g.HumanoidRootPart
     if root then root.Velocity = Vector3.zero end
@@ -6184,7 +5624,6 @@ g.stop_walkfling = g.stop_walkfling or function()
     if hum then hum.PlatformStand = false; hum:ChangeState(Enum.HumanoidStateType.GettingUp) end
     g.notify("Success", "Flames Hub | WalkFling-V3.5 has been stopped/disabled.", 5)
 end
-
 g.start_walkfling = g.start_walkfling or function()
     if g.walkflinging then g.notify("Warning", "Flames Hub | WalkFling-V3.5 is already enabled!", 5); return end
     g.walkflinging = true
@@ -6207,7 +5646,6 @@ g.start_walkfling = g.start_walkfling or function()
                         g.TouchingWhitelisted[hit_player.UserId] = true
                         return
                     end
-
                     if next(g.TouchingWhitelisted) then return end
                     local hit_root = hit_char:FindFirstChild("HumanoidRootPart")
                     if not hit_root then return end
@@ -6220,7 +5658,6 @@ g.start_walkfling = g.start_walkfling or function()
                     RunService.RenderStepped:Wait()
                     if hit_root then hit_root.Velocity = v * power + Vector3.new(0, 0.1, 0) end
                 end)
-
                 local untouch_conn = part.TouchEnded:Connect(function(hit)
                     local hit_char = hit.Parent
                     while hit_char and not Players:GetPlayerFromCharacter(hit_char) and hit_char.Parent ~= workspace do hit_char = hit_char.Parent end
@@ -6232,7 +5669,6 @@ g.start_walkfling = g.start_walkfling or function()
             end
         end
     end
-
     local char = g.Character or g.LocalPlayer.Character or g.get_char(speaker, 3)
     if char then connect_touch_fling(char) end
     if g.WalkFlingRespawnConn then
@@ -6255,7 +5691,6 @@ g.start_walkfling = g.start_walkfling or function()
         if r then r.Velocity = v + Vector3.new(0, 0.1, 0) end
     end))
 end
-
 g.StartWalkFling = g.start_walkfling
 g.StopWalkFling = g.stop_walkfling
 g.getcharsize = g.getcharsize or function()
@@ -6266,13 +5701,11 @@ g.getcharsize = g.getcharsize or function()
     local w = 2 * (d.WidthScale or 1)
     return h,w
 end
-
 g.autospinspeed = g.autospinspeed or function(base) local h = g.getcharsize(); return base / h end
 g.change_spin_speed = g.change_spin_speed or function(speed)
     if g.walkflinging then g.notify("Error", "Turn off walkfling first for this to work properly.", 5); return end
     for _, v in ipairs(g.HumanoidRootPart:GetChildren()) do if v.Name == "FlamesHub_Spin" then v.AngularVelocity = Vector3.new(0, speed, 0) end end
 end
-
 g.LockHouse_LastState = g.LockHouse_LastState or {}
 g.LockHomeLoop = g.LockHomeLoop or false
 g.get_plot_of_player = g.get_plot_of_player or function(player)
@@ -6285,16 +5718,13 @@ g.get_plot_of_player = g.get_plot_of_player or function(player)
             if ok and owner == player then  return plot.instance, plot end
         end
     end
-
     return nil, "Player has no plot"
 end
-
 g.toggle_house_lock = g.toggle_house_lock or function(player)
     local plotInstance = select(1, g.get_plot_of_player(player))
     if not plotInstance then return end
     g.Send("lock_home", plotInstance)
 end
-
 g.is_home_locked = g.is_home_locked or function(player)
     local plotObject = g.get_plot_of_player(player)
     if not plotObject then return nil, "Player has no plot" end
@@ -6303,7 +5733,6 @@ g.is_home_locked = g.is_home_locked or function(player)
     if not ok then return nil, "Failed to read lock state" end
     return locked
 end
-
 g.LockHouse_LastState = g.LockHouse_LastState or {}
 g.LockHomeLoop = g.LockHomeLoop or false
 g.LockHomeToken = g.LockHomeToken or 0
@@ -6346,7 +5775,6 @@ g.keep_home_locked = g.keep_home_locked or function(toggle)
         g.notify("Success", "Flames Hub | Auto Lock Home is now disabled.", 5)
     end
 end
-
 g.spin_plr = g.spin_plr or function(toggle, speed)
     local hrp = g.HumanoidRootPart or g.Character and g.Character:FindFirstChild("HumanoidRootPart") or g.get_root(g.LocalPlayer, Players.RespawnTime + 1)
     if toggle == true then
@@ -6373,7 +5801,6 @@ g.spin_plr = g.spin_plr or function(toggle, speed)
         return
     end
 end
-
 g.OrbitConnections = g.OrbitConnections or {}
 g.Is_Orbiting = g.Is_Orbiting or false
 g.OrbitSpeed = g.OrbitSpeed or 1
@@ -6385,7 +5812,6 @@ g.set_orbit_speed = g.set_orbit_speed or function(new_speed)
         g.notify("Error", "Invalid speed value.", 3)
     end
 end
-
 g.stop_orbit = g.stop_orbit or function()
     if not g.Is_Orbiting then g.notify("Warning", "You're not orbiting anyone.", 3); return end
     for _, conn in pairs(g.OrbitConnections) do if typeof(conn) == "RBXScriptConnection" then conn:Disconnect() end end
@@ -6393,7 +5819,6 @@ g.stop_orbit = g.stop_orbit or function()
     g.Is_Orbiting = false
     g.notify("Success", "Stopped orbiting Player.", 3)
 end
-
 g.start_orbit_plr = g.start_orbit_plr or function(target, speed, distance)
     if g.Is_Orbiting then g.notify("Warning", "Already orbiting someone!", 3); return end
     if not target or not target.Character then g.notify("Error", "Target invalid or they're missing their Character.", 5); return end
@@ -6404,9 +5829,8 @@ g.start_orbit_plr = g.start_orbit_plr or function(target, speed, distance)
     if not root or not humanoid or not targetRoot then
         g.Is_Orbiting = false
         g.notify("Error", "Missing root or humanoid, cannot orbit this player.", 5)
-        return 
+        return
     end
-
     speed = tonumber(speed) or g.OrbitSpeed or 1
     distance = tonumber(distance) or 3
     g.OrbitSpeed = speed
@@ -6419,18 +5843,15 @@ g.start_orbit_plr = g.start_orbit_plr or function(target, speed, distance)
             root.CFrame = CFrame.new(targetRoot.Position) * CFrame.Angles(0, math.rad(rotation), 0) * CFrame.new(distance, 0, 0)
         end)
     end)
-
     g.OrbitConnections.RenderStepped = RunService.RenderStepped:Connect(function()
         pcall(function()
             if root and root.Parent and targetRoot and targetRoot.Parent then root.CFrame = CFrame.new(root.Position, targetRoot.Position) end
         end)
     end)
-
     g.OrbitConnections.Died = humanoid.Died:Connect(g.stop_orbit)
     g.OrbitConnections.Seated = humanoid.Seated:Connect(function(isSeated) if isSeated then g.stop_orbit() end end)
     g.notify("Success", "Started orbiting: "..tostring(target)..", with speed: "..tostring(speed)..", and with distance: "..tostring(distance), 5)
 end
-
 g.water_skie_trailer = g.water_skie_trailer or function(Bool, Vehicle)
     if not Vehicle then g.notify("Warning", "You do not have a Vehicle spawned!", 5); return end
     local HasTrailer = Vehicle:FindFirstChild("WaterSkies")
@@ -6450,10 +5871,9 @@ g.water_skie_trailer = g.water_skie_trailer or function(Bool, Vehicle)
         end
     else
         g.notify("Error", "Invalid toggle value (expected: true/false).", 5)
-        return 
+        return
     end
 end
-
 g.FlyEnabled = g.FlyEnabled or false
 g.FlySpeed = g.FlySpeed or 1
 g.QEfly = (g.QEfly == nil) and true or g.QEfly
@@ -6469,9 +5889,8 @@ g.EnableFly = g.EnableFly or function(state, speed, vfly)
             return
         end
         g.notify("Warning", "Fly is already enabled! Provide a speed to update it.", 5)
-        return 
+        return
     end
-
     local char = g.Character or plr.Character or g.get_char(plr, Players.RespawnTime + 1)
     local hrp = g.HumanoidRootPart or char and char:FindFirstChild("HumanoidRootPart") or g.get_root(plr, Players.RespawnTime + 1)
     local hum = g.Humanoid or char and char:FindFirstChildOfClass("Humanoid") or g.get_human(plr, Players.RespawnTime + 1)
@@ -6481,7 +5900,6 @@ g.EnableFly = g.EnableFly or function(state, speed, vfly)
         g.DisableFly()
         return
     end
-
     if speed and tonumber(speed) then g.FlySpeed = tonumber(speed) end
     g.FlyEnabled = true
     if g.flyKeyDown then g.flyKeyDown:Disconnect(); g.flyKeyDown = nil end
@@ -6490,20 +5908,17 @@ g.EnableFly = g.EnableFly or function(state, speed, vfly)
     if g.mobileFlyConn then g.mobileFlyConn:Disconnect(); g.mobileFlyConn = nil end
     if hrp:FindFirstChild("FlyGyro") then hrp.FlyGyro:Destroy() end
     if hrp:FindFirstChild("FlyVelocity") then hrp.FlyVelocity:Destroy() end
-
     local BG = Instance.new("BodyGyro")
     BG.P = 9e4
     BG.MaxTorque = Vector3.new(9e9,9e9,9e9)
     BG.CFrame = hrp.CFrame
     BG.Name = "FlyGyro"
     BG.Parent = hrp
-
     local BV = Instance.new("BodyVelocity")
     BV.MaxForce = Vector3.new(9e9,9e9,9e9)
     BV.Velocity = Vector3.zero
     BV.Name = "FlyVelocity"
     BV.Parent = hrp
-
     hum.PlatformStand = true
     if not IsMobile then
         local CONTROL = {F=0,B=0,L=0,R=0,Q=0,E=0}
@@ -6519,10 +5934,8 @@ g.EnableFly = g.EnableFly or function(state, speed, vfly)
             else
                 BV.Velocity = BV.Velocity * 0.9
             end
-
             BG.CFrame = cam.CFrame
         end)
-
         g.flyKeyDown = UIS.InputBegan:Connect(function(input, gp)
             if gp then return end
             if input.KeyCode == Enum.KeyCode.W then CONTROL.F = 1 end
@@ -6535,7 +5948,6 @@ g.EnableFly = g.EnableFly or function(state, speed, vfly)
             end
             pcall(function() cam.CameraType = Enum.CameraType.Track end)
         end)
-
         g.flyKeyUp = UIS.InputEnded:Connect(function(input)
             if input.KeyCode == Enum.KeyCode.W then CONTROL.F = 0 end
             if input.KeyCode == Enum.KeyCode.S then CONTROL.B = 0 end
@@ -6544,11 +5956,9 @@ g.EnableFly = g.EnableFly or function(state, speed, vfly)
             if input.KeyCode == Enum.KeyCode.E then CONTROL.Q = 0 end
             if input.KeyCode == Enum.KeyCode.Q then CONTROL.E = 0 end
         end)
-
         g.notify("Success", "Fly enabled (PC) | Speed: "..tostring(g.FlySpeed), 5)
         return
     end
-
     local ok, controlModule = pcall(function()
         return g.safe_require(plr:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"):WaitForChild("ControlModule"))
     end)
@@ -6561,7 +5971,6 @@ g.EnableFly = g.EnableFly or function(state, speed, vfly)
         end)
         return
     end
-
     g.mobileFlyConn = RunService.RenderStepped:Connect(function()
         if not g.FlyEnabled then return end
         if not hrp or not hum or not cam then return end
@@ -6574,10 +5983,8 @@ g.EnableFly = g.EnableFly or function(state, speed, vfly)
             BV.Velocity = Vector3.zero
         end
     end)
-
     g.notify("Success", "Fly enabled (Mobile) | Speed: "..tostring(g.FlySpeed), 5)
 end
-
 print("[Flames] loading: movement")
 g.DisableFly = g.DisableFly or function()
     if not g.FlyEnabled then g.notify("Warning", "Fly is not enabled!", 3); return end
@@ -6593,11 +6000,9 @@ g.DisableFly = g.DisableFly or function()
         if hrp:FindFirstChild("FlyGyro") then hrp.FlyGyro:Destroy() end
         if hrp:FindFirstChild("FlyVelocity") then hrp.FlyVelocity:Destroy() end
     end
-
     if hum then hum.PlatformStand = false end
     g.notify("Success", "Fly is now disabled.", 3)
 end
-
 g.VehicleStates = g.VehicleStates or {}
 if not g.VehicleStates[g.LocalPlayer.Name] then g.VehicleStates[g.LocalPlayer.Name] = g.LocalPlayer end
 g.find_core_folder = g.find_core_folder or function()
@@ -6606,10 +6011,8 @@ g.find_core_folder = g.find_core_folder or function()
             return v
         end
     end
-
     return nil
 end
-
 g.send_msg_phone = g.send_msg_phone or function(player, msg)
     local Core_Folder = g.find_core_folder()
     if not Core_Folder then g.notify("Error", "Core Folder not found (patched?).", 5); return end
@@ -6621,7 +6024,6 @@ g.send_msg_phone = g.send_msg_phone or function(player, msg)
         local a, b = (id < my) and id or my, (id < my) and my or id
         return tostring(a) .. " " .. tostring(b)
     end
-
     local function send_dm(target, text)
         local targetId = target.UserId
         local hash = get_dm_hash(targetId)
@@ -6633,15 +6035,12 @@ g.send_msg_phone = g.send_msg_phone or function(player, msg)
             end)
             return false
         end
-
         return true
     end
-
     local text_to_send = msg
     if not text_to_send or text_to_send == "" then g.notify("Error", "Please input a valid message to send!", 5); return end
     send_dm(player, text_to_send)
 end
-
 local data_mod = require and g.safe_require(g.ReplicatedStorage.Modules.Core:FindFirstChild("Data", true))
 local messages_mod = require and g.safe_require(g.ReplicatedStorage:FindFirstChild("Messages", true))
 local function get_other_from_hash(hash, known_id)
@@ -6652,13 +6051,11 @@ local function get_other_from_hash(hash, known_id)
     if id2 == known_id then return id1 end
     return nil
 end
-
 local function get_recipient_id()
     local convo = messages_mod.active_conversation
     if not convo then return nil end
     return get_other_from_hash(convo.hash, Players.LocalPlayer.UserId)
 end
-
 local function get_recipient_from_message(msg_id, sender_id)
     for _, convo in ipairs(data_mod.conversations or {}) do
         if convo.messages then
@@ -6671,7 +6068,6 @@ local function get_recipient_from_message(msg_id, sender_id)
     end
     return nil
 end
-
 local function get_sender_id(msg_id)
     for _, convo in ipairs(data_mod.conversations or {}) do
         if convo.messages then
@@ -6684,7 +6080,6 @@ local function get_sender_id(msg_id)
     end
     return nil, nil
 end
-
 g.chat_logged_ids = g.chat_logged_ids or {}
 g.chat_frame_locks = g.chat_frame_locks or {}
 g.chat_text_conns = g.chat_text_conns or {}
@@ -6698,7 +6093,6 @@ local function resolve_name(uid)
     end
     return "User_" .. uid
 end
-
 local function enqueue_message(msg) table.insert(g.chat_send_queue, msg) end
 local function log_message(frame, txt, msg_id, sender_id)
     local unique_id = msg_id .. "|" .. txt.Text
@@ -6716,7 +6110,6 @@ local function log_message(frame, txt, msg_id, sender_id)
         sender_name .. " (" .. sender_id .. " to " .. recipient_str .. "): " .. txt.Text
     )
 end
-
 g.process_message_frame = function(frame)
     if frame.Name ~= "Message" then return end
     local msg_id = frame:GetAttribute("id")
@@ -6737,14 +6130,12 @@ g.process_message_frame = function(frame)
             end)
         end)
     end
-
     task.delay(0.05, function()
         if txt and txt.Text ~= "" then
             log_message(frame, txt, msg_id, sender_id)
         end
     end)
 end
-
 g.toggle_rgb_streetlights = g.toggle_rgb_streetlights or function(toggle)
     local genv = g
     if toggle == true then
@@ -6761,7 +6152,6 @@ g.toggle_rgb_streetlights = g.toggle_rgb_streetlights or function(toggle)
                 end
             end
         end
-
         local hue = 0
         genv.RGB_Street_Lights_NightTime_Loop = true
         genv.notify("Success", "RGB/Rainbow StreetLights enabled, they will only animate at night.", 10)
@@ -6789,7 +6179,6 @@ g.toggle_rgb_streetlights = g.toggle_rgb_streetlights or function(toggle)
         genv.notify("Success", "RGB/Rainbow StreetLights disabled.", 10)
     end
 end
-
 local excluded_functions = {
     HttpGet = true,
     appendfile = true,
@@ -7041,39 +6430,33 @@ local excluded_functions = {
     setinfo = true,
     dumpbytecode = true,
 }
-
 g.Flames_Debugger_Function_Tester_GUI = g.Flames_Debugger_Function_Tester_GUI or function()
     local genv = g
     local start_scan
-
     if genv.__flames_debugger_running then
         if g.notify then
             g.notify("Warning", "Flames Debugger is already running!", 5)
-            return 
+            return
         else
             warn("Flames Debugger is already running.")
             return
         end
     end
-
     if CoreGui:FindFirstChild("FlamesDebugger") then
         CoreGui.FlamesDebugger.Enabled = true
         genv.__flames_debugger_running = false
         g.dont_receive_any_notifications_flames_hub = false
         return
     end
-
     local gui = Instance.new("ScreenGui")
     gui.Name = "FlamesDebugger"
     gui.ResetOnSpawn = false
     gui.Parent = CoreGui
-
     local frame = Instance.new("Frame")
     frame.Size = UDim2.fromOffset(400,300)
     frame.Position = UDim2.fromScale(0.4,0.3)
     frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
     frame.Parent = gui
-
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0,10)
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1,-150,0,30)
@@ -7083,7 +6466,6 @@ g.Flames_Debugger_Function_Tester_GUI = g.Flames_Debugger_Function_Tester_GUI or
     title.TextScaled = true
     title.TextColor3 = Color3.new(1,1,1)
     title.Parent = frame
-
     local close = Instance.new("TextButton")
     close.Size = UDim2.fromOffset(26,26)
     close.Position = UDim2.new(1,-32,0,4)
@@ -7092,7 +6474,6 @@ g.Flames_Debugger_Function_Tester_GUI = g.Flames_Debugger_Function_Tester_GUI or
     close.BackgroundColor3 = Color3.fromRGB(120,40,40)
     close.TextColor3 = Color3.new(1,1,1)
     close.Parent = frame
-
     Instance.new("UICorner", close).CornerRadius = UDim.new(1,0)
     close.MouseButton1Click:Connect(function() gui.Enabled = false end)
     local rescan = Instance.new("TextButton")
@@ -7103,7 +6484,6 @@ g.Flames_Debugger_Function_Tester_GUI = g.Flames_Debugger_Function_Tester_GUI or
     rescan.BackgroundColor3 = Color3.fromRGB(40,90,140)
     rescan.TextColor3 = Color3.new(1,1,1)
     rescan.Parent = frame
-
     rescan.MouseButton1Click:Connect(function()
         if not genv.__flames_debugger_running then
             genv.__flames_debugger_running = true
@@ -7111,20 +6491,16 @@ g.Flames_Debugger_Function_Tester_GUI = g.Flames_Debugger_Function_Tester_GUI or
             start_scan()
         end
     end)
-
     Instance.new("UICorner", rescan).CornerRadius = UDim.new(0,6)
-
     local list = Instance.new("ScrollingFrame")
     list.Position = UDim2.new(0,10,0,40)
     list.Size = UDim2.new(1,-20,1,-50)
     list.CanvasSize = UDim2.new(0,0,0,0)
     list.ScrollBarImageTransparency = 0.2
     list.Parent = frame
-
     local layout = Instance.new("UIListLayout")
     layout.Padding = UDim.new(0,4)
     layout.Parent = list
-
     local function update_canvas() list.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 6) end
     layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(update_canvas)
     local function add_row(text, success)
@@ -7137,7 +6513,6 @@ g.Flames_Debugger_Function_Tester_GUI = g.Flames_Debugger_Function_Tester_GUI or
         row.Text = (success and "  ?  " or "  ?  ") .. text
         row.Parent = list
     end
-
     local function snapshot_guis()
         local snap = {}
         for _,v in ipairs(CoreGui:GetChildren()) do
@@ -7147,7 +6522,6 @@ g.Flames_Debugger_Function_Tester_GUI = g.Flames_Debugger_Function_Tester_GUI or
         end
         return snap
     end
-
     local function cleanup_guis(before)
         for _,v in ipairs(CoreGui:GetChildren()) do
             if v:IsA("ScreenGui") and not before[v] and v ~= gui then
@@ -7157,7 +6531,6 @@ g.Flames_Debugger_Function_Tester_GUI = g.Flames_Debugger_Function_Tester_GUI or
             end
         end
     end
-
     local function clear_list()
         for _,v in ipairs(list:GetChildren()) do
             if v:IsA("TextLabel") then
@@ -7165,7 +6538,6 @@ g.Flames_Debugger_Function_Tester_GUI = g.Flames_Debugger_Function_Tester_GUI or
             end
         end
     end
-
     if rescan and rescan:IsA("TextButton") then
         task.spawn(function()
             while true do
@@ -7186,14 +6558,12 @@ g.Flames_Debugger_Function_Tester_GUI = g.Flames_Debugger_Function_Tester_GUI or
             end
         end)
     end
-
     start_scan = function()
         task.spawn(function()
             g.button_text_changing_for_debug_scanner = true
             local function run_scan()
                 clear_list()
                 local tested = 0
-
                 for name,value in next,genv do
                     if tested >= 25 then break end
                     if typeof(value) == "function" and not excluded_functions[name] then
@@ -7201,7 +6571,6 @@ g.Flames_Debugger_Function_Tester_GUI = g.Flames_Debugger_Function_Tester_GUI or
                         local before = snapshot_guis()
                         local ok, err = pcall(value)
                         cleanup_guis(before)
-
                         if ok then
                             add_row(name.."()", true)
                         else
@@ -7216,11 +6585,9 @@ g.Flames_Debugger_Function_Tester_GUI = g.Flames_Debugger_Function_Tester_GUI or
                                 add_row(name.."()", false)
                             end
                         end
-
                         wait(0.5)
                     end
                 end
-
                 if tested == 0 then
                     add_row("No functions found to test", false)
                     g.dont_receive_any_notifications_flames_hub = false
@@ -7229,7 +6596,6 @@ g.Flames_Debugger_Function_Tester_GUI = g.Flames_Debugger_Function_Tester_GUI or
                     g.dont_receive_any_notifications_flames_hub = false
                 end
             end
-
             pcall(function() run_scan() end)
             task.wait(0.15)
             g.button_text_changing_for_debug_scanner = false
@@ -7238,7 +6604,6 @@ g.Flames_Debugger_Function_Tester_GUI = g.Flames_Debugger_Function_Tester_GUI or
             if rescan and rescan:IsA("TextButton") then rescan.Text = "Start Scan" end
         end)
     end
-
     local dragging = false
     local drag_start
     local start_pos
@@ -7255,13 +6620,11 @@ g.Flames_Debugger_Function_Tester_GUI = g.Flames_Debugger_Function_Tester_GUI or
             end)
         end
     end)
-
     title.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement then
             drag_input = input
         end
     end)
-
     UIS.InputChanged:Connect(function(input)
         if input == drag_input and dragging then
             local delta = input.Position - drag_start
@@ -7274,7 +6637,6 @@ g.Flames_Debugger_Function_Tester_GUI = g.Flames_Debugger_Function_Tester_GUI or
         end
     end)
 end
-
 g.CreateCreditsLabel = function()
     if g.CreditsLabelGui then g.CreditsLabelGui:Destroy() end
     local creditsGui = Instance.new("ScreenGui")
@@ -7282,12 +6644,10 @@ g.CreateCreditsLabel = function()
     creditsGui.ResetOnSpawn = false
     creditsGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     creditsGui.Parent = CoreGui
-
     local label = Instance.new("TextLabel")
     label.Name = "CreditsLabel"
     g.MainCreditsLabel_WithPrefix = label
     label.AnchorPoint = Vector2.new(0.5, 1)
-
     if IsMobile then
         label.Position = UDim2.new(0.5, 0, 0.95, -10)
         label.Size = UDim2.new(0.3, 0, 0, 28)
@@ -7295,7 +6655,6 @@ g.CreateCreditsLabel = function()
         label.Position = UDim2.new(0.5, 0, 0.949999988, 25)
         label.Size = UDim2.new(0.6, 0, 0, 28)
     end
-
     label.BackgroundColor3 = Color3.fromRGB(151, 0, 0)
     label.TextColor3 = Color3.fromRGB(0, 0, 0)
     g.flowrgb("PrefixCreditsLabelConn", 1, label, true)
@@ -7311,11 +6670,9 @@ g.CreateCreditsLabel = function()
     label.BackgroundTransparency = 0
     label.ZIndex = 10
     label.Parent = creditsGui
-
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = label
-
     g.CreditsLabelGui = creditsGui
     g.CreditsLabelText = label
     if g._PrefixUpdateConnection then g._PrefixUpdateConnection:Disconnect() end
@@ -7325,9 +6682,7 @@ g.CreateCreditsLabel = function()
     if masked_flames_hub_server_ID then table.insert(holiday_parts, "Your Flames-Hub UUID: " .. tostring(masked_flames_hub_server_ID)) end
     label.Text = table.concat(holiday_parts, " | ")
 end
-
 g.CreateCreditsLabel()
--- [[ credits live inside the menu now (Credits section), so the on-screen label stays hidden. ]] --
 if g.CreditsLabelGui then g.CreditsLabelGui.Enabled = false end
 g.hidden_pcm = setmetatable({}, { __mode = "k" })
 g.HidePhoneModels = g.HidePhoneModels or false
@@ -7338,7 +6693,6 @@ g.hide_pcm = g.hide_pcm or function(pcm)
     if not pcm or not pcm:IsA("Model") then return end
     if g.hidden_pcm[pcm] then return end
     SavedValues[pcm] = SavedValues[pcm] or {}
-
     for _, v in ipairs(pcm:GetDescendants()) do
         if v:IsA("BasePart") then
             SavedValues[pcm][v] = {
@@ -7359,7 +6713,6 @@ g.hide_pcm = g.hide_pcm or function(pcm)
             v.Volume = 0
         end
     end
-
     local desc_conn = pcm.DescendantAdded:Connect(function(v)
         if not g.HidePhoneModels then return end
         SavedValues[pcm] = SavedValues[pcm] or {}
@@ -7382,10 +6735,8 @@ g.hide_pcm = g.hide_pcm or function(pcm)
             v.Volume = 0
         end
     end)
-
     g.hidden_pcm[pcm] = { conn = desc_conn }
 end
-
 g.show_pcm = g.show_pcm or function(pcm)
     if not pcm or not pcm:IsA("Model") then return end
     local entry = g.hidden_pcm[pcm]
@@ -7409,10 +6760,8 @@ g.show_pcm = g.show_pcm or function(pcm)
         end
         SavedValues[pcm] = nil
     end
-
     g.hidden_pcm[pcm] = nil
 end
-
 g.try_hide_pcm = g.try_hide_pcm or function(character)
     if not g.HidePhoneModels then return end
     if not character then return end
@@ -7422,7 +6771,6 @@ g.try_hide_pcm = g.try_hide_pcm or function(character)
     if not pcm then return end
     g.hide_pcm(pcm)
 end
-
 g.scan_character = g.scan_character or function(character)
     if not character then return end
     task.defer(function() g.try_hide_pcm(character) end)
@@ -7433,14 +6781,12 @@ g.scan_character = g.scan_character or function(character)
             g._pcm_registry[child] = true
         end
     end
-
     FlamesLibrary.connect(char_id, character.ChildAdded:Connect(function(child)
         if child:IsA("Model") and child.Name == "PhoneCharacterModel" then
             g._pcm_registry[child] = true
             task.defer(function() if g.HidePhoneModels then g.hide_pcm(child) end end)
         end
     end))
-
     FlamesLibrary.connect(cleanup_id, character.AncestryChanged:Connect(function(_, parent)
         if not parent then
             FlamesLibrary.disconnect(char_id)
@@ -7448,7 +6794,6 @@ g.scan_character = g.scan_character or function(character)
         end
     end))
 end
-
 g.hook_player = function(plr)
     if plr == Players.LocalPlayer then return end
     local plr_id = tostring(plr.UserId)
@@ -7456,7 +6801,6 @@ g.hook_player = function(plr)
     local char = plr.Character or g.get_char(plr)
     if char then g.scan_character(char) end
 end
-
 FlamesLibrary.disconnect("pmh_playeradded")
 FlamesLibrary.disconnect("pmh_playerremoving")
 FlamesLibrary.connect("pmh_playeradded", Players.PlayerAdded:Connect(g.hook_player))
@@ -7465,13 +6809,11 @@ FlamesLibrary.connect("pmh_playerremoving", Players.PlayerRemoving:Connect(funct
     FlamesLibrary.disconnect(plr_id .. "_charadded")
     FlamesLibrary.disconnect(plr_id .. "_charwait")
 end))
-
 g.run_hooking_players = function()
     for _, player in ipairs(Players:GetPlayers()) do if player ~= Players.LocalPlayer then g.hook_player(player) end end
 end
 task.wait()
 pcall(function() g.run_hooking_players() end)
-
 g.rescan_all_pcms = g.rescan_all_pcms or function()
     for pcm in pairs(g._pcm_registry) do
         if not pcm.Parent then
@@ -7489,14 +6831,12 @@ g.rescan_all_pcms = g.rescan_all_pcms or function()
         end
     end
 end
-
 g.TogglePhoneModelHider = g.TogglePhoneModelHider or function(state)
     if type(state) == "boolean" then
         g.HidePhoneModels = state
     else
         g.HidePhoneModels = not g.HidePhoneModels
     end
-
     if g.HidePhoneModels then
         g.rescan_all_pcms()
     else
@@ -7505,23 +6845,19 @@ g.TogglePhoneModelHider = g.TogglePhoneModelHider or function(state)
         end
     end
 end
-
 g.ShutdownPhoneModelHider = g.ShutdownPhoneModelHider or function()
     for pcm in pairs(g.hidden_pcm) do g.show_pcm(pcm) end
     FlamesLibrary.disconnect("pmh_playeradded")
     FlamesLibrary.disconnect("pmh_playerremoving")
-
     for _, plr in ipairs(Players:GetPlayers()) do
         local plr_id = tostring(plr.UserId)
         FlamesLibrary.disconnect(plr_id .. "_charadded")
         FlamesLibrary.disconnect(plr_id .. "_charwait")
     end
-
     table.clear(g.hidden_pcm)
     table.clear(SavedValues)
     table.clear(g._pcm_registry)
 end
-
 if not g.FlamesHub_CharacterAdded_Initialized then
     g.FlamesHub_CharacterAdded_Initialized = true
     local function character_added_jump_height_changer_Life_Together_RP(Character)
@@ -7532,17 +6868,14 @@ if not g.FlamesHub_CharacterAdded_Initialized then
         if not Humanoid or not Humanoid.Parent then Humanoid = Character:FindFirstChildOfClass("Humanoid") or Character:WaitForChild("Humanoid", 10) or g.get_human(LocalPlayer, Players.RespawnTime + 0.75) end
         if Humanoid and Humanoid.Parent then Humanoid.JumpHeight = 7 end
     end
-
     if g.Character or LocalPlayer.Character then character_added_jump_height_changer_Life_Together_RP(g.Character or LocalPlayer.Character) end
     LocalPlayer.CharacterAdded:Connect(character_added_jump_height_changer_Life_Together_RP)
 end
-
 print("[Flames] loading: titles")
 g.always_show_title_of_player_regardless_of_chats = g.always_show_title_of_player_regardless_of_chats or function(toggled)
     local lib = g.FlamesLibrary
     local fw = lib.wait
     local key = "showing_billboard_titles_above_heads_anyways"
-
     if toggled == true then
         if g.always_show_title_above_head then g.notify("Warning", "Flames Hub | Anti-Title_Hider is already enabled!", 5); return end
         g.notify("Success", "Flames Hub | Anti-Title_Hider is now enabled.", 5)
@@ -7564,14 +6897,12 @@ g.always_show_title_of_player_regardless_of_chats = g.always_show_title_of_playe
         lib.disconnect(key)
         g.notify("Success", "Flames Hub | Anti-Title_Hider is now disabled.", 5)
     else
-        return 
+        return
     end
 end
-
 g.change_RP_Name = g.change_RP_Name or function(New_Name) g.Send("roleplay_name", tostring(New_Name)) end
 g.change_bio = g.change_bio or function(New_Bio) g.Send("bio", tostring(New_Bio)) end
 task.wait()
--- [[ ultra safe checking that always works + falls back to your current roleplay name if not already saved so you don't have to do it yourself. ]] --
 g.WaitForAttribute = g.WaitForAttribute or function(Instance, Attribute, Timeout)
     local Existing = Instance:GetAttribute(Attribute)
     if Existing ~= nil then return Existing end
@@ -7583,24 +6914,20 @@ g.WaitForAttribute = g.WaitForAttribute or function(Instance, Attribute, Timeout
     end
     return nil
 end
-
 g.SafeRead = g.SafeRead or function(File, Fallback)
     if not (isfile and isfile(File)) then return Fallback end
     local Val = readfile(File)
     if not Val or #Val == 0 or Val == "nil" then return Fallback end
     return Val
 end
-
 g.SafeAttr = g.SafeAttr or function(Attribute)
     local Val = g.WaitForAttribute(g.LocalPlayer, Attribute, 10)
     if Val == nil then return nil end
     local Str = tostring(Val)
     return (#Str > 0 and Str ~= "nil") and Str or nil
 end
-
 if isfile and readfile and writefile and makefolder then
     local Folder = "Life_Together_Custom_Name_Configuration"
-    -- [[ one file per account, so an alt's name never gets put on your main (the old shared config.json is ignored) ]] --
     local ConfigPath = Folder .. "/config_" .. tostring(LocalPlayer.UserId) .. ".json"
     if not isfolder(Folder) then makefolder(Folder) end
     local Config = { Name = "DEFAULT", Bio = "DEFAULT" }
@@ -7608,7 +6935,6 @@ if isfile and readfile and writefile and makefolder then
         if val == nil or tostring(val) == "nil" or tostring(val) == "" then return "DEFAULT" end
         return tostring(val)
     end
-
     local Existing = g.SafeRead(ConfigPath, nil)
     if Existing then
         local Decoded = HttpService:JSONDecode(Existing)
@@ -7620,13 +6946,11 @@ if isfile and readfile and writefile and makefolder then
         writefile(ConfigPath, HttpService:JSONEncode(Config))
         g.notify("Success", "Creating config file for you (it didn't exist)...", 10)
     end
-
     if Config.Name ~= "DEFAULT" then
         g.notify("Success", "Got your last RP name (it was erased by Life Together RP), but we're setting it back!", 15)
         g.change_RP_Name(Config.Name)
     else
         local Name_To_Write = sanitize(g.SafeAttr("roleplay_name"))
-        -- [[ the name from the old shared file is likely another account's, so it isn't taken on as this account's ]] --
         local ok_old, old_shared = pcall(function() return HttpService:JSONDecode(g.SafeRead(Folder .. "/config.json", "{}")) end)
         local other_name = ok_old and type(old_shared) == "table" and old_shared.Name or nil
         if Name_To_Write ~= "DEFAULT" and Name_To_Write ~= other_name then
@@ -7634,7 +6958,6 @@ if isfile and readfile and writefile and makefolder then
             Config.Name = Name_To_Write
         end
     end
-
     local bio_config = Config
     local bio_config_path = ConfigPath
     lib.spawn("lt_bio_delay", "delay", 61, function()
@@ -7660,9 +6983,7 @@ if isfile and readfile and writefile and makefolder then
         end
         writefile(bio_config_path, HttpService:JSONEncode(bio_config))
     end)
-
     writefile(ConfigPath, HttpService:JSONEncode(Config))
-
     if g.lt_rp_name_conn then pcall(function() g.lt_rp_name_conn:Disconnect() end) end
     g.lt_rp_name_conn = LocalPlayer:GetAttributeChangedSignal("roleplay_name"):Connect(function()
         local name = sanitize(LocalPlayer:GetAttribute("roleplay_name"))
@@ -7671,12 +6992,10 @@ if isfile and readfile and writefile and makefolder then
         pcall(writefile, ConfigPath, HttpService:JSONEncode(Config))
     end)
 end
-
 g.job_spammer = g.job_spammer or function(toggle)
     local lib = g.FlamesLibrary
     local key = "job_spammer_loop"
     local fw = lib.wait
-
     if toggle == true then
         if g.Every_Job then g.notify("Warning", "Job spammer is already enabled! disable it first.", 5); return end
         g.Every_Job = true
@@ -7706,7 +7025,6 @@ g.job_spammer = g.job_spammer or function(toggle)
         g.notify("Success", "Job Spammer has been disabled.", 5)
     end
 end
-
 g.stored_effects_main_tbl = g.stored_effects_main_tbl or {}
 g.stored_parts_main_tbl = g.stored_parts_main_tbl or {}
 g.parts_seen = g.parts_seen or {}
@@ -7716,7 +7034,6 @@ g.validWorkspacePart = g.validWorkspacePart or function(inst)
     if inst:IsDescendantOf(LocalPlayer.Character or Instance.new("Folder")) then return false end
     return true
 end
-
 g.saveAndModify = g.saveAndModify or function(inst)
     if g.parts_seen[inst] then return end
     g.parts_seen[inst] = true
@@ -7736,10 +7053,8 @@ g.saveAndModify = g.saveAndModify or function(inst)
         inst.Enabled = false
     end
 end
-
 g.posteffparts = g.posteffparts or function(toggle)
     local genv = g
-
     if toggle then
         if genv.post_effects_off_main then return end
         genv.post_effects_off_main = true
@@ -7752,18 +7067,15 @@ g.posteffparts = g.posteffparts or function(toggle)
                 v.Enabled = false
             end
         end
-
         for _, v in ipairs(work:GetDescendants()) do
             if g.validWorkspacePart(v) then
                 g.saveAndModify(v)
             end
         end
-
         genv._saved_fog_start = lighting.FogStart
         genv._saved_fog_end = lighting.FogEnd
         lighting.FogStart = 1e5
         lighting.FogEnd = 1e5
-
         if genv.parts_disabler_conn then genv.parts_disabler_conn:Disconnect() end
         genv.parts_disabler_conn = work.DescendantAdded:Connect(function(child)
             if not genv.post_effects_off_main then return end
@@ -7777,13 +7089,11 @@ g.posteffparts = g.posteffparts or function(toggle)
     else
         if not genv.post_effects_off_main then return end
         genv.post_effects_off_main = false
-
         for _, v in ipairs(genv.stored_effects_main_tbl) do
             if v.inst and v.inst.Parent then
                 v.inst.Enabled = v.enabled
             end
         end
-
         for _, data in ipairs(genv.stored_parts_main_tbl) do
             if data.inst and data.inst.Parent then
                 if data.prop == "cast" then
@@ -7799,12 +7109,10 @@ g.posteffparts = g.posteffparts or function(toggle)
                 end
             end
         end
-
         if genv.parts_disabler_conn then
             genv.parts_disabler_conn:Disconnect()
             genv.parts_disabler_conn = nil
         end
-
         if genv._saved_fog_start then lighting.FogStart = genv._saved_fog_start end
         if genv._saved_fog_end then lighting.FogEnd = genv._saved_fog_end end
         table.clear(genv.stored_effects_main_tbl)
@@ -7812,7 +7120,6 @@ g.posteffparts = g.posteffparts or function(toggle)
         table.clear(genv.parts_seen)
     end
 end
-
 g.TogglePostEffectsParts = g.posteffparts
 g.FlamesLagReducerFunc = g.FlamesLagReducerFunc or function(toggle)
     if toggle then
@@ -7832,7 +7139,6 @@ g.FlamesLagReducerFunc = g.FlamesLagReducerFunc or function(toggle)
         g.posteffparts(false)
     end
 end
-
 g.DefaultSpeed = g.StarterPlayer.CharacterWalkSpeed
 g.DefaultJP = g.StarterPlayer.CharacterJumpHeight
 g.Old_Workspace_Gravity = g.Workspace.Gravity
@@ -7842,56 +7148,45 @@ g.change_property = g.change_property or function(property, new_property_value)
         JumpHeight = true,
         HipHeight = true
     }
-
     if properties_allowed_to_be_changed[property] and g.Humanoid then g.Humanoid[property] = new_property_value end
 end
-
 g.change_gravity_val = g.change_gravity_val or function(new_val)
     if new_val > 300 then new_val = 196 end
     g.Workspace.Gravity = tonumber(new_val) or 196
 end
-
 g.reset_properties = g.reset_properties or function()
    if not g.Humanoid then return end
    g.Humanoid.WalkSpeed = g.DefaultSpeed or 16
    g.Humanoid.JumpHeight = g.DefaultJP or 7
    g.Workspace.Gravity = g.Old_Workspace_Gravity or 196
 end
-
 g.rainbow_car = g.rainbow_car or function()
     g.RGB_Vehicle(true)
 end
-
 g.stop_rainbow_car = g.stop_rainbow_car or function()
     g.RGB_Vehicle(false)
 end
-
 g.rainbow_others_car = g.rainbow_others_car or function(Player)
     g.RGB_Vehicle_Others(Player, true)
 end
-
 g.stop_rainbow_others_car = g.stop_rainbow_others_car or function(Player)
     g.RGB_Vehicle_Others(Player, false)
 end
-
 local camera = Workspace.CurrentCamera or g.Workspace.CurrentCamera or workspace.CurrentCamera
 g.AdonisAdminFlyEnabled = g.AdonisAdminFlyEnabled or false
 g.AdonisAdminFlySpeed = g.AdonisAdminFlySpeed or 15
 g.FlyConnections = g.FlyConnections or {}
 g.FlyPart = g.FlyPart or nil
-
 g.SetAdonisFlySpeed = g.SetAdonisFlySpeed or function(v)
     v = tonumber(v)
     if not v then return end
     g.AdonisAdminFlySpeed = math.clamp(v, 1, 300)
 end
-
 g.StartAdonisAdminFlyScript = g.StartAdonisAdminFlyScript or function()
     if g.AdonisAdminFlyEnabled then return end
     g.AdonisAdminFlyEnabled = true
     local dir = {w = false, a = false, s = false, d = false, q = false, e = false}
     local cf = Instance.new("CFrameValue")
-
     if not g.FlyPart then
         g.FlyPart = Instance.new("Part")
         g.FlyPart.Name = "PART_SURFER"
@@ -7899,24 +7194,20 @@ g.StartAdonisAdminFlyScript = g.StartAdonisAdminFlyScript or function()
         g.FlyPart.Parent = g.StarterPack or cloneref and cloneref(game:GetService("StarterPack")) or game:GetService("StarterPack")
         g.FlyPart.CFrame = g.HumanoidRootPart and g.HumanoidRootPart.CFrame or CFrame.new()
     end
-
     g.FlyConnections.render = RunService.RenderStepped:Connect(function()
         if not g.AdonisAdminFlyEnabled or not g.HumanoidRootPart then return end
         local speed = tonumber(g.AdonisAdminFlySpeed) or 15
         speed = math.clamp(speed, 1, 300)
-
         for _, v in pairs(character:GetDescendants()) do
             if v:IsA("BasePart") then
                 v.Velocity = Vector3.zero
                 v.RotVelocity = Vector3.zero
             end
         end
-
         g.FlyPart.CFrame = CFrame.new(
             g.FlyPart.CFrame.Position,
             (camera.CFrame * CFrame.new(0, 0, -100)).Position
         )
-
         local offset = Vector3.zero
         if IsMobile and controlModule then
             local mv = controlModule:GetMoveVector()
@@ -7931,14 +7222,12 @@ g.StartAdonisAdminFlyScript = g.StartAdonisAdminFlyScript or function()
             if dir.e then y = -speed end
             offset = Vector3.new(x, y, z)
         end
-
         local moveCF = CFrame.new(offset)
         cf.Value = cf.Value:Lerp(moveCF, 0.2)
         g.FlyPart.CFrame = g.FlyPart.CFrame:Lerp(g.FlyPart.CFrame * cf.Value, 0.2)
         g.HumanoidRootPart.CFrame = g.FlyPart.CFrame
         humanoid.PlatformStand = true
     end)
-
     g.FlyConnections.inputBegan = UserInputService.InputBegan:Connect(function(input, event)
         if event or not g.AdonisAdminFlyEnabled then return end
         local code, codes = input.KeyCode, Enum.KeyCode
@@ -7953,7 +7242,6 @@ g.StartAdonisAdminFlyScript = g.StartAdonisAdminFlyScript or function()
             dir.q = true
         end
     end)
-
     g.FlyConnections.inputEnded = UserInputService.InputEnded:Connect(function(input, event)
         if event or not g.AdonisAdminFlyEnabled then return end
         local code, codes = input.KeyCode, Enum.KeyCode
@@ -7971,7 +7259,6 @@ g.StartAdonisAdminFlyScript = g.StartAdonisAdminFlyScript or function()
     fw(0.1)
     g.notify("Success", "Fly-3 has been enabled with speed: "..tostring(g.AdonisAdminFlySpeed), 6)
 end
-
 g.Stop_Fly_3_Function = g.Stop_Fly_3_Function or function()
     if not g.AdonisAdminFlyEnabled then g.notify("Warning", "Fly-3 is not enabled.", 3); return end
     g.AdonisAdminFlyEnabled = false
@@ -7983,7 +7270,6 @@ g.Stop_Fly_3_Function = g.Stop_Fly_3_Function or function()
     end
     if humanoid and humanoid.Parent and humanoid:IsDescendantOf(game) then humanoid.PlatformStand = false end
 end
-
 g.Enabled_Flying = g.Enabled_Flying or false
 g.Fly2Speed = g.Fly2Speed or 45
 g.Fly2Control = nil
@@ -8007,7 +7293,6 @@ g.EnableFly2 = g.EnableFly2 or function(speed)
     gyro.CFrame = HRP.CFrame
     gyro.Name = "Fly2Gyro"
     gyro.Parent = HRP
-
     local vel = Instance.new("BodyVelocity")
     vel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
     vel.Velocity = Vector3.zero
@@ -8018,7 +7303,6 @@ g.EnableFly2 = g.EnableFly2 or function(speed)
         if g.fly2InputBegan then g.fly2InputBegan:Disconnect() end
         if g.fly2InputEnded then g.fly2InputEnded:Disconnect() end
         if g.fly2Heartbeat then g.fly2Heartbeat:Disconnect() end
-
         g.fly2InputBegan = UIS.InputBegan:Connect(function(input, gp)
             if gp then return end
             local s = g.Fly2Speed
@@ -8029,7 +7313,6 @@ g.EnableFly2 = g.EnableFly2 or function(speed)
             if input.KeyCode == Enum.KeyCode.Space then flyY = s end
             if input.KeyCode == Enum.KeyCode.LeftShift then flyY = -s end
         end)
-
         g.fly2InputEnded = UIS.InputEnded:Connect(function(input)
             if input.KeyCode == Enum.KeyCode.W then g.Fly2Control.F = 0 end
             if input.KeyCode == Enum.KeyCode.S then g.Fly2Control.B = 0 end
@@ -8037,7 +7320,6 @@ g.EnableFly2 = g.EnableFly2 or function(speed)
             if input.KeyCode == Enum.KeyCode.D then g.Fly2Control.R = 0 end
             if input.KeyCode == Enum.KeyCode.Space or input.KeyCode == Enum.KeyCode.LeftShift then flyY = 0 end
         end)
-
         g.fly2Heartbeat = RunService.RenderStepped:Connect(function()
             if not g.Enabled_Flying then return end
             local C, cam, SPEED = g.Fly2Control, Workspace.CurrentCamera, g.Fly2Speed * 50
@@ -8047,7 +7329,6 @@ g.EnableFly2 = g.EnableFly2 or function(speed)
             else
                 vel.Velocity = vel.Velocity * 0.9
             end
-
             gyro.CFrame = cam.CFrame
             local pos = HRP.Position
             if not lastPos or (pos - lastPos).Magnitude > 1 then
@@ -8063,11 +7344,9 @@ g.EnableFly2 = g.EnableFly2 or function(speed)
                 lastPos = pos
             end
         end)
-
         g.notify("Success", "Fly-2 enabled (PC) | Speed: " .. tostring(g.Fly2Speed), 5)
         return
     end
-
     local controlModule
     local ok, result = pcall(function()
         return g.safe_require(plr:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"):WaitForChild("ControlModule"))
@@ -8078,15 +7357,12 @@ g.EnableFly2 = g.EnableFly2 or function(speed)
         local cam = Workspace.CurrentCamera
         local s = g.Fly2Speed * 50
         local move = controlModule and controlModule:GetMoveVector() or Vector3.zero
-
         if move.Magnitude > 0 then
             vel.Velocity = (cam.CFrame.LookVector * -move.Z + cam.CFrame.RightVector * move.X) * s
         else
             vel.Velocity = Vector3.zero
         end
-
         gyro.CFrame = cam.CFrame
-
         local pos = HRP.Position
         if not lastPos or (pos - lastPos).Magnitude > 1 then
             local part = Instance.new("Part")
@@ -8101,10 +7377,8 @@ g.EnableFly2 = g.EnableFly2 or function(speed)
             lastPos = pos
         end
     end)
-
     g.notify("Success", "Fly-2 enabled (Mobile) | Speed: " .. tostring(g.Fly2Speed), 5)
 end
-
 g.DisableFly2 = g.DisableFly2 or function()
     if not g.Enabled_Flying then g.notify("Warning", "Fly-2 is not enabled, enable it first!", 5); return end
     g.Enabled_Flying = false
@@ -8118,7 +7392,6 @@ g.DisableFly2 = g.DisableFly2 or function()
     if Humanoid then Humanoid.PlatformStand = false end
     g.notify("Success", "Fly-2 is now disabled.", 5)
 end
-
 g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
     local Vehicles = Workspace:FindFirstChild("Vehicles")
     if not Vehicles or not Vehicles:IsA("Folder") then g.notify("Error", "Vehicles Folder not found!", 3); return end
@@ -8127,14 +7400,12 @@ g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
     g.VehicleUI = {}
     g.vehicle_attr_conns = {}
     g.Vehicle_Added_And_Removed_Conns = {}
-
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "VehicleStatsGUI"
     ScreenGui.IgnoreGuiInset = true
     ScreenGui.ResetOnSpawn = false
     ScreenGui.Parent = parent_gui
     g.VehicleStatsGUI = ScreenGui
-
     local MainFrame = Instance.new("Frame")
     MainFrame.Size = UDim2.new(0,300,0,400)
     MainFrame.Position = UDim2.new(0,20,0,100)
@@ -8148,7 +7419,6 @@ g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
     wait(0.5)
     if g.dragify and typeof(g.dragify) == "function" then g.dragify(MainFrame) end
     g.notify("Info", "Loading Vehicle Stats viewer.", 3)
-
     g.Unhook = function(vehicle)
         local ui = g.VehicleUI[vehicle]
         if not ui then return end
@@ -8158,14 +7428,12 @@ g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
         g.vehicle_attr_conns[vehicle] = nil
         g.VehicleUI[vehicle] = nil
     end
-
     g.Hook = function(vehicle)
         if g.VehicleUI[vehicle] then return end
         local ui = g.CreateEntry(vehicle)
         g.VehicleUI[vehicle] = ui
         local conns = {}
         g.vehicle_attr_conns[vehicle] = conns
-
         table.insert(conns, vehicle:GetAttributeChangedSignal("speed"):Connect(function() ui.Speed.Text = tostring(vehicle:GetAttribute("speed") or 0) end))
         table.insert(conns, vehicle:GetAttributeChangedSignal("acceleration"):Connect(function() ui.Accel.Text = tostring(vehicle:GetAttribute("acceleration") or 0) end))
         table.insert(conns, vehicle:GetAttributeChangedSignal("handling"):Connect(function() ui.Handling.Text = tostring(vehicle:GetAttribute("handling") or 0) end))
@@ -8173,10 +7441,8 @@ g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
             local c = vehicle:GetAttribute("color")
             if typeof(c) == "Color3" then ui.Color.BackgroundColor3 = c end
         end))
-
         table.insert(conns, vehicle.AncestryChanged:Connect(function(_, parent) if not parent then g.Unhook(vehicle) end end))
     end
-
     local Title = Instance.new("TextLabel")
     Title.Text = "Vehicle Stats Viewer"
     Title.Size = UDim2.new(1,-40,0,30)
@@ -8187,7 +7453,6 @@ g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
     Title.TextSize = 16
     Title.TextXAlignment = Enum.TextXAlignment.Left
     Title.Parent = MainFrame
-
     local Close = Instance.new("TextButton")
     Close.Text = "X"
     Close.Size = UDim2.new(0,30,0,30)
@@ -8196,7 +7461,6 @@ g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
     Close.TextColor3 = Color3.fromRGB(255,255,255)
     Close.Parent = MainFrame
     Instance.new("UICorner", Close).CornerRadius = UDim.new(0,8)
-
     Close.MouseButton1Click:Connect(function()
         g.Vehicle_Stats_GUI_Active = false
         if g.Vehicle_Added_And_Removed_Conns then
@@ -8205,11 +7469,9 @@ g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
             end
             table.clear(g.Vehicle_Added_And_Removed_Conns)
         end
-
         for v in pairs(g.VehicleUI) do g.Unhook(v) end
         ScreenGui:Destroy()
     end)
-
     local Scroller = Instance.new("ScrollingFrame")
     Scroller.Size = UDim2.new(1,-20,1,-90)
     Scroller.Position = UDim2.new(0,10,0,40)
@@ -8217,22 +7479,18 @@ g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
     Scroller.ScrollBarThickness = 6
     Scroller.BackgroundTransparency = 1
     Scroller.Parent = MainFrame
-
     local Layout = Instance.new("UIListLayout")
     Layout.Padding = UDim.new(0,10)
     Layout.Parent = Scroller
-
     Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         Scroller.CanvasSize = UDim2.new(0,0,0,Layout.AbsoluteContentSize.Y + 10)
     end)
-
     local function Validate_Model(v)
         if not v:IsA("Model") then return false end
         if v:FindFirstChild("Base") then return true end
         v:WaitForChild("Base", 3)
         return v:FindFirstChild("Base") ~= nil
     end
-
     g.get_color_name = function(color)
         if not color or typeof(color) ~= "Color3" then return "Unknown" end
         local get_color_name_colors = {
@@ -8349,7 +7607,6 @@ g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
             {"Royal purple",1031,98,37,209},
             {"Hot pink",1032,255,0,191},
         }
-
         local closest, closestDist = "Unknown", math.huge
         local r, g, b = color.R * 255, color.G * 255, color.B * 255
         for _, c in ipairs(get_color_name_colors) do
@@ -8360,17 +7617,14 @@ g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
                 closest = c[1]
             end
         end
-
         return closest
     end
-
     local function CreateEntry(vehicle)
         local Holder = Instance.new("Frame")
         Holder.Size = UDim2.new(1,0,0,220)
         Holder.BackgroundColor3 = Color3.fromRGB(35,35,35)
         Holder.Parent = Scroller
         Instance.new("UICorner", Holder).CornerRadius = UDim.new(0,10)
-
         local Click = Instance.new("TextButton")
         Click.Size = UDim2.new(1,0,1,0)
         Click.BackgroundTransparency = 1
@@ -8379,7 +7633,6 @@ g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
         Click.Activated:Connect(function()
             g.SelectedVehicle = vehicle.Name
         end)
-
         local spawn = Instance.new("TextButton")
         spawn.Size = UDim2.new(1,-20,0,28)
         spawn.Position = UDim2.new(0,10,1,-34)
@@ -8390,27 +7643,21 @@ g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
         spawn.TextSize = 14
         spawn.Parent = Holder
         Instance.new("UICorner", spawn).CornerRadius = UDim.new(0,8)
-
         spawn.Activated:Connect(function()
             g.SelectedVehicle = vehicle.Name
             g.Send("spawn_vehicle", vehicle.Name)
-
             local my_vehicle
             local t = tick()
-
             repeat
                 my_vehicle = g.get_vehicle()
                 task.wait()
             until my_vehicle or tick() - t > 6
-
             if not my_vehicle then return end
-
             local col = vehicle:GetAttribute("color")
             if typeof(col) == "Color3" then
                 g.Send("vehicle_color", col, my_vehicle)
             end
         end)
-
         local function label(txt,y)
             local l = Instance.new("TextLabel")
             l.Text = txt
@@ -8424,7 +7671,6 @@ g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
             l.Parent = Holder
             return l
         end
-
         local name = label("Vehicle: "..vehicle.Name,5)
         name.TextColor3 = Color3.fromRGB(255,255,255)
         name.Font = Enum.Font.GothamMedium
@@ -8435,7 +7681,6 @@ g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
         local turn = label("Turn Angle: N/A",104)
         local locked = label("Locked: N/A",124)
         local color = label("Color: N/A",144)
-
         g.VehicleUI[vehicle] = {
             Frame = Holder,
             Owner = owner,
@@ -8447,7 +7692,6 @@ g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
             ColorLabel = color
         }
     end
-
     local function Update(vehicle)
         local ui = g.VehicleUI[vehicle]
         if not ui then return end
@@ -8456,29 +7700,23 @@ g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
         ui.Acc60.Text = "Acceleration (0 To 60): "..math.floor(vehicle:GetAttribute("acc_0_60") or 0)
         ui.TurnAngle.Text = "Turn Angle: "..math.floor(vehicle:GetAttribute("turn_angle") or 0)
         ui.LockedStatus.Text = "Locked: "..tostring(vehicle:GetAttribute("locked"))
-
         local c = vehicle:GetAttribute("color")
         if typeof(c) ~= "Color3" then
             c = g.WaitForAttribute(vehicle, "color", 5)
         end
-
         if typeof(c) == "Color3" then
             ui.ColorLabel.Text = "Color: "..g.get_color_name(c)
         else
             ui.ColorLabel.Text = "Color: Unknown"
         end
-
         local owner = vehicle:GetAttribute("OwnerName")
         ui.Owner.Text = "Owner: "..(owner or "Server Spawned")
     end
-
     local function Hook(vehicle)
         if g.VehicleUI[vehicle] then return end
         if not Validate_Model(vehicle) then return end
-
         CreateEntry(vehicle)
         Update(vehicle)
-
         g.vehicle_attr_conns[vehicle] = {}
         for _,a in ipairs({"OwnerName","max_acc","max_speed","acc_0_60","turn_angle","locked","color"}) do
             table.insert(g.vehicle_attr_conns[vehicle], vehicle:GetAttributeChangedSignal(a):Connect(function()
@@ -8486,7 +7724,6 @@ g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
             end))
         end
     end
-
     for _,v in ipairs(Vehicles:GetChildren()) do Hook(v) end
     if g.Vehicle_Added_And_Removed_Conns.Child_Added_Watcher then
         pcall(function() g.Vehicle_Added_And_Removed_Conns.Child_Added_Watcher:Disconnect() end)
@@ -8498,12 +7735,10 @@ g.vehicle_stats_viewer_GUI = g.vehicle_stats_viewer_GUI or function()
     g.Vehicle_Added_And_Removed_Conns.Child_Added_Watcher = Vehicles.ChildAdded:Connect(function(v)
         task.defer(function() Hook(v) end)
     end)
-
     g.Vehicle_Added_And_Removed_Conns.Child_Removed_Watcher = Vehicles.ChildRemoved:Connect(function(v)
         task.defer(function() g.Unhook(v) end)
     end)
 end
-
 g.check_premium_player = g.check_premium_player or function(plr)
     if plr then
         if plr:GetAttribute("is_verified") == true then
@@ -8515,14 +7750,12 @@ g.check_premium_player = g.check_premium_player or function(plr)
         return false
     end
 end
-
 print("[Flames] loading: ban system")
 g.bansystem = g.bansystem or {
     enabled = false,
     list = {},
     connection = nil
 }
-
 function addban(input)
     if not input then return nil end
     if typeof(input) == "Instance" and input.Name then
@@ -8544,7 +7777,6 @@ function addban(input)
     g.bansystem.list[q] = true
     return q
 end
-
 function removeban(input)
     if not input then return nil end
     local q = tostring(input):lower()
@@ -8561,7 +7793,6 @@ function removeban(input)
     end
     return nil
 end
-
 function checkban(player)
     local n = player.Name:lower()
     if g.bansystem.list[n] then
@@ -8570,7 +7801,6 @@ function checkban(player)
         end
     end
 end
-
 g.start_bansystem = g.start_bansystem or function()
     if g.bansystem.enabled then return end
     if g.bansystem.starting then return end
@@ -8584,7 +7814,6 @@ g.start_bansystem = g.start_bansystem or function()
             end
             FlamesLibrary.wait(1)
         end
-
         if not confirmed_owner then
             g.bansystem.starting = false
             local is_priv = g.is_in_private_server()
@@ -8595,7 +7824,6 @@ g.start_bansystem = g.start_bansystem or function()
             end
             return
         end
-
         g.bansystem.enabled = true
         g.bansystem.starting = false
         for _, p in ipairs(Players:GetPlayers()) do
@@ -8610,25 +7838,22 @@ g.start_bansystem = g.start_bansystem or function()
 end
 task.wait()
 if not g.Ban_System_In_Flames_Hub_Has_Been_Started_Already then
-    g.Ban_System_In_Flames_Hub_Has_Been_Started_Already = true  -- actually set it!
+    g.Ban_System_In_Flames_Hub_Has_Been_Started_Already = true
     pcall(function() g.start_bansystem() end)
 end
-
 g.get_server_admin_title_player = g.get_server_admin_title_player or function()
     for _, obj in g.Character:GetDescendants() do
         if obj.Name:lower():find("server") and obj.Name:lower():find("admin") and obj:IsA("TextLabel") then
             return obj
         end
     end
-    return 
+    return
 end
-
 g.flash_server_admin_title_client_sided = g.flash_server_admin_title_client_sided or function(toggle)
     local localplayer_admin_of_priv_server = g.get_server_admin_title_player()
     if not localplayer_admin_of_priv_server then return end
     local fw = g.FlamesLibrary.wait
     local preset_texts = {"Flames Admin", "Server Admin", "Destroyer Admin", "Owner Admin", "Demon Admin", "Straight Crime", "Powerful Admin", "Creator Admin", "fLaMeS rUlEs", "FLAMES ADMIN"}
-
     if toggle == true then
         if g.Server_Admin_Text_Title_Changer then g.notify("Warning", "Server Admin Title Text changer is already enabled!", 5); return end
         g.Server_Admin_Text_Title_Changer = true
@@ -8646,10 +7871,9 @@ g.flash_server_admin_title_client_sided = g.flash_server_admin_title_client_side
         g.Server_Admin_Text_Title_Changer = false
         g.FlamesLibrary.disconnect("server_admin_title_text_changer_main_loop")
     else
-        return 
+        return
     end
 end
-
 local PANTS_ID = 72466003952524
 local SHIRT_ID = 119513877062851
 local CLOTHING_IDS = {Pants = PANTS_ID, Shirt = SHIRT_ID}
@@ -8665,7 +7889,6 @@ g.apply_clothing = function(classes)
     if not g.Get or typeof(g.Get) ~= "function" then g.notify("Error", "g.Get is not available or does not exist (patched?).", 3); return end
     for _, class_name in ipairs(classes) do g.Get("wear", CLOTHING_IDS[class_name], class_name) end
 end
-
 g.safe_apply_clothing = function(classes)
     if g.is_applying then return end
     g.is_applying = true
@@ -8674,14 +7897,12 @@ g.safe_apply_clothing = function(classes)
     if not success then g.notify("Error", tostring(reason), 5) end
     task.delay(0.5, function() g.is_applying = false end)
 end
-
 g.is_valid_character = function(c) return c and c:FindFirstChild("HumanoidRootPart") and c:IsDescendantOf(workspace) end
 g.get_clothing_class = function(child)
     if child:IsA("Shirt") then return "Shirt" end
     if child:IsA("Pants") then return "Pants" end
     return nil
 end
-
 g.get_modesty_class = function(child)
     local entry = MODESTY_ITEMS[child.Name]
     if entry and child:IsA(entry.class) then return entry.class end
@@ -8693,12 +7914,10 @@ g.get_modesty_class = function(child)
     end
     return nil
 end
-
 g.needs_restore = function(character, class_name)
     for _, child in ipairs(character:GetChildren()) do if child:IsA(class_name) and not g.get_modesty_class(child) then return false end end
     return true
 end
-
 g.flush_clothing = function(character)
     if not g.anti_clothing_ban_enabled then
         table.clear(g.pending_clothing)
@@ -8716,13 +7935,11 @@ g.flush_clothing = function(character)
     if #classes == 0 then return end
     g.safe_apply_clothing(classes)
 end
-
 g.queue_clothing = function(character, class_name)
     if not g.anti_clothing_ban_enabled then return end
     g.pending_clothing[class_name] = true
     task.delay(0.25, g.flush_clothing, character)
 end
-
 g.watch_clothing = function(character)
     if not g.anti_clothing_ban_enabled then return end
     if not g.is_valid_character(character) then return end
@@ -8734,7 +7951,6 @@ g.watch_clothing = function(character)
         if not g.is_valid_character(g.get_char(speaker)) then return end
         g.queue_clothing(character, class_name)
     end))
-
     FlamesLibrary.connect("clothing_child_removed", character.ChildRemoved:Connect(function(child)
         if not g.anti_clothing_ban_enabled then return end
         local class_name = g.get_clothing_class(child)
@@ -8742,13 +7958,11 @@ g.watch_clothing = function(character)
         if not g.is_valid_character(g.get_char(speaker)) then return end
         g.queue_clothing(character, class_name)
     end))
-
     for _, child in ipairs(character:GetChildren()) do
         local class_name = g.get_modesty_class(child)
         if class_name then g.queue_clothing(character, class_name) end
     end
 end
-
 g.toggle_anti_clothing_ban_system = function(state)
     if state == true then
         if g.anti_clothing_ban_enabled then return end
@@ -8772,9 +7986,6 @@ g.toggle_anti_clothing_ban_system = function(state)
         return
     end
 end
-
--- [[ Was automatically implemented but was taken out because people did not want it apparently. ]] --
---if not g.Server_Admin_Text_Title_Changer then g.flash_server_admin_title_client_sided(true) end
 g.is_tool_colorable = g.is_tool_colorable or function(tool)
     if tool:IsA("Tool") and (tool:GetAttribute("color1") or tool:GetAttribute("Color1")) then
         return true
@@ -8782,7 +7993,6 @@ g.is_tool_colorable = g.is_tool_colorable or function(tool)
         return false
     end
 end
-
 g.find_backpack_tool = g.find_backpack_tool or function()
     for _, v in ipairs(g.Backpack:GetChildren()) do
         if v:IsA("Tool") and (v:GetAttribute("color1") or v:GetAttribute("Color1")) then
@@ -8791,7 +8001,6 @@ g.find_backpack_tool = g.find_backpack_tool or function()
     end
     return nil
 end
-
 g.find_character_tool = g.find_character_tool or function()
     for _, v in ipairs(g.Character:GetChildren()) do
         if v:IsA("Tool") and (v:GetAttribute("color1") or v:GetAttribute("Color1")) then
@@ -8800,7 +8009,6 @@ g.find_character_tool = g.find_character_tool or function()
     end
     return nil
 end
-
 g.find_placed_models_tool = g.find_placed_models_tool or function()
     for _, v in ipairs(g.Workspace:FindFirstChild("PlacedModels"):GetChildren()) do
         if v:IsA("Model") and (v:GetAttribute("color1") or v:GetAttribute("Color1")) then
@@ -8811,7 +8019,6 @@ g.find_placed_models_tool = g.find_placed_models_tool or function()
     end
     return nil
 end
-
 g.find_owned_model = g.find_owned_model or function()
     local folder = Workspace:FindFirstChild("PlacedModels")
     if not folder or not folder:IsA("Folder") then return nil end
@@ -8823,7 +8030,6 @@ g.find_owned_model = g.find_owned_model or function()
     end
     return nil
 end
-
 g.rainbow_tool = g.rainbow_tool or function(toggled)
     if toggled then
         g.notify("Success", "Flames Hub | RGB Tools is now enabled.", 5)
@@ -8838,25 +8044,22 @@ g.rainbow_tool = g.rainbow_tool or function(toggled)
                 fw(0.1)
                 tool.Parent = g.Character
             end
-
             for _, color in ipairs(g.colors) do
                 g.Send("tool_color", tool, "color1", color)
                 wait()
             end
         end
-
         if tool.Parent == g.Backpack then
             fw(0.1)
             tool.Parent = g.Character
         end
-
         g.Rainbow_Tools_FE = true
         while g.Rainbow_Tools_FE do
             tool = g.find_character_tool() or g.find_backpack_tool() or g.find_placed_models_tool()
             if not tool then
                 g.Rainbow_Tools_FE = false
                 g.notify("Error", "Tool unexpectedly disappeared or was destroyed.", 5)
-                return 
+                return
             end
             if tool.Parent == g.Backpack then
                 fw(0.1)
@@ -8874,17 +8077,15 @@ g.rainbow_tool = g.rainbow_tool or function(toggled)
         g.notify("Success", "Flames Hub | RGB Tools is now disabled.", 5)
     end
 end
-
 g.toggle_name_func = g.toggle_name_func or function(boolean)
     if boolean == true then
         g.Send("hide_name", true)
     elseif boolean == false then
         g.Send("hide_name", false)
     else
-        return 
+        return
     end
 end
-
 g.flashy_name = g.flashy_name or function(Toggle)
     local FL = g.FlamesLibrary
     if Toggle == true then
@@ -8906,27 +8107,23 @@ g.flashy_name = g.flashy_name or function(Toggle)
         g.toggle_name_func(false)
     else
         g.notify("Error", "Invalid argument(s) provided.", 5)
-        return 
+        return
     end
 end
-
 g.flames_nameless_admin_ver = g.flames_nameless_admin_ver or function()
     if g.RealNamelessLoaded then g.notify("Warning", "Nameless Admin (or the Flames Hub version) has already been loaded.", 11); return  end
     loadstring(g.http_get('https://raw.githubusercontent.com/ltseverydayyou/Nameless-Admin/main/Source.lua'))()
 end
-
 g.infinite_premium = g.infinite_premium or function()
     if g.GET_LOADED_IY then g.notify("Warning", "You already have Infinite Premium running.", 5); return end
     if g.IY_LOADED then g.notify("Warning", "You already have Infinite Yield running! You cannot and should NOT run both at the same time.", 10); return end
     loadstring(g.http_get('https://pastefy.app/b052AUgc/raw'))()
 end
-
 g.infinite_yield = g.infinite_yield or function()
     if g.IY_LOADED then g.notify("Warning", "You already have Infinite Yield running.", 10); return end
     if g.GET_LOADED_IY then g.notify("Warning", "You already have Infinite Premium running! You cannot and should NOT run both at the same time.", 15); return end
     loadstring(g.http_get("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
 end
-
 g.send_msg_menu = g.send_msg_menu or function()
     if g.sendmsgmenu_loaded then g.notify("Warning", "Send message menu is already loaded!", 5); return end
     g.sendmsgmenu_loaded = true
@@ -8937,7 +8134,6 @@ g.send_msg_menu = g.send_msg_menu or function()
     gui.ResetOnSpawn = false
     gui.Parent = parent_gui
     gui.IgnoreGuiInset = true
-
     local message_menu_frame = Instance.new("Frame")
     message_menu_frame.Parent = gui
     message_menu_frame.AnchorPoint = Vector2.new(0.5,0.5)
@@ -8947,12 +8143,10 @@ g.send_msg_menu = g.send_msg_menu or function()
     message_menu_frame.BackgroundTransparency = 1
     message_menu_frame.BorderSizePixel = 0
     Instance.new("UICorner",message_menu_frame).CornerRadius = UDim.new(0,15)
-
     tween:Create(message_menu_frame,TweenInfo.new(0.22,Enum.EasingStyle.Quad),{
         Size = UDim2.new(0,350,0,360),
         BackgroundTransparency = 0
     }):Play()
-
     local title = Instance.new("TextLabel")
     title.Parent = message_menu_frame
     title.Size = UDim2.new(1, -110, 0, 35)
@@ -8965,7 +8159,6 @@ g.send_msg_menu = g.send_msg_menu or function()
     title.TextScaled = true
     title.TextXAlignment = Enum.TextXAlignment.Left
     tween:Create(title,TweenInfo.new(0.3),{TextTransparency = 0}):Play()
-
     local refreshbtn = Instance.new("TextButton")
     refreshbtn.Parent = message_menu_frame
     refreshbtn.Size = UDim2.new(0,70,0,26)
@@ -8980,7 +8173,6 @@ g.send_msg_menu = g.send_msg_menu or function()
     refreshbtn.BackgroundTransparency = 1
     refreshbtn.TextTransparency = 1
     tween:Create(refreshbtn,TweenInfo.new(0.25),{BackgroundTransparency = 0, TextTransparency = 0}):Play()
-
     local closebtn = Instance.new("TextButton")
     closebtn.Parent = message_menu_frame
     closebtn.Size = UDim2.new(0, 30, 0, 30)
@@ -8995,7 +8187,6 @@ g.send_msg_menu = g.send_msg_menu or function()
     closebtn.BackgroundTransparency = 1
     closebtn.TextTransparency = 1
     tween:Create(closebtn,TweenInfo.new(0.25),{BackgroundTransparency = 0, TextTransparency = 0}):Play()
-
     local search = Instance.new("TextBox")
     search.Parent = message_menu_frame
     search.Size = UDim2.new(1,-20,0,30)
@@ -9010,7 +8201,6 @@ g.send_msg_menu = g.send_msg_menu or function()
     search.TextTransparency = 1
     Instance.new("UICorner",search).CornerRadius = UDim.new(0,8)
     tween:Create(search,TweenInfo.new(0.25),{BackgroundTransparency = 0, TextTransparency = 0}):Play()
-
     local playerscroll = Instance.new("ScrollingFrame")
     playerscroll.Parent = message_menu_frame
     playerscroll.Size = UDim2.new(1,-20,0,140)
@@ -9022,13 +8212,11 @@ g.send_msg_menu = g.send_msg_menu or function()
     playerscroll.BackgroundTransparency = 1
     Instance.new("UICorner",playerscroll).CornerRadius = UDim.new(0,10)
     tween:Create(playerscroll,TweenInfo.new(0.25),{BackgroundTransparency = 0}):Play()
-
     local layout = Instance.new("UIListLayout",playerscroll)
     layout.Padding = UDim.new(0,5)
     layout.FillDirection = Enum.FillDirection.Vertical
     layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     layout.VerticalAlignment = Enum.VerticalAlignment.Top
-
     if g.dragify and typeof(g.dragify) == "function" then g.dragify(message_menu_frame) end
     local selected = nil
     local function refresh()
@@ -9048,7 +8236,6 @@ g.send_msg_menu = g.send_msg_menu or function()
                     b.TextScaled = true
                     b.BorderSizePixel = 0
                     Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
-
                     b.MouseButton1Click:Connect(function()
                         if selected == b then
                             b.BackgroundColor3 = Color3.fromRGB(55,55,55)
@@ -9066,7 +8253,6 @@ g.send_msg_menu = g.send_msg_menu or function()
         end
         playerscroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 10)
     end
-
     search:GetPropertyChangedSignal("Text"):Connect(refresh)
     refreshbtn.MouseButton1Click:Connect(refresh)
     if not g._msgmenu_connections then
@@ -9074,7 +8260,6 @@ g.send_msg_menu = g.send_msg_menu or function()
         players.PlayerAdded:Connect(refresh)
         players.PlayerRemoving:Connect(refresh)
     end
-
     task.delay(0.1, refresh)
     local amount = Instance.new("TextBox")
     amount.Parent = message_menu_frame
@@ -9090,7 +8275,6 @@ g.send_msg_menu = g.send_msg_menu or function()
     amount.TextTransparency = 1
     Instance.new("UICorner",amount).CornerRadius = UDim.new(0,10)
     tween:Create(amount,TweenInfo.new(0.25),{BackgroundTransparency = 0, TextTransparency = 0}):Play()
-
     local msgbox = Instance.new("TextBox")
     msgbox.Parent = message_menu_frame
     msgbox.Size = UDim2.new(1,-20,0,40)
@@ -9105,7 +8289,6 @@ g.send_msg_menu = g.send_msg_menu or function()
     msgbox.TextTransparency = 1
     Instance.new("UICorner",msgbox).CornerRadius = UDim.new(0,10)
     tween:Create(msgbox,TweenInfo.new(0.25),{BackgroundTransparency = 0, TextTransparency = 0}):Play()
-
     local sendbtn = Instance.new("TextButton")
     sendbtn.Parent = message_menu_frame
     sendbtn.Size = UDim2.new(1,-20,0,35)
@@ -9120,7 +8303,6 @@ g.send_msg_menu = g.send_msg_menu or function()
     sendbtn.TextTransparency = 1
     Instance.new("UICorner",sendbtn).CornerRadius = UDim.new(0,10)
     tween:Create(sendbtn,TweenInfo.new(0.25),{BackgroundTransparency = 0, TextTransparency = 0}):Play()
-
     closebtn.MouseButton1Click:Connect(function()
         tween:Create(message_menu_frame,TweenInfo.new(0.22,Enum.EasingStyle.Quad),{
             Size = UDim2.new(0,350,0,0),
@@ -9130,7 +8312,6 @@ g.send_msg_menu = g.send_msg_menu or function()
         gui:Destroy()
         g.sendmsgmenu_loaded = false
     end)
-
     sendbtn.MouseButton1Click:Connect(function()
         if not selected then g.notify("Warning", "Select a player first!", 3); return end
         local target = players:FindFirstChild(selected.Text)
@@ -9148,7 +8329,6 @@ g.send_msg_menu = g.send_msg_menu or function()
         else
             table.insert(msgs,raw)
         end
-
         g.Send_Message_Main_Phone_Messages_Module_Task = g.FlamesLibrary.spawn("send_message_phone_task", "spawn", function()
             for i = 1, num do
                 local text = msgs[((i - 1) % #msgs) + 1]
@@ -9158,11 +8338,8 @@ g.send_msg_menu = g.send_msg_menu or function()
         end)
     end)
 end
-
 g.lock_vehicle = g.lock_vehicle or function(Vehicle) g.Get("lock_vehicle", Vehicle) end
--- [[ the full-screen "Hello / Welcome, name" loading screen (pastebin GgMwGW4p) is no longer shown. ]] --
 g.HasSeen_Loading_Screen = true
-
 g.player_admins = g.player_admins or {}
 g.friend_checked = g.friend_checked or {}
 g.cmds_loaded_plr = g.cmds_loaded_plr or {}
@@ -9183,7 +8360,6 @@ g.Rainbow_Colors = g.Rainbow_Colors or {
     Color3.fromRGB(50,205,50),   Color3.fromRGB(255,0,0),     Color3.fromRGB(255,155,172),
     Color3.fromRGB(128,0,128),
 }
-
 g.alreadyCheckedUser = function(player)
     if not g.friend_checked[player.Name] then
         g.player_admins[player.Name] = player
@@ -9195,7 +8371,6 @@ g.alreadyCheckedUser = function(player)
         g.cmds_loaded_plr[player.Name] = player
     end
 end
-
 g.disable_rgb_for = function(plr)
     if not plr then g.notify("Error", "Player was not found when trying to disable RGB vehicle!", 5); return end
     local name = plr.Name
@@ -9205,7 +8380,6 @@ g.disable_rgb_for = function(plr)
         if g.Rainbow_Indices[name] then g.Rainbow_Indices[name] = nil end
         return
     end
-
     local handle = g.Rainbow_Tasks[name]
     if handle then pcall(function() task.cancel(handle) end) end
     if g.Rainbow_Tasks[name] then g.Rainbow_Tasks[name] = nil end
@@ -9214,7 +8388,6 @@ g.disable_rgb_for = function(plr)
     state.rainbowIndex = nil
     g.notify("Success", "Disabled Rainbow Vehicle for: "..tostring(name), 5)
 end
-
 if not g.fully_disable_rgb_plr then g.fully_disable_rgb_plr = g.disable_rgb_for end
 task.wait()
 g.enable_rgb_for = function(plr)
@@ -9230,7 +8403,6 @@ g.enable_rgb_for = function(plr)
         g.Rainbow_Indices[name] = nil
         return false, "you don't have a vehicle"
     end
-
     if g.Rainbow_Tasks[name] then g.disable_rgb_for(plr) end
     state.rainbow = true
     state.rainbowIndex = 0
@@ -9245,7 +8417,6 @@ g.enable_rgb_for = function(plr)
                 g.Rainbow_Indices[name] = nil
                 break
             end
-
             local i = (state.rainbowIndex or 0) + 1
             state.rainbowIndex = i
             local color = g.Rainbow_Colors[(i % #g.Rainbow_Colors) + 1]
@@ -9256,8 +8427,6 @@ g.enable_rgb_for = function(plr)
     end)
     return true
 end
-
--- [[ I promise I'll use it later, I know, it's better. ]] --
 g.find_configuration_manager_GUI = function()
     local find_GUI_main = CoreGui:FindFirstChild("FlamesAdminGUI", true)
     if find_GUI_main and find_GUI_main:IsA("ScreenGui") then return find_GUI_main end
@@ -9266,30 +8435,27 @@ g.find_configuration_manager_GUI = function()
             return v
         end
     end
-
     return nil
 end
-
 g.toggle_config_manager = function(state)
     if state == true then
         if not CoreGui:FindFirstChild("FlamesAdminGUI", true) then g.notify("Error", "Configuration Manager GUI was not found.", 5); return end
         if CoreGui:FindFirstChild("FlamesAdminGUI", true) then
             CoreGui:FindFirstChild("FlamesAdminGUI", true).Enabled = true
         elseif CoreGui:FindFirstChild("FlamesAdminGUI", true) and CoreGui:FindFirstChild("FlamesAdminGUI", true).Enabled then
-            return 
+            return
         end
     elseif state == false then
         if not CoreGui:FindFirstChild("FlamesAdminGUI", true) then g.notify("Error", "Configuration Manager GUI was not found.", 5); return end
         if CoreGui:FindFirstChild("FlamesAdminGUI", true) then
             CoreGui:FindFirstChild("FlamesAdminGUI", true).Enabled = false
         elseif CoreGui:FindFirstChild("FlamesAdminGUI", true) and CoreGui:FindFirstChild("FlamesAdminGUI", true).Enabled then
-            return 
+            return
         end
     else
-        return 
+        return
     end
 end
-
 g.set_rgb_delay = function(name, newDelay)
    if type(newDelay) ~= "number" then return false, "invalid time value" end
    if newDelay < g.Rainbow_MIN_DELAY then newDelay = g.Rainbow_MIN_DELAY end
@@ -9297,7 +8463,6 @@ g.set_rgb_delay = function(name, newDelay)
    g.Rainbow_Next[name] = 0
    return true
 end
-
 g.VehicleStates = g.VehicleStates or {}
 g.setup_cmd_handler_plr = function(player)
     local FL = getgenv().FlamesLibrary
@@ -9325,7 +8490,6 @@ g.setup_cmd_handler_plr = function(player)
             unlocked = false,
             rainbow = false,
         }
-
         local function lev(a, b) return g.levenshtein(a, b) end
         if lev(cmd, "rgbcar") <= 1 then
             if not speakerPlayer then g.notify("Error", "This player does not exist!", 5); return end
@@ -9417,7 +8581,6 @@ g.setup_cmd_handler_plr = function(player)
         end
     end))
 end
-
 g.addPlayerToScriptWhitelistTable = g.addPlayerToScriptWhitelistTable or function(player)
     if not g.player_admins[player.Name] then
         g.player_admins[player.Name] = player
@@ -9425,7 +8588,6 @@ g.addPlayerToScriptWhitelistTable = g.addPlayerToScriptWhitelistTable or functio
         if g.player_admins[player.Name] then g.notify("Success", tostring(player.Name)..", was added to Admins Whitelist.", 3) end
     end
 end
-
 g.removePlayerFromScriptWhitelistTable = g.removePlayerFromScriptWhitelistTable or function(player)
     if g.player_admins[player.Name] then
         g.player_admins[player.Name] = nil
@@ -9434,11 +8596,10 @@ g.removePlayerFromScriptWhitelistTable = g.removePlayerFromScriptWhitelistTable 
             g.notify("Success", tostring(player.Name).." was removed from the Admins Whitelist!", 3)
         else
             g.notify("Error", tostring(player)..", does not exist.", 3)
-            return 
+            return
         end
     end
 end
-
 g.start_glitch_script = function()
     if g.SideGlitch_Enabled and FlamesLibrary._connections["SideGlitch_Loop"] and #FlamesLibrary._connections["SideGlitch_Loop"] > 0 then g.notify("Warning", "Flames Hub | Glitch Script is already enabled!", 3); return end
     local char = g.Character or speaker.Character or g.get_char(speaker)
@@ -9474,7 +8635,6 @@ g.start_glitch_script = function()
         end
     end))
 end
-
 g.start_smooth_glitch_script = function()
     local char = g.Character or speaker.Character or g.get_char(speaker)
     if not char or not char:IsDescendantOf(game) then return end
@@ -9499,14 +8659,12 @@ g.start_smooth_glitch_script = function()
             target_offset = dir * distance
             last_flip     = now
         end
-
         local alpha   = 1 - (1 - smooth) ^ (dt * 60)
         current_offset = current_offset + (target_offset - current_offset) * alpha
         local rotation_only = locked_origin - locked_origin.Position
         local right          = locked_origin.RightVector
         root.CFrame = CFrame.new(locked_origin.Position + right * current_offset) * rotation_only
     end))
-
     FlamesLibrary.connect("SideGlitch_Restore", RunService.RenderStepped:Connect(function(dt)
         if g.SideGlitch_Enabled then return end
         local smooth  = math.clamp(g.SideGlitch_Smooth or 0.18, 0, 1)
@@ -9521,13 +8679,11 @@ g.start_smooth_glitch_script = function()
         end
     end))
 end
-
 print("[Flames] loading: glitch")
 g.stop_glitch_script = function()
     g.SideGlitch_Enabled = false
     g.FlamesLibrary.disconnect("SideGlitch_Loop")
 end
-
 g.avgSkin = g.avgSkin or function(bc)
     local skin_tone_colors = {
         bc.HeadColor3,
@@ -9537,7 +8693,6 @@ g.avgSkin = g.avgSkin or function(bc)
         bc.LeftLegColor3,
         bc.RightLegColor3
     }
-
     local r,g,b = 0,0,0
     for _,c in ipairs(skin_tone_colors) do
         r = r + c.R
@@ -9546,7 +8701,6 @@ g.avgSkin = g.avgSkin or function(bc)
     end
     return Color3.new(r/6,g/6,b/6)
 end
-
 g.clear_avatar = g.clear_avatar or function()
     local args = {
         "wear_outfit_from_desc",
@@ -9666,7 +8820,6 @@ g.clear_avatar = g.clear_avatar or function()
             }
         }
     }
-
     pcall(function() g.Send(unpack(args)) end)
 end
 task.wait()
@@ -9697,38 +8850,30 @@ g.copy_plr_avatar = function(Player)
     if not Player or not Player.Character then
         g.is_copying_avatar_already_flames = false
         g.notify("Warning","Target not found!",3)
-        return 
+        return
     end
-
     local hum = Player.Character:FindFirstChildWhichIsA("Humanoid") or g.get_human(Player, Players.RespawnTime + 1)
     if not hum then
         g.is_copying_avatar_already_flames = false
         g.notify("Warning","No humanoid!",3)
-        return 
+        return
     end
-
     local desc = hum:GetAppliedDescription()
     if not desc then
         g.is_copying_avatar_already_flames = false
         g.notify("Warning","No description!",3)
-        return 
+        return
     end
-
     if Player.Name == "CIippedByAura" or Player.Name == "L0CKED_1N1" or Player.Name == "AuraWithClipFarmin" then
         g.is_copying_avatar_already_flames = false
         g.notify("Warning", "Do not copy the owner of Flames Hub's avatar!", 10)
-        return 
+        return
     end
-
-    -- [[ the anti stealer bio only stops other Flames Hub scripts; this one copies anyone. ]] --
-    -- [[ takes your outfit off piece by piece, wears theirs piece by piece, then sends their exact outfit: layer order, ]] --
-    -- [[ makeup, colors, body, animations, age, scale and each accessory's position / rotation / scale. ]] --
     g.notify("Info", "Copying " .. Player.Name .. "'s outfit...", 4)
     local ok, err = pcall(g.lt_copy_outfit, Player)
     if ok then g.notify("Success","Copied avatar from "..Player.Name,5) else g.notify("Error", "Copy failed: " .. tostring(err), 6) end
     g.is_copying_avatar_already_flames = false
 end
-
 g.height_func_setter = g.height_func_setter or function(height_input)
     if g.height_setter_busy then return end
     g.height_setter_busy = true
@@ -9739,14 +8884,12 @@ g.height_func_setter = g.height_func_setter or function(height_input)
         g.height_setter_busy = false
         return
     end
-
     local desc = hum:GetAppliedDescription()
     if not desc then
         g.height_setter_busy = false
         g.notify("Error", "Failed to grab HumanoidDescription.", 3)
-        return 
+        return
     end
-
     local bodyColors = char and char:FindFirstChildOfClass("BodyColors")
     local current_skin = bodyColors and g.avgSkin(bodyColors)
     if not g.session_active then
@@ -9755,12 +8898,10 @@ g.height_func_setter = g.height_func_setter or function(height_input)
         g.session_original_skin = current_skin
         g.session_active = true
     end
-
     if current_skin then
         g.prev_skin_tone = g.last_skin_tone or current_skin
         g.last_skin_tone = current_skin
     end
-
     local height = tonumber(height_input) or desc.HeightScale or 1
     g.prev_height_scale = g.last_height_scale or desc.HeightScale or 1
     g.last_height_scale = height
@@ -9789,7 +8930,6 @@ g.height_func_setter = g.height_func_setter or function(height_input)
         BodyTypeScale = desc.BodyTypeScale or 0,
         ProportionScale = desc.ProportionScale or 0,
     }
-
     local accessories = {}
     for _, acc in ipairs(desc:GetAccessories(true)) do
         table.insert(accessories,{
@@ -9803,20 +8943,17 @@ g.height_func_setter = g.height_func_setter or function(height_input)
             Puffiness = acc.Puffiness
         })
     end
-
     pcall(function()
         g.Send("wear_outfit_from_desc", {
             accessories = accessories,
             properties = properties
         })
     end)
-
     task.delay(0.10, function()
         g.apply_skin_tone(g.session_original_skin)
         g.height_setter_busy = false
     end)
 end
-
 g.reset_to_original_height = g.reset_to_original_height or function()
     if g.height_setter_busy then return end
     if not g.session_original_height then return end
@@ -9826,7 +8963,6 @@ g.reset_to_original_height = g.reset_to_original_height or function()
             g.apply_skin_tone(g.session_original_skin)
         end)
     end
-
     task.delay(0.3, function()
         g.session_original_height = nil
         g.session_original_width = nil
@@ -9834,19 +8970,16 @@ g.reset_to_original_height = g.reset_to_original_height or function()
         g.session_active = false
     end)
 end
-
 g.reapply_last_skin = g.reapply_last_skin or function()
     if g.last_skin_tone then
         g.apply_skin_tone(g.last_skin_tone)
     end
 end
-
 g.reapply_prev_skin = g.reapply_prev_skin or function()
     if g.prev_skin_tone then
         g.apply_skin_tone(g.prev_skin_tone)
     end
 end
-
 g.size_func_setter = g.size_func_setter or function(width_input, depth_input)
     if g.size_setter_busy then return end
     g.size_setter_busy = true
@@ -9859,7 +8992,6 @@ g.size_func_setter = g.size_func_setter or function(width_input, depth_input)
         g.notify("Error", "Failed to grab HumanoidDescription.", 3)
         return
     end
-
     local body_colors = char and char:FindFirstChildOfClass("BodyColors")
     local current_skin = body_colors and g.avgSkin(body_colors)
     if not g.session_size_active then
@@ -9868,12 +9000,10 @@ g.size_func_setter = g.size_func_setter or function(width_input, depth_input)
         g.session_original_skin = g.session_original_skin or current_skin
         g.session_size_active = true
     end
-
     if current_skin then
         g.prev_skin_tone_s = g.last_skin_tone_s or current_skin
         g.last_skin_tone_s = current_skin
     end
-
     local width = tonumber(width_input) or desc.WidthScale or 1
     local depth = tonumber(depth_input) or desc.DepthScale or 1
     g.prev_width_scale = g.last_width_scale or desc.WidthScale or 1
@@ -9905,7 +9035,6 @@ g.size_func_setter = g.size_func_setter or function(width_input, depth_input)
         BodyTypeScale = desc.BodyTypeScale or 0,
         ProportionScale = desc.ProportionScale or 0,
     }
-
     local accessories = {}
     for _, acc in ipairs(desc:GetAccessories(true)) do
         table.insert(accessories, {
@@ -9919,20 +9048,17 @@ g.size_func_setter = g.size_func_setter or function(width_input, depth_input)
             Puffiness = acc.Puffiness
         })
     end
-
     pcall(function()
         g.Send("wear_outfit_from_desc", {
             accessories = accessories,
             properties = properties
         })
     end)
-
     task.delay(0.10, function()
         g.apply_skin_tone(g.session_original_skin)
         g.size_setter_busy = false
     end)
 end
-
 g.reset_to_original_size = g.reset_to_original_size or function()
     if g.size_setter_busy then return end
     if not g.session_original_width and not g.session_original_depth then return end
@@ -9945,7 +9071,6 @@ g.reset_to_original_size = g.reset_to_original_size or function()
         g.session_size_active = false
     end)
 end
-
 g.width_setter_busy = g.width_setter_busy or false
 g.session_original_width_only = g.session_original_width_only or nil
 g.session_original_skin_w = g.session_original_skin_w or nil
@@ -9963,14 +9088,12 @@ g.width_func_setter = g.width_func_setter or function(width_input)
         g.width_setter_busy = false
         return
     end
-
     local desc = hum:GetAppliedDescription()
     if not desc then
         g.width_setter_busy = false
         g.notify("Error", "Failed to grab HumanoidDescription.", 3)
         return
     end
-
     local body_colors = char and char:FindFirstChildOfClass("BodyColors")
     local current_skin = body_colors and g.avgSkin(body_colors)
     if not g.session_width_active then
@@ -9978,12 +9101,10 @@ g.width_func_setter = g.width_func_setter or function(width_input)
         g.session_original_skin_w = current_skin
         g.session_width_active = true
     end
-
     if current_skin then
         g.prev_skin_tone_w = g.last_skin_tone_w or current_skin
         g.last_skin_tone_w = current_skin
     end
-
     local width = tonumber(width_input) or desc.WidthScale or 1
     g.prev_width_scale_only = g.last_width_scale_only or desc.WidthScale or 1
     g.last_width_scale_only = width
@@ -10012,7 +9133,6 @@ g.width_func_setter = g.width_func_setter or function(width_input)
         BodyTypeScale = desc.BodyTypeScale or 0,
         ProportionScale = desc.ProportionScale or 0,
     }
-
     local accessories = {}
     for _, acc in ipairs(desc:GetAccessories(true)) do
         table.insert(accessories, {
@@ -10026,14 +9146,12 @@ g.width_func_setter = g.width_func_setter or function(width_input)
             Puffiness = acc.Puffiness
         })
     end
-
     pcall(function()
         g.Send("wear_outfit_from_desc", {
             accessories = accessories,
             properties = properties
         })
     end)
-
     task.delay(0.10, function()
         if g.session_original_skin_w then
             g.apply_skin_tone(g.session_original_skin_w)
@@ -10041,7 +9159,6 @@ g.width_func_setter = g.width_func_setter or function(width_input)
         g.width_setter_busy = false
     end)
 end
-
 g.reset_to_original_width = g.reset_to_original_width or function()
     if g.width_setter_busy then return end
     if not g.session_original_width_only then return end
@@ -10057,7 +9174,6 @@ g.reset_to_original_width = g.reset_to_original_width or function()
         g.session_width_active = false
     end)
 end
-
 g.anti_sit_enabled = g.anti_sit_enabled or false
 g.anti_sit_connections = g.anti_sit_connections or {}
 local local_player = g.LocalPlayer or Players.LocalPlayer
@@ -10069,7 +9185,6 @@ local function cleanup_connections()
 	end
 	g.anti_sit_connections = {}
 end
-
 local function hook_character(character)
 	if not character then character = g.get_char(local_player, 10) end
 	if not character then return end
@@ -10099,14 +9214,12 @@ local function hook_character(character)
 	end)
 	table.insert(g.anti_sit_connections, conn)
 end
-
 local function start_anti_sit()
 	if #g.anti_sit_connections > 0 then return end
 	hook_character(local_player.Character)
 	local char_conn = local_player.CharacterAdded:Connect(function(character) hook_character(character) end)
 	table.insert(g.anti_sit_connections, char_conn)
 end
-
 local function stop_anti_sit() cleanup_connections() end
 g.toggle_anti_sit = function(state)
 	g.anti_sit_enabled = state
@@ -10116,7 +9229,6 @@ g.toggle_anti_sit = function(state)
 		stop_anti_sit()
 	end
 end
-
 local attr_name = "InHumanoidVehicle"
 local keys = {loop = "anti_sit_loop", char = "anti_sit_char", spam = "anti_sit_spam", hook = "anti_sit_hook", seat = "anti_sit_seat", hv = "anti_sit_hv"}
 local cfg = g.anti_sit_config or {phase_two = 0.75, phase_three = 2, timeout = 5, retry_delay = 0.5}
@@ -10127,7 +9239,6 @@ local uid = 0
 g.anti_sit_config = cfg
 g.anti_sit_spam = spam
 g.anti_sit_registry = registry
--- [[ Replaced up here but kept down there as well because some scripts reference it after this point. ]] --
 g.in_humanoid_vehicle = g.in_humanoid_vehicle or function(player_or_name)
     local humanoid_vehicles = g.Workspace:FindFirstChild("HumanoidVehicles", true)
     if not humanoid_vehicles then return end
@@ -10146,7 +9257,6 @@ g.in_humanoid_vehicle = g.in_humanoid_vehicle or function(player_or_name)
     if not table.find(g.Humanoid_Vehicles, vehicle_attr) then return end
     return vehicle_attr
 end
-
 g.hum_vehicle_name = g.hum_vehicle_name or function(plr)
     local hv = g.in_humanoid_vehicle(plr)
     if not hv then return nil end
@@ -10156,7 +9266,6 @@ g.hum_vehicle_name = g.hum_vehicle_name or function(plr)
     if not inst then return nil end
     return inst.Name
 end
-
 g.anti_sit_uid = function() uid += 1; return uid end
 g.anti_sit_connect = function(name, conn) registry[name] = true; g.FlamesLibrary.connect(name, conn) end
 g.anti_sit_cleanup = function() for name in pairs(registry) do g.FlamesLibrary.disconnect(name) end; table.clear(registry); table.clear(g.seat_cache) end
@@ -10170,7 +9279,6 @@ g.anti_sit_attr = function(hum)
     if ok and res ~= nil then return res end
     return nil
 end
-
 g.anti_sit_in_hv = function(hum)
     if g.in_humanoid_vehicle and typeof(g.in_humanoid_vehicle) == "function" then
         local ok, res = pcall(g.in_humanoid_vehicle, speaker)
@@ -10178,7 +9286,6 @@ g.anti_sit_in_hv = function(hum)
     end
     return g.anti_sit_attr(hum)
 end
-
 g.anti_sit_hard_eject = function(char, hum)
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local folder = workspace:FindFirstChild("HumanoidVehicles")
@@ -10215,7 +9322,6 @@ g.anti_sit_hard_eject = function(char, hum)
     pcall(function() hum:ChangeState(Enum.HumanoidStateType.Jumping) end)
     if g.Send and typeof(g.Send) == "function" then pcall(g.Send, "stop_sitting") end
 end
-
 g.anti_sit_spam_stop = function(success)
     FlamesLibrary.disconnect(keys.spam)
     if success then
@@ -10227,7 +9333,6 @@ g.anti_sit_spam_stop = function(success)
     spam.active = false
     spam.cooldown_until = os.clock() + (success and 0 or cfg.retry_delay)
 end
-
 g.anti_sit_spam_start = function()
     if spam.active or os.clock() < spam.cooldown_until then return end
     spam.active = true
@@ -10260,7 +9365,6 @@ g.anti_sit_spam_start = function()
         end
     end))
 end
-
 g.anti_sit_eject_seat = function(hum, seat)
     local target = seat or hum.SeatPart
     if target and target.Parent then
@@ -10274,7 +9378,6 @@ g.anti_sit_eject_seat = function(hum, seat)
     local hrp = char and char:IsDescendantOf(workspace) and char:FindFirstChild("HumanoidRootPart")
     if hrp and hrp.Parent then pcall(function() hrp.CFrame = hrp.CFrame * CFrame.new(0, 3, -2) end) end
 end
-
 g.anti_sit_eject_any = function(char, hum)
     if not g.anti_sit_char_valid(char) or not g.anti_sit_hum_valid(hum) then return end
     if g.anti_sit_in_hv(hum) ~= nil then g.anti_sit_spam_start(); return end
@@ -10282,7 +9385,6 @@ g.anti_sit_eject_any = function(char, hum)
     local is_sit = hum.Sit or (g.Char and g.Char.is_sitting and g.Char.is_sitting.get())
     if is_sit or seat_part then g.anti_sit_eject_seat(hum, seat_part) end
 end
-
 g.anti_sit_disable_nearby = function(char)
     local hrp = g.HumanoidRootPart or char and char:FindFirstChild("HumanoidRootPart") or g.get_root(speaker)
     if not hrp or not hrp.Parent then return end
@@ -10293,7 +9395,6 @@ g.anti_sit_disable_nearby = function(char)
         end
     end
 end
-
 g.anti_sit_hook_hum = function(hum, char)
     g.anti_sit_connect(keys.hook .. "_attr", hum:GetAttributeChangedSignal(attr_name):Connect(function()
         if g.Not_Ever_Sitting and g.anti_sit_attr(hum) ~= nil then g.anti_sit_eject_any(char, hum) end
@@ -10306,14 +9407,12 @@ g.anti_sit_hook_hum = function(hum, char)
         task.defer(function() if g.Not_Ever_Sitting then g.anti_sit_eject_any(char, hum) end end)
     end))
 end
-
 g.anti_sit_watch_seats = function()
     table.clear(g.seat_cache)
     for _, obj in workspace:GetDescendants() do if obj:IsA("Seat") or obj:IsA("VehicleSeat") then g.seat_cache[obj] = true end end
     g.anti_sit_connect(keys.seat .. "_added", workspace.DescendantAdded:Connect(function(obj) if obj:IsA("Seat") or obj:IsA("VehicleSeat") then g.seat_cache[obj] = true end end))
     g.anti_sit_connect(keys.seat .. "_removed", workspace.DescendantRemoving:Connect(function(obj) g.seat_cache[obj] = nil end))
 end
-
 g.anti_sit_bind_hv_model = function(model)
     if not (model:IsA("Model") and model:HasTag("HumanoidVehicle")) then return end
     task.spawn(function()
@@ -10327,7 +9426,6 @@ g.anti_sit_bind_hv_model = function(model)
         end))
     end)
 end
-
 g.anti_sit_bind_hv_folder = function(folder)
     if not folder:IsA("Folder") then return end
     for _, model in folder:GetChildren() do g.anti_sit_bind_hv_model(model) end
@@ -10335,19 +9433,15 @@ g.anti_sit_bind_hv_folder = function(folder)
         if g.Not_Ever_Sitting then g.anti_sit_bind_hv_model(model) end
     end))
 end
-
 g.anti_sit_watch_hv = function()
     local root = workspace:FindFirstChild("HumanoidVehicles")
     if not root then return end
     for _, folder in root:GetChildren() do g.anti_sit_bind_hv_folder(folder) end
     g.anti_sit_connect(keys.hv .. "_folders", root.ChildAdded:Connect(function(folder) if g.Not_Ever_Sitting then g.anti_sit_bind_hv_folder(folder) end end))
 end
-
 g.anti_sit_func = function(toggle)
     local lib = g.FlamesLibrary
     local fw = lib.wait
-    -- [[ the game's Seat module turns its click-to-sit off; executors that can't load it (Xeno) still get anti sit, ]] --
-    -- [[ with sitting turned off on your character instead ]] --
     if not g.Seat then
         local ok, res = pcall(function() return g.safe_require(g.Game_Folder:FindFirstChild("Seat")) end)
         if ok and res and type(res.enabled) == "table" then g.Seat = res end
@@ -10418,14 +9512,12 @@ g.Anti_Tent_Spawning = function(state)
             end
         end)
     end
-
     for _, v in ipairs(PlacedModels:GetChildren()) do neuter_tent(v) end
     FlamesLibrary.connect("anti_tent_spawning", PlacedModels.ChildAdded:Connect(function(child)
         if not g.Anti_Tent_Spawning_Currently_Active then return end
         neuter_tent(child)
     end))
 end
-
 g.is_player_invisible = function(plr)
     local char = plr.Character or g.get_char(plr)
     if not char then return false end
@@ -10435,12 +9527,10 @@ g.is_player_invisible = function(plr)
             table.insert(parts, v)
         end
     end
-
     if #parts == 0 then return false end
     for _, v in ipairs(parts) do if v.Transparency ~= 1 then return false end end
     return true
 end
-
 g.Anti_Invisible_Players = function(state)
     g.Anti_Invisible_Players_Currently_Active = state
     if not state then
@@ -10449,7 +9539,6 @@ g.Anti_Invisible_Players = function(state)
         g.FlamesLibrary.disconnect("anti_invis_loop")
         return
     end
-
     local function fix_invisible(plr)
         if not g.Anti_Invisible_Players_Currently_Active then return end
         local char = plr.Character or g.get_char(plr)
@@ -10463,13 +9552,11 @@ g.Anti_Invisible_Players = function(state)
             end
         end)
     end
-
     for _, plr in ipairs(g.Players:GetPlayers()) do fix_invisible(plr) end
     FlamesLibrary.connect("anti_invis_player_added", g.Players.PlayerAdded:Connect(function(plr)
         if not g.Anti_Invisible_Players_Currently_Active then return end
         fix_invisible(plr)
     end))
-
     FlamesLibrary.connect("anti_invis_char_added", g.Players.PlayerAdded:Connect(function(plr)
         plr.CharacterAdded:Connect(function()
             if not g.Anti_Invisible_Players_Currently_Active then return end
@@ -10477,7 +9564,6 @@ g.Anti_Invisible_Players = function(state)
             fix_invisible(plr)
         end)
     end))
-
     FlamesLibrary.spawn("anti_invis_loop", "spawn", function()
         while g.Anti_Invisible_Players_Currently_Active == true do
             for _, plr in ipairs(g.Players:GetPlayers()) do
@@ -10489,21 +9575,18 @@ g.Anti_Invisible_Players = function(state)
         end
     end)
 end
-
 g.annoyance_GUI = function()
     if CoreGui:FindFirstChild("AnnoyGUI") and CoreGui:FindFirstChild("AnnoyGUI"):IsA("ScreenGui") then
         CoreGui:FindFirstChild("AnnoyGUI").Enabled = true
-        return 
+        return
     end
     g.AnnoyList = g.AnnoyList or {}
     g.group_chatting_users = g.group_chatting_users or {}
     g.Creating_Groups = false
-
     local ScreenGui = CoreGui:FindFirstChild("AnnoyGUI") or Instance.new("ScreenGui")
     ScreenGui.Name = "AnnoyGUI"
     ScreenGui.Parent = CoreGui
     ScreenGui.ResetOnSpawn = false
-
     local AnnoyerGUIFrame = Instance.new("Frame")
     AnnoyerGUIFrame.Size = UDim2.new(0, 300, 0, 400)
     AnnoyerGUIFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
@@ -10511,14 +9594,12 @@ g.annoyance_GUI = function()
     AnnoyerGUIFrame.BorderSizePixel = 0
     AnnoyerGUIFrame.Parent = ScreenGui
     Instance.new("UICorner", AnnoyerGUIFrame).CornerRadius = UDim.new(0, 12)
-
     local TitleBar = Instance.new("Frame")
     TitleBar.Size = UDim2.new(1, 0, 0, 35)
     TitleBar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     TitleBar.BorderSizePixel = 0
     TitleBar.Parent = AnnoyerGUIFrame
     Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 12)
-
     local Title = Instance.new("TextLabel")
     Title.Size = UDim2.new(1, -35, 1, 0)
     Title.Position = UDim2.new(0, 10, 0, 0)
@@ -10530,7 +9611,6 @@ g.annoyance_GUI = function()
     Title.TextScaled = true
     Title.TextSize = 14
     Title.Parent = TitleBar
-
     local CloseBtn = Instance.new("TextButton")
     CloseBtn.Size = UDim2.new(0, 25, 0, 25)
     CloseBtn.Position = UDim2.new(1, -30, 0.5, -12)
@@ -10546,7 +9626,6 @@ g.annoyance_GUI = function()
         g.easy_click_plr = false
         g.Creating_Groups = false
     end)
-
     local PlayerList = Instance.new("ScrollingFrame")
     PlayerList.Size = UDim2.new(1, -10, 1, -45)
     PlayerList.Position = UDim2.new(0, 5, 0, 40)
@@ -10556,11 +9635,9 @@ g.annoyance_GUI = function()
     PlayerList.CanvasSize = UDim2.new(0, 0, 0, 0)
     PlayerList.Parent = AnnoyerGUIFrame
     Instance.new("UICorner", PlayerList).CornerRadius = UDim.new(0, 10)
-
     local UIListLayout = Instance.new("UIListLayout")
     UIListLayout.Parent = PlayerList
     UIListLayout.Padding = UDim.new(0, 5)
-
     Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(1, 0)
     if g.dragify and typeof(g.dragify) == "function" then g.dragify(AnnoyerGUIFrame) end
     local function ToggleAnnoy(plr, btn)
@@ -10591,7 +9668,6 @@ g.annoyance_GUI = function()
             end)
         end
     end
-
     local function ToggleGroupSpam(plr, btn)
         if table.find(g.group_chatting_users, plr.Name) then
             table.remove(g.group_chatting_users, table.find(g.group_chatting_users, plr.Name))
@@ -10621,7 +9697,6 @@ g.annoyance_GUI = function()
                             table.insert(userIds, userId)
                         end
                     end
-
                     if #userIds == 1 then
                         local others = {}
                         for _, other in ipairs(Players:GetPlayers()) do
@@ -10629,17 +9704,14 @@ g.annoyance_GUI = function()
                                 table.insert(others, other)
                             end
                         end
-
                         for i = #others, 2, -1 do
                             local j = math.random(i)
                             others[i], others[j] = others[j], others[i]
                         end
-
                         for i = 1, math.min(3, #others) do
                             table.insert(userIds, others[i].UserId)
                         end
                     end
-
                     if #userIds > 0 then
                         g.Get("new_group", userIds)
                     end
@@ -10647,7 +9719,6 @@ g.annoyance_GUI = function()
             end)
         end
     end
-
     local function createPlayerEntry(plr)
         if plr == LocalPlayer then return end
         local Container = Instance.new("Frame")
@@ -10656,7 +9727,6 @@ g.annoyance_GUI = function()
         Container.BorderSizePixel = 0
         Container.Parent = PlayerList
         Instance.new("UICorner", Container).CornerRadius = UDim.new(0, 8)
-
         local NameLabel = Instance.new("TextLabel")
         NameLabel.Size = UDim2.new(1, -10, 0, 20)
         NameLabel.Position = UDim2.new(0, 5, 0, 5)
@@ -10667,7 +9737,6 @@ g.annoyance_GUI = function()
         NameLabel.Font = Enum.Font.Gotham
         NameLabel.TextSize = 13
         NameLabel.Parent = Container
-
         local UserLabel = Instance.new("TextLabel")
         UserLabel.Size = UDim2.new(1, -10, 0, 20)
         UserLabel.Position = UDim2.new(0, 5, 0, 25)
@@ -10678,7 +9747,6 @@ g.annoyance_GUI = function()
         UserLabel.Font = Enum.Font.Gotham
         UserLabel.TextSize = 12
         UserLabel.Parent = Container
-
         local IdLabel = Instance.new("TextLabel")
         IdLabel.Size = UDim2.new(1, -10, 0, 20)
         IdLabel.Position = UDim2.new(0, 5, 0, 45)
@@ -10689,7 +9757,6 @@ g.annoyance_GUI = function()
         IdLabel.Font = Enum.Font.Gotham
         IdLabel.TextSize = 12
         IdLabel.Parent = Container
-
         local AnnoyButton = Instance.new("TextButton")
         AnnoyButton.Size = UDim2.new(0, 110, 0, 20)
         AnnoyButton.Position = UDim2.new(0, 10, 0, 70)
@@ -10703,7 +9770,6 @@ g.annoyance_GUI = function()
         AnnoyButton.MouseButton1Click:Connect(function()
             ToggleAnnoy(plr, AnnoyButton)
         end)
-
         local GroupButton = Instance.new("TextButton")
         GroupButton.Size = UDim2.new(0, 110, 0, 20)
         GroupButton.Position = UDim2.new(0, 140, 0, 70)
@@ -10718,22 +9784,18 @@ g.annoyance_GUI = function()
         GroupButton.MouseButton1Click:Connect(function()
             ToggleGroupSpam(plr, GroupButton)
         end)
-
         Instance.new("UICorner", AnnoyButton).CornerRadius = UDim.new(0, 6)
         Instance.new("UICorner", GroupButton).CornerRadius = UDim.new(0, 6)
         if g.easy_click_plr and g.easy_click_target == plr.Name then
             AnnoyButton.Text = "Annoy On"
             AnnoyButton.BackgroundColor3 = Color3.fromRGB(50, 200, 100)
         end
-
         if table.find(g.group_chatting_users, plr.Name) then
             GroupButton.Text = "Group Spam On"
             GroupButton.BackgroundColor3 = Color3.fromRGB(50, 200, 100)
         end
-
         PlayerList.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 10)
     end
-
     local function refresh_player_list()
         for _, child in ipairs(PlayerList:GetChildren()) do
             if child:IsA("Frame") then
@@ -10744,16 +9806,13 @@ g.annoyance_GUI = function()
             createPlayerEntry(plr)
         end
     end
-
     if not g.RefreshPlayer_ListAdded_Conn then
         g.RefreshPlayer_ListAdded_Conn = true
         Players.PlayerAdded:Connect(refresh_player_list)
         Players.PlayerRemoving:Connect(refresh_player_list)
     end
-
     refresh_player_list()
 end
-
 local Hum = g.Humanoid or g.Character and g.Character:FindFirstChildOfClass("Humanoid") or g.get_human(LocalPlayer or Players.LocalPlayer, Players.RespawnTime + 0.5)
 local HD = Hum:FindFirstChildOfClass("HumanoidDescription")
 print("[Flames] loading: glitch ids")
@@ -10761,29 +9820,24 @@ g.GlitchIDs = {
    Shirts = {6028801590, 11595159513},
    Pants  = {6028804735, 11595172734}
 }
-
 g.isWearing = g.isWearing or function(desc, slot, id)
     return desc and tostring(desc[slot]) == tostring(id)
 end
-
 g.forceEquip = g.forceEquip or function(slot, id)
     if not g.isWearing(HD, slot, id) then
         g.Get("code", id, slot)
     end
 end
-
 g.forceUnequip = g.forceUnequip or function(slot, id)
     if g.isWearing(HD, slot, id) then
         g.Get("wear", id, slot)
     end
 end
-
 local applied = g.Humanoid:GetAppliedDescription()
 local Old_Shirt = applied.Shirt
 local Old_Pants = applied.Pants
 g.glitch_outfit = g.glitch_outfit or function(toggle)
     local FL = g.FlamesLibrary
-
     if toggle == true then
         if g.Glitching_Outfit then g.notify("Warning", "Glitch Outfit is already enabled.", 3); return end
         g.Glitching_Outfit = true
@@ -10814,7 +9868,6 @@ g.glitch_outfit = g.glitch_outfit or function(toggle)
         end)
     end
 end
-
 function check_friends()
     for _, v in ipairs(g.Players:GetPlayers()) do
         if v ~= g.LocalPlayer and v:IsFriendsWith(g.LocalPlayer.UserId) then
@@ -10822,7 +9875,6 @@ function check_friends()
         end
     end
 end
-
 function auto_add_friends()
     for _, v in ipairs(g.Players:GetPlayers()) do
         if v ~= g.LocalPlayer and v:IsFriendsWith(g.LocalPlayer.UserId) then
@@ -10831,22 +9883,18 @@ function auto_add_friends()
         end
     end
 end
-
 auto_add_friends()
-
 if g.PlayerControls == nil then
     local PlayerModule = g.safe_require(g.PlayerScripts:WaitForChild("PlayerModule"))
     g.PlayerControls = PlayerModule:GetControls()
 end
-
 g.Viewing_Plr_Tbl = g.Viewing_Plr_Tbl or {}
 g.viewTarget = g.viewTarget or function(player)
     if g.Viewing_A_Player then
         if g.Viewing_Plr_Tbl[player.Name] then g.notify("Error","You're already viewing: "..player.DisplayName, 3); return end
         g.notify("Error","You're already viewing a Player.",5)
-        return 
+        return
     end
-
     if not player or not player.Character then g.notify("Error", "Invalid player.", 3); return end
     local char = player.Character or g.get_char(player, Players.RespawnTime + 0.75)
     local hum = char and char:FindFirstChildWhichIsA("Humanoid") or g.get_human(player, Players.RespawnTime + 0.5)
@@ -10863,7 +9911,6 @@ g.viewTarget = g.viewTarget or function(player)
         HumanoidRootPart = root
     }
 end
-
 g.unview_player = g.unview_player or function()
     local genv = g
     if not genv.Viewing_A_Player then genv.notify("Error", "You're not viewing anyone.", 5); return end
@@ -10875,7 +9922,6 @@ g.unview_player = g.unview_player or function()
     elseif not genv.Camera then
         workspace.CurrentCamera.CameraSubject = subject
     end
-
     if typeof(genv.Viewing_Plr_Tbl) ~= "table" then genv.Viewing_Plr_Tbl = {} end
     if next(genv.Viewing_Plr_Tbl) == nil then
         genv.notify(
@@ -10883,21 +9929,18 @@ g.unview_player = g.unview_player or function()
             "Viewing table is empty (tried unviewing nobody? how?).",
             10
         )
-        return 
+        return
     end
-
     local viewed
     for k, v in pairs(genv.Viewing_Plr_Tbl) do
         local ok, display = pcall(function() return (v :: any).DisplayName end)
         viewed = (typeof(v) == "Instance" and ok and display) or k
         break
     end
-
     genv.Viewing_A_Player = false
     table.clear(genv.Viewing_Plr_Tbl)
     genv.notify("Success", "Stopped viewing: "..tostring(viewed), 5)
 end
-
 g.check_friend = g.check_friend or function(Player)
     if Player ~= g.LocalPlayer and Player:IsFriendsWith(g.LocalPlayer.UserId) then
         return true
@@ -10905,7 +9948,6 @@ g.check_friend = g.check_friend or function(Player)
         return false
     end
 end
-
 g.spam_create_groups = g.spam_create_groups or function(toggle)
     local FL = g.FlamesLibrary
     if toggle == true then
@@ -10919,7 +9961,6 @@ g.spam_create_groups = g.spam_create_groups or function(toggle)
                     local success, userId = pcall(function()
                         return Players:GetUserIdFromNameAsync(name)
                     end)
-
                     if success and userId then
                         g.Get("new_group", userId)
                     end
@@ -10934,7 +9975,6 @@ g.spam_create_groups = g.spam_create_groups or function(toggle)
         return
     end
 end
-
 g.attach_with_script = g.attach_with_script or function()
     local Methods = {
         "Secret",
@@ -10954,7 +9994,6 @@ g.attach_with_script = g.attach_with_script or function()
         "Bytecode",
         "Obfuscated"
     }
-
     local Attached = false
     g.Script_Was_Attached_Successfully = Attached
     local Old_Text = g.CreditsLabelText.Text
@@ -11014,7 +10053,6 @@ g.attach_with_script = g.attach_with_script or function()
     wait(0.8)
     g.CreditsLabelText.Text = Old_Text
 end
-
 g.PlotAreas = {}
 g.update_plot_areas = g.update_plot_areas or function()
     table.clear(g.PlotAreas)
@@ -11025,7 +10063,6 @@ g.update_plot_areas = g.update_plot_areas or function()
         end
     end
 end
-
 g.in_humanoid_vehicle = g.in_humanoid_vehicle or function(PlayerOrName)
     local HumanoidVehicles = g.Workspace:FindFirstChild("HumanoidVehicles", true)
     if not HumanoidVehicles then return end
@@ -11034,7 +10071,6 @@ g.in_humanoid_vehicle = g.in_humanoid_vehicle or function(PlayerOrName)
         Player = g.Players:FindFirstChild(PlayerOrName)
         if not Player then return end
     end
-
     local Character = Player == g.LocalPlayer and g.Character or Player.Character
     if not Character then return end
     local humanoid = Character and Character:FindFirstChildWhichIsA("Humanoid") or g.get_human(Player, 3)
@@ -11045,7 +10081,6 @@ g.in_humanoid_vehicle = g.in_humanoid_vehicle or function(PlayerOrName)
     if not table.find(g.Humanoid_Vehicles, vehicleAttr) then return end
     return vehicleAttr
 end
-
 g.hum_vehicle_name = g.hum_vehicle_name or function(plr)
     local hv = g.in_humanoid_vehicle(plr)
     if not hv then return nil end
@@ -11055,13 +10090,11 @@ g.hum_vehicle_name = g.hum_vehicle_name or function(plr)
     if not inst then return nil end
     return inst.Name
 end
-
 g.set_hum_vehicle_speed = g.set_hum_vehicle_speed or function(speed)
     speed = tonumber(speed) or 50
     if typeof(speed) ~= "number" then speed = 50 end
     if g.in_humanoid_vehicle(g.LocalPlayer) then pcall(function() g.Humanoid.WalkSpeed = tonumber(speed) end) end
 end
-
 local screenGui
 g.update_plot_areas()
 task.wait()
@@ -11081,9 +10114,8 @@ screenGui = Instance.new("ScreenGui")
 screenGui.Name = "TemporaryBanner_GUI"
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
-screenGui.Enabled = false -- [[ no on-screen banner; announcements and credits live in the menu. ]] --
+screenGui.Enabled = false
 screenGui.Parent = CoreGui
-
 local frame = Instance.new("Frame")
 frame.Name = "BannerFrame"
 frame.AnchorPoint = Vector2.new(0.5, 0)
@@ -11093,11 +10125,9 @@ frame.BackgroundTransparency = 0
 frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
-
 g.make_round(frame, 12)
 g.flowrgb("banner_announcement_frame_flowing_rgb_smooth_conn", 3.5, frame, true)
 g.make_stroke(frame, 1.5, 0.25)
-
 local label = Instance.new("TextLabel")
 label.Name = "BannerText"
 label.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -11111,7 +10141,6 @@ label.RichText = false
 label.TextWrapped = true
 label.TextColor3 = Color3.fromRGB(255, 255, 255)
 label.Parent = frame
-
 local shadow = Instance.new("ImageLabel")
 shadow.Name = "Shadow"
 shadow.AnchorPoint = Vector2.new(0.5, 0)
@@ -11123,13 +10152,11 @@ shadow.ImageTransparency = 0.8
 shadow.ZIndex = frame.ZIndex - 1
 shadow.Parent = screenGui
 shadow.Visible = false
-
 g.clamp = g.clamp or function(n, lo, hi)
     if n < lo then return lo end
     if n > hi then return hi end
     return n
 end
-
 g.updatePosition = g.updatePosition or function()
     local _, vh = g.Workspace.CurrentCamera.ViewportSize.X, g.Workspace.CurrentCamera.ViewportSize.Y
     local widthScale = g.clamp(0.6, 0.4, 0.8)
@@ -11140,7 +10167,6 @@ g.updatePosition = g.updatePosition or function()
     shadow.Position = UDim2.new(0.5, 0, 0, topOffset + math.floor(heightPx/2))
     shadow.Size = UDim2.new(widthScale + 0.02, 0, 0, heightPx + 12)
 end
-
 g.updatePosition()
 g.camConn = nil
 if g.Workspace and g.Workspace.CurrentCamera then g.camConn = g.Workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(g.updatePosition) end
@@ -11168,13 +10194,11 @@ task.delay(displayTime, function()
         screenGui:Destroy()
     end)
 end)
-
 if not g.SetupGone_Through_Flames_Hub then
     pcall(function()
         g.LocalPlayer:SetSuperSafeChat(false)
         g.LocalPlayer.CameraMaxZoomDistance = 100000
         g.LocalPlayer.CameraMinZoomDistance = 0.5
-    
         if g.LocalPlayer.CameraMaxZoomDistance > 90000 then
             g.notify("Success", "Set CameraMaxZoomDistance to: "..tostring(g.LocalPlayer.CameraMaxZoomDistance), 7)
         else
@@ -11185,7 +10209,6 @@ if not g.SetupGone_Through_Flames_Hub then
         else
             g.notify("Warning", "We we're not able to correctly set CameraMinZoomDistance!", 5)
         end
-
         if g.StarterPlayer.CharacterUseJumpPower then
             g.Humanoid.JumpPower = 50
             g.notify("Success", "Spoofed JumpPower to: "..tostring(g.Humanoid.JumpPower))
@@ -11201,10 +10224,8 @@ if not g.SetupGone_Through_Flames_Hub then
             g.notify("Success", "Enabled Leaderboard.", 5)
         end
     end)
-
     g.SetupGone_Through_Flames_Hub = true
 end
-
 if not g.SeenCommandAndCameraIntro then
     g.notify("Success", "[HOOKED]: We have hooked the Camera successfully.", 5)
     fw(0.2)
@@ -11212,14 +10233,12 @@ if not g.SeenCommandAndCameraIntro then
     fw(0.1)
     g.SeenCommandAndCameraIntro = true
 end
-
 for _, v in ipairs(Players:GetPlayers()) do g.setup_cmd_handler_plr(v) end
 if not g.AdminHasBeenLoaded_NotificationCheck then
     g.notify("Success", "[INITIALIZED]: Life Together RP-Admin has been loaded!", 7)
     g.notify("Success", "[LOADED]: | [Life Together-RP : Admin_Commands]: Loaded!", 7)
     g.AdminHasBeenLoaded_NotificationCheck = true
 end
-
 g.automatically_add_friends = function()
     for _, v in ipairs(g.Players:GetPlayers()) do
         if v ~= g.LocalPlayer and v:IsFriendsWith(g.LocalPlayer.UserId) then
@@ -11227,7 +10246,6 @@ g.automatically_add_friends = function()
         end
     end
 end
-
 g.automatically_remove_friends = function()
     for _, v in ipairs(g.Players:GetPlayers()) do
         if v ~= g.LocalPlayer and v:IsFriendsWith(g.LocalPlayer.UserId) and v.Character == nil then
@@ -11235,11 +10253,9 @@ g.automatically_remove_friends = function()
         end
     end
 end
-
 if g.LifeTogetherRP_Admin and g.Script_Loaded_Correctly_LifeTogether_Admin_Flames_Hub and g.LifeTogether_Actual_Flames_Hub_Running_Functioning_Currently_On_Client then
     g.notify("Success", "Reloaded script successfully.", 15)
 end
-
 for _, v in ipairs(Players:GetPlayers()) do
     if v.Name == "CIippedByAura" or v.Name == "L0CKED_1N1" or v.Name == "AuraWithClipFarmin" then
         local owner_content = "Flames Hub | Owner is currently in this server, come to me: ("..tostring(v.Name)..") for assistance (if you need help)."
@@ -11249,7 +10265,6 @@ for _, v in ipairs(Players:GetPlayers()) do
         g.notify("Success", staff_content, 15)
     end
 end
-
 g.Script_Loaded_Correctly_LifeTogether_Admin_Flames_Hub = g.Script_Loaded_Correctly_LifeTogether_Admin_Flames_Hub or true
 if not g.FlamesHubPlayerEvents_Check then
     g.FlamesHubPlayerEvents_Check = true
@@ -11261,8 +10276,6 @@ if not g.FlamesHubPlayerEvents_Check then
                 g.automatically_add_friends()
             end
         end
-
-        -- [[ make who ever you want the owner, like yourself. ]] --
         if Name == "CIippedByAura" or Name == "L0CKED_1N1" or Name == "AuraWithClipFarmin" then
             g.owner_joined(Name)
             if g.friend_checked[Name] then
@@ -11276,7 +10289,6 @@ if not g.FlamesHubPlayerEvents_Check then
             g.notify("Success", "An official staff member of Flames Hub has joined your server, UserName: "..tostring(Name), 15)
         end
     end))
-
     g.FlamesLibrary.connect("PlayerRemoving_OwnerAdminRemoval", Players.PlayerRemoving:Connect(function(Player)
         local Name = Player.Name
         if Name == "CIippedByAura" or Name == "L0CKED_1N1" or Name == "AuraWithClipFarmin" then
@@ -11284,21 +10296,13 @@ if not g.FlamesHubPlayerEvents_Check then
         elseif allowed[Name] and Name ~= "L0CKED_1N1" and Name ~= "CIippedByAura" and Name ~= "AuraWithClipFarmin" then
             g.notify("Success", "Flames Hub | Staff member has left your server: "..tostring(Name), 15)
         end
-
         g.disable_rgb_for(Name)
         g.fully_disable_rgb_plr(Name)
         if g.Locked_Vehicles[Name] then g.Locked_Vehicles[Name] = false end
         if g.Unlocked_Vehicles[Name] then g.Unlocked_Vehicles[Name] = false end
     end))
 end
-
--- [[ ========================================================================================== ]] --
 print("[Flames] loading: avatar tools")
--- [[ Avatar tools: exact outfit copy, outfits that keep accessory adjustments, a Studio-style   ]] --
--- [[ accessory editor, the skin tone picker and the command bar. Outfits are built in the       ]] --
--- [[ game's own format (Modules.Core.Char.HumDesc + PropertyEncoding), so accessory position,   ]] --
--- [[ rotation and scale go through the server and everyone sees them.                           ]] --
--- [[ ========================================================================================== ]] --
 do
     local LT_ACCENT = Color3.fromRGB(21, 103, 251)
     local LT_AGE_MULT = { adult = 1, teenager = 0.93, kid = 0.78, toddler = 0.51, baby = 0.43 }
@@ -11307,15 +10311,12 @@ do
     local LT_CLASSIC = { "Shirt", "Pants", "GraphicTShirt" }
     local LT_ANIMS = { "IdleAnimation", "WalkAnimation", "RunAnimation", "JumpAnimation", "FallAnimation", "ClimbAnimation", "SwimAnimation", "MoodAnimation" }
     local LT_SCALES = { "HeightScale", "WidthScale", "DepthScale", "HeadScale", "BodyTypeScale", "ProportionScale" }
-    -- [[ outfit property -> the type the game's "wear" call expects, where they differ. ]] --
     local LT_WEAR_TYPE = { GraphicTShirt = "TShirt" }
-    g.lt_copy_step = g.lt_copy_step or 0.2 -- [[ seconds between pieces while copying, so you see it change piece by piece. ]] --
-
+    g.lt_copy_step = g.lt_copy_step or 0.2
     local function lt_gui_parent()
         local ok, hidden = pcall(function() return gethui and gethui() end)
         return (ok and hidden) or CoreGui
     end
-
     g.lt_modules = {}
     g.lt_require = function(name)
         if g.lt_modules[name] ~= nil then return g.lt_modules[name] or nil end
@@ -11337,10 +10338,6 @@ do
         g.lt_modules[name] = (ok and result) or false
         return g.lt_modules[name] or nil
     end
-
-    -- [[ the game wipes your whole outfit when it gets one it won't accept (like more items than its limit). Before ]] --
-    -- [[ every outfit send this keeps the outfit you had; if you end up with nothing on (checked twice, so a slow ]] --
-    -- [[ rebuild isn't mistaken for a wipe), it puts that outfit back and remembers the limit. ]] --
     local function lt_guard_outfit(payload)
         local mine = g.lt_get_desc and g.lt_get_desc(LocalPlayer)
         if not mine then return end
@@ -11367,8 +10364,6 @@ do
                 or "The game wiped your outfit, so it was put back.", 6)
         end)
     end
-
-    -- [[ the game's own remote calls (the framework's g.Send / g.Get, or the Net module if those are missing). ]] --
     g.lt_send = function(key, ...)
         if key == "wear_outfit_from_desc" and not g.lt_restoring then pcall(lt_guard_outfit, (...)) end
         if typeof(g.Send) == "function" then return g.Send(key, ...) end
@@ -11380,18 +10375,15 @@ do
         local Net = g.lt_require("Net")
         if Net then return Net.get(key, ...) end
     end
-
     g.lt_encode_v3 = function(v)
         local PropertyEncoding = g.lt_require("PropertyEncoding")
         if PropertyEncoding and PropertyEncoding.encode and PropertyEncoding.encode.vector3 then
             local ok, text = pcall(PropertyEncoding.encode.vector3, v)
             if ok and type(text) == "string" then return text end
         end
-        -- [[ fallback in the layout the game sends: zero parts left empty ("  " = 0 0 0, "1 1 1" = 1 1 1). ]] --
         local function part(n) return n == 0 and "" or tostring(math.round(n * 1000) / 1000) end
         return part(v.X) .. " " .. part(v.Y) .. " " .. part(v.Z)
     end
-
     g.lt_get_desc = function(player)
         local char = player and player.Character
         local hum = char and char:FindFirstChildWhichIsA("Humanoid")
@@ -11399,9 +10391,6 @@ do
         local ok, desc = pcall(hum.GetAppliedDescription, hum)
         return ok and desc or nil
     end
-
-    -- [[ a HumanoidDescription as the game sends it: every accessory with its position, rotation, scale and layer ]] --
-    -- [[ order, makeup, body parts, clothes, colors, scales and animations. ]] --
     g.lt_serialise = function(desc)
         local HumDesc = g.lt_require("HumDesc")
         if HumDesc and HumDesc.serialise_humanoid_description then
@@ -11429,9 +10418,6 @@ do
         end
         return { accessories = accessories, makeups = {}, properties = properties }
     end
-
-    -- [[ rigid accessories first, then layered clothing from the innermost layer out, numbered 1..n, so the game ]] --
-    -- [[ stacks the layers exactly as they were worn (pants never land over a shirt by accident). ]] --
     g.lt_order_layers = function(payload)
         local rigid, layered = {}, {}
         for i, a in ipairs(payload.accessories or {}) do
@@ -11451,9 +10437,6 @@ do
         payload.accessories = ordered
         return payload
     end
-
-    -- [[ every piece of an outfit as "wear" calls: accessories, layered clothing inner to outer, classic clothes, ]] --
-    -- [[ body parts, face, animations. ]] --
     g.lt_outfit_pieces = function(payload)
         local pieces = {}
         for _, a in ipairs(payload.accessories or {}) do
@@ -11471,8 +10454,6 @@ do
         end
         return pieces
     end
-
-    -- [[ taking an outfit off: accessories, then layered clothing outer to inner, then clothes, body, face, animations. ]] --
     local function lt_strip_order(pieces)
         local rigid, layered, rest, out = {}, {}, {}, {}
         for _, p in ipairs(pieces) do
@@ -11489,7 +10470,6 @@ do
         end
         return out
     end
-
     local function lt_wearing_same_accessories(payload)
         local mine = g.lt_get_desc(LocalPlayer)
         if not mine then return true end
@@ -11510,10 +10490,6 @@ do
         mine:Destroy()
         return same and next(want) == nil
     end
-
-    -- [[ puts an outfit on you. look = { payload, age, skin, slow }. slow takes your outfit off piece by piece and ]] --
-    -- [[ wears the new one piece by piece; the exact outfit is sent last either way (layer order, makeup, colors and ]] --
-    -- [[ each accessory's position, rotation and scale). ]] --
     g.lt_apply_look = function(look)
         g.lt_bulk_wearing = true
         local ok, result = pcall(g.lt_apply_look_steps, look)
@@ -11521,13 +10497,11 @@ do
         if not ok then error(result, 0) end
         return result
     end
-
     g.lt_apply_look_steps = function(look)
         local payload = look.payload
         if type(payload) ~= "table" then error("no outfit to wear", 0) end
         g.lt_order_layers(payload)
         local step = tonumber(g.lt_copy_step) or 0.2
-
         if look.slow then
             local mine = g.lt_get_desc(LocalPlayer)
             if mine then
@@ -11535,32 +10509,27 @@ do
                 mine:Destroy()
                 g.lt_order_layers(current)
                 for _, piece in ipairs(lt_strip_order(g.lt_outfit_pieces(current))) do
-                    pcall(g.lt_get, "wear", piece.id, piece.kind) -- [[ wearing something you already have takes it off ]] --
+                    pcall(g.lt_get, "wear", piece.id, piece.kind)
                     task.wait(step)
                 end
             end
         end
-
         local my_age = tostring(LocalPlayer:GetAttribute("age") or "adult")
         local age = look.age and LT_AGE_NAMES[tostring(look.age):lower()]
         if age and age ~= my_age then
             pcall(g.lt_get, "age", age)
             task.wait(step)
         end
-
         if typeof(look.skin) == "Color3" then
             pcall(g.lt_send, "skin_tone", look.skin)
             task.wait(step)
         end
-
         if look.slow then
             for _, piece in ipairs(g.lt_outfit_pieces(payload)) do
                 pcall(g.lt_get, "wear", piece.id, piece.kind)
                 task.wait(step)
             end
         end
-
-        -- [[ body scale sliders take the adult value, so the age multiplier comes back out first ]] --
         local mult = LT_AGE_MULT[age or my_age] or 1
         local props = payload.properties or {}
         local height, width = tonumber(props.HeightScale), tonumber(props.WidthScale)
@@ -11572,7 +10541,6 @@ do
             pcall(g.lt_send, "body_scale", "WidthScale", math.clamp(math.floor(width / mult * 100 + 0.5), 70, 100))
             task.wait(0.15)
         end
-
         for _ = 1, 3 do
             pcall(g.lt_send, "wear_outfit_from_desc", payload)
             task.wait(1.5)
@@ -11581,8 +10549,6 @@ do
         if g.lt_remember_body_size then g.lt_remember_body_size(payload.properties) end
         return true
     end
-
-    -- [[ copies another player's outfit exactly, including accessory adjustments they made in Roblox or in game. ]] --
     g.lt_copy_outfit = function(player)
         local desc = g.lt_get_desc(player)
         if not desc then error("couldn't read " .. tostring(player) .. "'s outfit", 0) end
@@ -11597,10 +10563,6 @@ do
             slow = true,
         })
     end
-
-    ---------------------------------------------------------------- accessory editor (Studio-style move / rotate / scale)
-
-    -- [[ popups (editor window, skin picker, outfit saver) follow the X key that hides the menu ]] --
     g.lt_ui_hidden = g.lt_ui_hidden or false
     g.lt_refresh_popups = function()
         if g.lt_skin_gui then g.lt_skin_gui.Enabled = (g.lt_skin_open == true) and not g.lt_ui_hidden end
@@ -11609,7 +10571,6 @@ do
         if g.lt_catalog_gui then g.lt_catalog_gui.Enabled = (g.lt_catalog_open == true) and not g.lt_ui_hidden end
         if g.lt_carry_gui then g.lt_carry_gui.Enabled = (g.lt_carry_shown == true) and not g.lt_ui_hidden end
     end
-
     do
         g.lt_editor = g.lt_editor or {}
         local LTE = g.lt_editor
@@ -11617,22 +10578,20 @@ do
         LTE.snap_move = LTE.snap_move or 0
         LTE.snap_rotate = LTE.snap_rotate or 0
         LTE.snap_scale = LTE.snap_scale or 0
-        if LTE.snap_on == nil then LTE.snap_on = false end -- [[ free, smooth movement unless you turn snapping on ]] --
-        if LTE.uniform == nil then LTE.uniform = false end -- [[ scaling stretches one side unless "all sides" is on ]] --
-        if LTE.anims_on == nil then LTE.anims_on = false end -- [[ animations paused while editing, unless turned on to preview ]] --
-        LTE.selected = LTE.selected or {}     -- [[ [asset id] = true ]] --
+        if LTE.snap_on == nil then LTE.snap_on = false end
+        if LTE.uniform == nil then LTE.uniform = false end
+        if LTE.anims_on == nil then LTE.anims_on = false end
+        LTE.selected = LTE.selected or {}
         LTE.conns = LTE.conns or {}
-        LTE.asset_keys = LTE.asset_keys or {} -- [[ [asset id] = { key, mesh } of the asset's own handle ]] --
-        LTE.names = LTE.names or {}           -- [[ [asset id] = catalog name ]] --
+        LTE.asset_keys = LTE.asset_keys or {}
+        LTE.names = LTE.names or {}
         LTE.entries = LTE.entries or {}
-        LTE.learned = LTE.learned or setmetatable({}, { __mode = "k" }) -- [[ [worn accessory] = asset id, seen as it was put on ]] --
+        LTE.learned = LTE.learned or setmetatable({}, { __mode = "k" })
         LTE.resolving = LTE.resolving or {}
         LTE.resolve_queue = LTE.resolve_queue or {}
         LTE.convention = LTE.convention_checked and LTE.convention or "xyz_tr"
     LTE.convention_checked = true
         local SETTINGS_FILE = "lifetogether_accessory_editor.json"
-
-        -- [[ what the editor learned (asset meshes, the game's offset rule) is kept between sessions ]] --
         if not LTE.settings_loaded then
             LTE.settings_loaded = true
             pcall(function()
@@ -11645,8 +10604,6 @@ do
                 end
             end)
         end
-
-        -- [[ small helpers, kept in one table ]] --
         local U = {}
         function U.save_settings()
             pcall(function()
@@ -11667,14 +10624,11 @@ do
         end
         function U.layered(acc) return acc:FindFirstChildWhichIsA("WrapLayer", true) ~= nil end
         function U.digits(text) return text and tostring(text):match("%d+") or "" end
-        -- [[ "mesh|texture" of a handle, to tell accessories apart ]] --
         function U.part_key(part)
             if part:IsA("MeshPart") then return U.digits(part.MeshId) .. "|" .. U.digits(part.TextureID) end
             local mesh = part:FindFirstChildWhichIsA("SpecialMesh")
             return mesh and (U.digits(mesh.MeshId) .. "|" .. U.digits(mesh.TextureId)) or "|"
         end
-        -- [[ the ways an accessory's position / rotation offset could be applied. After an edit the editor checks which ]] --
-        -- [[ one matches where the accessory really landed, and uses that one from then on. ]] --
         U.conventions = { "xyz_tr", "yxz_tr", "xyz_rt", "yxz_rt" }
         function U.offset_cf(p, r, conv)
             local rot = conv:sub(1, 3) == "yxz" and CFrame.fromOrientation(math.rad(r.X), math.rad(r.Y), math.rad(r.Z))
@@ -11689,17 +10643,12 @@ do
             local p = conv:sub(-2) == "rt" and rot:Inverse() * cf.Position or cf.Position
             return U.tidy(p), U.tidy(Vector3.new(math.deg(rx), math.deg(ry), math.deg(rz)))
         end
-        -- [[ the accessory's own attachment, with its distance from the handle stretched by the accessory's scale ]] --
         function U.scaled(attach, s) return CFrame.new(attach.Position * s) * attach.Rotation end
         function U.unscaled(attach, s) return CFrame.new(attach.Position / s) * attach.Rotation end
         function U.angle(a, b)
             local _, angle = (a.Rotation:Inverse() * b.Rotation):ToAxisAngle()
             return math.deg(math.abs(angle))
         end
-
-        -- [[ looks up the meshes of a few assets, one at a time, only when two or more of your accessories could be the ]] --
-        -- [[ same item (like several hairs). Loading an asset can pause the game for a moment, so it never runs when the ]] --
-        -- [[ editor opens, only when you pick one of those items, and each asset is only ever looked up once. ]] --
         function U.resolve(ids)
             for _, id in ipairs(ids) do
                 if type(LTE.asset_keys[id]) ~= "table" and not LTE.resolving[id] then
@@ -11731,7 +10680,6 @@ do
                 U.save_settings()
             end)
         end
-
         function U.name(id)
             if LTE.names[id] == nil then
                 LTE.names[id] = false
@@ -11742,9 +10690,6 @@ do
             end
             return LTE.names[id] or nil
         end
-
-        -- [[ watches accessories being put on: when one new item appears together with one new outfit entry, they're ]] --
-        -- [[ the same thing. Runs all the time, so the editor usually already knows every item when it opens. ]] --
         function U.rigid_ids()
             local ids = {}
             local desc = g.lt_get_desc(LocalPlayer)
@@ -11775,9 +10720,6 @@ do
         if g.lt_watch_char_conn then pcall(function() g.lt_watch_char_conn:Disconnect() end) end
         g.lt_watch_char_conn = LocalPlayer.CharacterAdded:Connect(U.watch)
         U.watch(LocalPlayer.Character)
-
-        -- [[ your hats, hair, face, neck... accessories as outfit entries (id, type, position / rotation / scale) and the ]] --
-        -- [[ worn accessory each one is. Layered clothing is fitted to the body and can't be moved, so it isn't listed. ]] --
         function U.refresh_entries()
             local entries = {}
             local desc = g.lt_get_desc(LocalPlayer)
@@ -11792,7 +10734,6 @@ do
                 end
                 desc:Destroy()
             end
-
             local char = LocalPlayer.Character
             local hum = char and char:FindFirstChildWhichIsA("Humanoid")
             local worn, used = {}, {}
@@ -11803,14 +10744,11 @@ do
                 e.acc = acc
                 used[acc] = true
             end
-
-            -- [[ 1. seen being put on ]] --
             for _, e in ipairs(entries) do
                 for _, acc in ipairs(worn) do
                     if not e.acc and not used[acc] and LTE.learned[acc] == e.id and acc.AccessoryType == e.type then claim(e, acc) end
                 end
             end
-            -- [[ 2. the game's own link, when the client can see it ]] --
             local applied = hum and hum:FindFirstChildOfClass("HumanoidDescription")
             for _, ad in ipairs(applied and applied:GetChildren() or {}) do
                 if ad:IsA("AccessoryDescription") then
@@ -11825,7 +10763,6 @@ do
                     end
                 end
             end
-            -- [[ 3. same mesh and texture, then same mesh (only for assets already looked up) ]] --
             for pass = 1, 2 do
                 for _, e in ipairs(entries) do
                     local asset = not e.acc and LTE.asset_keys[e.id]
@@ -11842,7 +10779,6 @@ do
                     end
                 end
             end
-            -- [[ 4. one entry and one accessory of a type left over: they're the same item ]] --
             for _, e in ipairs(entries) do
                 if not e.acc then
                     local entries_left, worn_left, last = 0, 0, nil
@@ -11858,7 +10794,6 @@ do
                     if entries_left == 1 and worn_left == 1 then claim(e, last) end
                 end
             end
-            -- [[ 5. look-alikes still unsure: paired in order for now, and looked up when you pick one ]] --
             local to_check = {}
             for _, e in ipairs(entries) do
                 if not e.acc then
@@ -11880,7 +10815,6 @@ do
                 end
             end
             if #to_check > 0 then U.resolve(to_check) end
-
             local present = {}
             for _, e in ipairs(entries) do
                 present[e.id] = true
@@ -11892,8 +10826,6 @@ do
             LTE.entries = entries
             return entries
         end
-
-        -- [[ picked items that can be edited right now (look-alikes only once they've been told apart) ]] --
         function U.selected_items()
             local items = {}
             for _, e in ipairs(LTE.entries) do
@@ -11901,8 +10833,6 @@ do
             end
             return items
         end
-
-        -- [[ the handle, its attachment, and the body attachment it's held to ]] --
         function U.joint(acc)
             local handle = acc and acc:FindFirstChild("Handle")
             if not handle then return nil end
@@ -11917,8 +10847,6 @@ do
             end
             return handle
         end
-
-        -- [[ sends your whole outfit with some accessories changed; changes = { [asset id] = { pos, rot, scale } } ]] --
         g.lt_send_adjustments = function(changes, quiet)
             local desc = g.lt_get_desc(LocalPlayer)
             if not desc then return false end
@@ -11942,8 +10870,6 @@ do
             pcall(g.lt_send, "wear_outfit_from_desc", payload)
             return true
         end
-
-        -- [[ stand still while editing: idle and other animations stop, so accessories don't bob around ]] --
         function U.set_still(on)
             if LTE.anim_conn then
                 pcall(function() LTE.anim_conn:Disconnect() end)
@@ -11961,14 +10887,11 @@ do
                 end)
             end
         end
-
         function U.clear_visuals()
             if LTE.folder then pcall(function() LTE.folder:Destroy() end) end
             if LTE.proxy then pcall(function() LTE.proxy:Destroy() end) end
             LTE.folder, LTE.proxy = nil, nil
         end
-
-        -- [[ one box around everything picked, lined up with your character ]] --
         function U.place_proxy()
             local proxy = LTE.proxy
             if not proxy or LTE.drag then return end
@@ -11994,9 +10917,6 @@ do
             proxy.Size = (max_v - min_v) + Vector3.new(0.1, 0.1, 0.1)
             proxy.CFrame = frame * CFrame.new((min_v + max_v) / 2)
         end
-
-        -- [[ where an item should end up (relative to its body attachment), the offsets that put it there, and a preview ]] --
-        -- [[ that shows it exactly there until the server rebuilds your outfit. ]] --
         function U.set_target(it, world_cf, new_scale)
             it.target = it.att_cf:Inverse() * world_cf
             it.new_scale = U.tidy(new_scale or it.scale)
@@ -12006,7 +10926,6 @@ do
                 it.part.Size = it.start_size * (it.new_scale / it.scale)
             end)
         end
-
         function U.begin()
             if not LTE.proxy then return end
             if LTE.settling then
@@ -12019,7 +10938,6 @@ do
                 if part and att0 and att1 then
                     local att_cf = att1.WorldCFrame
                     local here = att_cf:Inverse() * part.CFrame
-                    -- [[ the accessory's attachment before any offset, worked out for each possible rule ]] --
                     local base = {}
                     for _, conv in ipairs(U.conventions) do
                         base[conv] = U.unscaled(here:Inverse() * U.offset_cf(e.pos, e.rot, conv), e.scale)
@@ -12037,7 +10955,6 @@ do
             if #items == 0 then return end
             LTE.drag = { items = items, proxy_cf = LTE.proxy.CFrame, proxy_size = LTE.proxy.Size }
         end
-
         function U.drag_move(face, distance)
             local d = LTE.drag
             if not d then return end
@@ -12045,8 +10962,6 @@ do
             for _, it in ipairs(d.items) do U.set_target(it, it.start_cf + world) end
             LTE.proxy.CFrame = d.proxy_cf + world
         end
-
-        -- [[ turns the picked items around the middle of their box, like Studio does with several parts ]] --
         function U.drag_rotate(axis, relative_angle)
             local d = LTE.drag
             if not d then return end
@@ -12057,9 +10972,6 @@ do
             for _, it in ipairs(d.items) do U.set_target(it, turn * it.start_cf) end
             LTE.proxy.CFrame = turn * d.proxy_cf
         end
-
-        -- [[ stretches from the side you drag: the opposite side stays where it is. With "all sides" on, every side grows ]] --
-        -- [[ together, still from the opposite side. ]] --
         function U.drag_scale(face, distance)
             local d = LTE.drag
             if not d then return end
@@ -12087,9 +10999,6 @@ do
             LTE.proxy.CFrame = d.proxy_cf * CFrame.new(stretch(Vector3.zero))
             LTE.proxy.Size = LTE.uniform and d.proxy_size * factor or (d.proxy_size + mask * (length * (factor - 1)))
         end
-
-        -- [[ waits until the server has finished rebuilding your outfit: the edited items show their new numbers (or 4 s ]] --
-        -- [[ pass), then no accessory has been added or removed for a full second. ]] --
         function U.wait_rebuild(items)
             local char = LocalPlayer.Character
             if not char then return end
@@ -12112,9 +11021,6 @@ do
             while os.clock() - started < 12 and os.clock() - last_change < 1 do task.wait(0.1) end
             for _, c in ipairs(conns) do c:Disconnect() end
         end
-
-        -- [[ after the rebuild, checks where each item landed. It only learns the game's offset rule from a clear result, ]] --
-        -- [[ and corrects at most once, only when the server kept the numbers but the rule used for them was wrong. ]] --
         function U.settle(items, corrected)
             U.wait_rebuild(items)
             local entries = U.refresh_entries()
@@ -12180,7 +11086,6 @@ do
             end
             if LTE.refresh_window then LTE.refresh_window() end
         end
-
         function U.finish()
             local d = LTE.drag
             LTE.drag = nil
@@ -12203,26 +11108,22 @@ do
                 end
                 return
             end
-            -- [[ new drags wait until this one is saved, so two rebuilds never fight ]] --
             LTE.settling = true
             task.spawn(function()
                 pcall(U.settle, moved, false)
                 LTE.settling = false
             end)
         end
-
         function U.build_visuals()
             U.clear_visuals()
             LTE.visual_sig = nil
             if not LTE.enabled then return end
             local items = U.selected_items()
             if #items == 0 then return end
-
             local folder = Instance.new("Folder")
             folder.Name = "FlamesAccessoryEditor"
             folder.Parent = lt_gui_parent()
             LTE.folder = folder
-
             local proxy = Instance.new("Part")
             proxy.Name = "FlamesAccessoryEditorBox"
             proxy.Anchored = true
@@ -12234,8 +11135,6 @@ do
             proxy.Parent = workspace.CurrentCamera
             LTE.proxy = proxy
             U.place_proxy()
-
-            -- [[ the moving box around the whole selection, and an outline on each item inside it ]] --
             local box = Instance.new("SelectionBox")
             box.Adornee = proxy
             box.Color3 = LT_ACCENT
@@ -12251,7 +11150,6 @@ do
                 outline.SurfaceTransparency = 1
                 outline.Parent = folder
             end
-
             local tool
             if LTE.mode == "Rotate" then
                 tool = Instance.new("ArcHandles")
@@ -12269,28 +11167,22 @@ do
                 U.begin()
             end)
             tool.MouseButton1Up:Connect(U.finish)
-
             local sig = { LTE.mode }
             for _, e in ipairs(items) do table.insert(sig, tostring(e.id) .. "@" .. tostring(e.acc)) end
             LTE.visual_sig = table.concat(sig, ",")
         end
-
-        ---------------------------------------------------------------- editor window
-
         function U.open_window()
             if g.lt_editor_gui and g.lt_editor_gui.Parent then
                 g.lt_refresh_popups()
                 return
             end
             local BG, PANEL, PANEL_ON, TEXT, DIM = Color3.fromRGB(16, 16, 21), Color3.fromRGB(28, 28, 36), Color3.fromRGB(26, 46, 92), Color3.fromRGB(235, 235, 240), Color3.fromRGB(150, 150, 165)
-
             local gui = Instance.new("ScreenGui")
             gui.Name = "FlamesAccessoryEditorWindow"
             gui.ResetOnSpawn = false
             gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
             gui.Parent = lt_gui_parent()
             g.lt_editor_gui = gui
-
             local main = Instance.new("Frame")
             main.Size = UDim2.fromOffset(300, 480)
             main.Position = UDim2.new(0, 30, 0.5, -240)
@@ -12302,7 +11194,6 @@ do
             stroke.Color = LT_ACCENT
             stroke.Thickness = 1.5
             stroke.Parent = main
-
             local function text_label(parent, text, x, y, w, h, size, color, bold)
                 local l = Instance.new("TextLabel")
                 l.BackgroundTransparency = 1
@@ -12317,7 +11208,6 @@ do
                 l.Parent = parent
                 return l
             end
-
             local function button(text, x, y, w, h)
                 local b = Instance.new("TextButton")
                 b.Position = UDim2.fromOffset(x, y)
@@ -12333,7 +11223,6 @@ do
                 Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
                 return b
             end
-
             local title = text_label(main, "Accessory Editor", 12, 6, 220, 24, 15, TEXT, true)
             title.Active = true
             local close = button("X", 266, 6, 24, 24)
@@ -12358,7 +11247,6 @@ do
                     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
                 end)
             end
-
             local tool_buttons = {
                 Move = button("Move", 10, 38, 88, 28),
                 Rotate = button("Rotate", 106, 38, 88, 28),
@@ -12383,14 +11271,12 @@ do
                 LTE.uniform = not LTE.uniform
                 LTE.refresh_window()
             end)
-            -- [[ play your animations while editing, to see how the outfit looks moving ]] --
             anims_btn.MouseButton1Click:Connect(function()
                 LTE.anims_on = not LTE.anims_on
                 U.set_still(LTE.enabled and not LTE.anims_on)
                 LTE.refresh_window()
             end)
             text_label(main, "Tick the accessories to edit, then drag the arrows on your character. Shift-click one on your character to add it.", 12, 130, 278, 30, 11, DIM)
-
             local list = Instance.new("ScrollingFrame")
             list.Position = UDim2.fromOffset(10, 164)
             list.Size = UDim2.fromOffset(280, 252)
@@ -12409,12 +11295,9 @@ do
             local pad = Instance.new("UIPadding")
             pad.PaddingTop, pad.PaddingLeft, pad.PaddingRight = UDim.new(0, 4), UDim.new(0, 4), UDim.new(0, 8)
             pad.Parent = list
-
             local status = text_label(main, "", 12, 422, 278, 50, 12, TEXT)
             status.TextYAlignment = Enum.TextYAlignment.Top
-
             local rows, rows_sig = {}, nil
-
             LTE.refresh_window = function()
                 if not (gui and gui.Parent) then return end
                 for mode, b in pairs(tool_buttons) do b.BackgroundColor3 = (LTE.mode == mode) and LT_ACCENT or PANEL end
@@ -12423,7 +11306,6 @@ do
                 sides_btn.Text = LTE.uniform and "All Sides" or "One Side"
                 anims_btn.Text = LTE.anims_on and "Anims: On" or "Anims: Off"
                 anims_btn.BackgroundColor3 = LTE.anims_on and LT_ACCENT or PANEL
-
                 local sig_parts = {}
                 for _, e in ipairs(LTE.entries) do table.insert(sig_parts, tostring(e.id)) end
                 local sig = table.concat(sig_parts, ",")
@@ -12488,7 +11370,6 @@ do
                         table.insert(rows, { id = id, button = row, check = check, name = name })
                     end
                 end
-
                 local selected_count, one = 0, nil
                 for _, r in ipairs(rows) do
                     local e
@@ -12513,7 +11394,6 @@ do
                     end
                     r.name.Text = label
                 end
-
                 if #LTE.entries == 0 then
                     status.Text = "You're not wearing any hats, hair, face, neck or other movable accessories."
                 elseif selected_count == 0 then
@@ -12525,23 +11405,19 @@ do
                     status.Text = ("Tool: %s\n%d accessories picked, they move together."):format(LTE.mode, selected_count)
                 end
             end
-
             all_btn.MouseButton1Click:Connect(function() g.lt_editor_select_all(true) end)
             none_btn.MouseButton1Click:Connect(function() g.lt_editor_select_all(false) end)
             reset_btn.MouseButton1Click:Connect(function() g.lt_reset_adjustments(false) end)
             reset_all_btn.MouseButton1Click:Connect(function() g.lt_reset_adjustments(true) end)
-
             LTE.refresh_window()
             g.lt_refresh_popups()
         end
-
         g.lt_editor_set_mode = function(mode)
             if mode ~= "Move" and mode ~= "Rotate" and mode ~= "Scale" then return end
             LTE.mode = mode
             U.build_visuals()
             if LTE.refresh_window then LTE.refresh_window() end
         end
-
         g.lt_editor_select_all = function(on)
             table.clear(LTE.selected)
             for _, e in ipairs(on and U.refresh_entries() or {}) do LTE.selected[e.id] = true end
@@ -12549,27 +11425,23 @@ do
             U.build_visuals()
             if LTE.refresh_window then LTE.refresh_window() end
         end
-
         g.lt_editor_toggle = function(state)
             LTE.enabled = state and true or false
             for _, c in ipairs(LTE.conns) do pcall(function() c:Disconnect() end) end
             table.clear(LTE.conns)
             LTE.drag, LTE.dragging = nil, false
-            table.clear(LTE.selected) -- [[ nothing is picked for you when the editor opens ]] --
+            table.clear(LTE.selected)
             U.set_still(LTE.enabled and not LTE.anims_on)
             if not LTE.enabled then
                 U.clear_visuals()
                 g.lt_refresh_popups()
                 return
             end
-
             U.refresh_entries()
             U.open_window()
-
             local mouse = LocalPlayer:GetMouse()
-            -- [[ click an accessory on your character: just that one; shift/ctrl-click adds or removes it ]] --
             table.insert(LTE.conns, mouse.Button1Down:Connect(function()
-                task.wait() -- [[ let the arrows claim the click first ]] --
+                task.wait()
                 if not LTE.enabled or LTE.dragging or LTE.drag then return end
                 local target = mouse.Target
                 local acc = target and target:FindFirstAncestorWhichIsA("Accessory")
@@ -12597,14 +11469,12 @@ do
                 U.build_visuals()
                 LTE.refresh_window()
             end))
-            -- [[ Studio shortcuts too: Ctrl+2 move, Ctrl+3 scale, Ctrl+4 rotate ]] --
             table.insert(LTE.conns, UserInputService.InputBegan:Connect(function(input, processed)
                 if processed or not LTE.enabled then return end
                 if not (UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.RightControl)) then return end
                 local mode = ({ [Enum.KeyCode.Two] = "Move", [Enum.KeyCode.Three] = "Scale", [Enum.KeyCode.Four] = "Rotate" })[input.KeyCode]
                 if mode then g.lt_editor_set_mode(mode) end
             end))
-            -- [[ a drag also ends when you let go anywhere, not only over the arrows ]] --
             table.insert(LTE.conns, UserInputService.InputEnded:Connect(function(input)
                 if LTE.drag and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then U.finish() end
             end))
@@ -12614,7 +11484,6 @@ do
                 task.wait(0.5)
                 if LTE.enabled and not LTE.anims_on then U.set_still(true) end
             end))
-            -- [[ keep the box on the selection, and find accessories again after the server rebuilds your outfit ]] --
             table.insert(LTE.conns, RunService.Heartbeat:Connect(function() pcall(U.place_proxy) end))
             task.spawn(function()
                 while LTE.enabled do
@@ -12632,8 +11501,6 @@ do
             end)
             g.notify("Success", "Accessory Editor on: tick accessories in the editor window, then drag the arrows. Animations are paused while you edit (Anims button turns them back on).", 7)
         end
-
-        -- [[ puts the picked accessories (or all of them) back to normal position, rotation and scale ]] --
         g.lt_reset_adjustments = function(all)
             local changes, count = {}, 0
             local defaults = { pos = Vector3.zero, rot = Vector3.zero, scale = Vector3.one }
@@ -12652,9 +11519,6 @@ do
             end
         end
     end
-
-    ---------------------------------------------------------------- skin tone
-
     g.lt_last_skin_send = 0
     g.lt_set_skin = function(color, quiet)
         if typeof(color) ~= "Color3" then return end
@@ -12664,8 +11528,6 @@ do
             g.notify("Success", ("Skin tone: %d, %d, %d"):format(math.floor(color.R * 255 + 0.5), math.floor(color.G * 255 + 0.5), math.floor(color.B * 255 + 0.5)), 2)
         end
     end
-
-    -- [[ the game's own skin palette, or a short fallback if the module can't be read ]] --
     local function lt_skin_palette()
         local constants = g.lt_require("AvatarConstants")
         if constants and type(constants.Skin) == "table" and #constants.Skin > 0 then return constants.Skin end
@@ -12675,12 +11537,9 @@ do
             Color3.fromRGB(102, 57, 34), Color3.fromRGB(84, 45, 26), Color3.fromRGB(66, 35, 20), Color3.fromRGB(52, 27, 16),
         }
     end
-
-
     g.lt_open_skin_picker = function()
         g.lt_skin_open = true
         if g.lt_skin_gui and g.lt_skin_gui.Parent then g.lt_refresh_popups(); return end
-
         local BG, PANEL, TEXT = Color3.fromRGB(16, 16, 21), Color3.fromRGB(28, 28, 36), Color3.fromRGB(235, 235, 240)
         local gui = Instance.new("ScreenGui")
         gui.Name = "FlamesSkinPicker"
@@ -12688,7 +11547,6 @@ do
         gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
         gui.Parent = lt_gui_parent()
         g.lt_skin_gui = gui
-
         local main = Instance.new("Frame")
         main.Size = UDim2.fromOffset(290, 430)
         main.Position = UDim2.new(0.5, 180, 0.5, -215)
@@ -12700,7 +11558,6 @@ do
         stroke.Color = LT_ACCENT
         stroke.Thickness = 1.5
         stroke.Parent = main
-
         local function label(parent, text, x, y, w, h, size)
             local l = Instance.new("TextLabel")
             l.BackgroundTransparency = 1
@@ -12714,7 +11571,6 @@ do
             l.Parent = parent
             return l
         end
-
         local function button(parent, text, x, y, w, h, color)
             local b = Instance.new("TextButton")
             b.Position = UDim2.fromOffset(x, y)
@@ -12730,7 +11586,6 @@ do
             Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
             return b
         end
-
         local title = label(main, "Skin Tone", 12, 6, 200, 24, 15)
         title.Active = true
         local close = button(main, "X", 256, 6, 24, 24)
@@ -12738,8 +11593,6 @@ do
             g.lt_skin_open = false
             g.lt_refresh_popups()
         end)
-
-        -- [[ drag by the title ]] --
         do
             local dragging, start, start_pos
             title.InputBegan:Connect(function(input)
@@ -12757,12 +11610,9 @@ do
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
             end)
         end
-
         local hue, sat, val = 0.08, 0.4, 0.9
         local live = false
         local last_live = 0
-
-        -- [[ color wheel: hue goes around, saturation goes out from the middle ]] --
         local R = 85
         local wheel = Instance.new("Frame")
         wheel.Size = UDim2.fromOffset(R * 2, R * 2)
@@ -12810,8 +11660,6 @@ do
         wheel_input.Text = ""
         wheel_input.ZIndex = 4
         wheel_input.Parent = wheel
-
-        -- [[ brightness bar ]] --
         label(main, "Brightness", 12, 222, 100, 16, 12)
         local bar = Instance.new("Frame")
         bar.Position = UDim2.fromOffset(12, 240)
@@ -12833,15 +11681,12 @@ do
         bar_input.BackgroundTransparency = 1
         bar_input.Text = ""
         bar_input.Parent = bar
-
-        -- [[ preview, RGB and hex ]] --
         local preview = Instance.new("Frame")
         preview.Position = UDim2.fromOffset(12, 266)
         preview.Size = UDim2.fromOffset(42, 42)
         preview.BorderSizePixel = 0
         preview.Parent = main
         Instance.new("UICorner", preview).CornerRadius = UDim.new(0, 8)
-
         local function box(x, y, w, placeholder)
             local t = Instance.new("TextBox")
             t.Position = UDim2.fromOffset(x, y)
@@ -12866,8 +11711,6 @@ do
         local b_box = box(190, 266, 40, "B")
         label(main, "Hex", 62, 290, 30, 20, 12)
         local hex_box = box(94, 290, 136, "#RRGGBB")
-
-        -- [[ the game's skin colors ]] --
         label(main, "Game skin colors", 12, 316, 200, 16, 12)
         local palette = Instance.new("ScrollingFrame")
         palette.Position = UDim2.fromOffset(12, 334)
@@ -12883,12 +11726,9 @@ do
         grid.CellSize = UDim2.fromOffset(20, 20)
         grid.CellPadding = UDim2.fromOffset(4, 4)
         grid.Parent = palette
-
         local apply = button(main, "Apply", 12, 396, 130, 26, LT_ACCENT)
         local live_btn = button(main, "Live: off", 148, 396, 130, 26)
-
         local function current() return Color3.fromHSV(hue, sat, val) end
-
         local function redraw()
             local color = current()
             local angle = hue * math.pi * 2
@@ -12903,7 +11743,6 @@ do
             if not b_box:IsFocused() then b_box.Text = tostring(b) end
             if not hex_box:IsFocused() then hex_box.Text = ("#%02X%02X%02X"):format(r, gg, b) end
         end
-
         local function changed(final)
             redraw()
             if live and (final or os.clock() - last_live > 0.4) then
@@ -12911,13 +11750,11 @@ do
                 g.lt_set_skin(current(), true)
             end
         end
-
         local function set_color(color, apply_now)
             hue, sat, val = color:ToHSV()
             redraw()
             if apply_now then g.lt_set_skin(color) end
         end
-
         local function wheel_at(position)
             local center = wheel.AbsolutePosition + Vector2.new(R, R)
             local offset = Vector2.new(position.X, position.Y) - center
@@ -12927,12 +11764,10 @@ do
             sat = math.clamp(offset.Magnitude / R, 0, 1)
             changed(false)
         end
-
         local function bar_at(position)
             val = math.clamp((position.X - bar.AbsolutePosition.X) / math.max(bar.AbsoluteSize.X, 1), 0, 1)
             changed(false)
         end
-
         local dragging_what
         wheel_input.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -12958,7 +11793,6 @@ do
                 changed(true)
             end
         end)
-
         local function from_rgb_boxes()
             local r, gg, b = tonumber(r_box.Text), tonumber(g_box.Text), tonumber(b_box.Text)
             if r and gg and b then
@@ -12981,7 +11815,6 @@ do
                 redraw()
             end
         end)
-
         for _, color in ipairs(lt_skin_palette()) do
             local swatch = Instance.new("TextButton")
             swatch.Text = ""
@@ -12992,7 +11825,6 @@ do
             Instance.new("UICorner", swatch).CornerRadius = UDim.new(1, 0)
             swatch.MouseButton1Click:Connect(function() set_color(color, true) end)
         end
-
         apply.MouseButton1Click:Connect(function() g.lt_set_skin(current()) end)
         live_btn.MouseButton1Click:Connect(function()
             live = not live
@@ -13000,37 +11832,28 @@ do
             live_btn.BackgroundColor3 = live and LT_ACCENT or PANEL
             if live then changed(true) end
         end)
-
-        -- [[ start from your current skin ]] --
         local my_char = LocalPlayer.Character
         local body_colors = my_char and my_char:FindFirstChildOfClass("BodyColors")
         if body_colors then set_color(body_colors.HeadColor3) else redraw() end
         g.lt_refresh_popups()
     end
-
-    -- [[ X hides and shows the menu (Atlas does that); the skin picker follows it. ]] --
     if g.lt_hide_key_conn then pcall(function() g.lt_hide_key_conn:Disconnect() end) end
     g.lt_hide_key_conn = UserInputService.InputBegan:Connect(function(input, processed)
         if processed or input.KeyCode ~= Enum.KeyCode.X then return end
         g.lt_ui_hidden = not g.lt_ui_hidden
         g.lt_refresh_popups()
     end)
-
-    ---------------------------------------------------------------- command bar
-
     local function lt_find_player(name)
         local target = name and name ~= "" and typeof(g.findplr) == "function" and g.findplr(name)
         if not target then g.notify("Error", "No player matches: " .. tostring(name), 4) end
         return target
     end
-
     local LT_COMMANDS = {}
     local LT_COMMAND_HELP = {
         "copy <player>", "tp <player>", "view <player>", "unview", "skin <r g b | #hex | picker>",
         "height <90-105>", "width <70-100>", "age <adult/teen/kid/toddler/baby>", "bio <text>", "name <text>",
         "editor [on/off]", "move / rotate / scale", "all / none (pick accessories)", "reset [all] (accessories)", "outfits", "cmds",
     }
-
     LT_COMMANDS.copy = function(args)
         local target = lt_find_player(args)
         if target == LocalPlayer then g.notify("Error", "That's you!", 3); return end
@@ -13099,12 +11922,10 @@ do
     LT_COMMANDS.all = function() if not g.lt_editor.enabled then g.lt_editor_toggle(true) end g.lt_editor_select_all(true) end
     LT_COMMANDS.none = function() g.lt_editor_select_all(false) end
     LT_COMMANDS.reset = function(args) g.lt_reset_adjustments(args:lower() == "all") end
-    LT_COMMANDS.outfits = function() if typeof(g.save_outfits_GUI) == "function" then g.save_outfits_GUI() end end -- [[ the Outfit Saver replaces this further down ]] --
+    LT_COMMANDS.outfits = function() if typeof(g.save_outfits_GUI) == "function" then g.save_outfits_GUI() end end
     LT_COMMANDS.cmds = function() g.notify("Info", "Commands: " .. table.concat(LT_COMMAND_HELP, ", "), 15) end
     LT_COMMANDS.help = LT_COMMANDS.cmds
-    -- [[ shared so later blocks can add commands ]] --
     g.lt_commands, g.lt_command_help = LT_COMMANDS, LT_COMMAND_HELP
-
     g.lt_run_command = function(text)
         text = tostring(text or ""):gsub("^%s+", ""):gsub("%s+$", "")
         text = text:gsub("^[!/;:]", "")
@@ -13116,17 +11937,11 @@ do
         if not ok then g.notify("Error", "Command failed: " .. tostring(err), 5) end
     end
 end
-
--- [[ ========================================================================================== ]] --
 print("[Flames] loading: outfit saver")
--- [[ Outfit Saver: as many outfits as you want, saved on this PC, each with a 3D avatar preview. ]] --
--- [[ Every change also writes a backup copy under your account's user id (it never changes,     ]] --
--- [[ even if you change your username), and a backup code brings every outfit back on any PC.  ]] --
--- [[ ========================================================================================== ]] --
 do
     local ACCENT = Color3.fromRGB(21, 103, 251)
     local BG, PANEL, CARD, TEXT, DIM = Color3.fromRGB(16, 16, 21), Color3.fromRGB(28, 28, 36), Color3.fromRGB(22, 22, 30), Color3.fromRGB(235, 235, 240), Color3.fromRGB(150, 150, 165)
-    local FOLDER = "lifetogether_admin_savedoutfits" -- [[ same folder as the Outfits Manager, so older saves show up too ]] --
+    local FOLDER = "lifetogether_admin_savedoutfits"
     local BACKUP_FOLDER = "lifetogether_outfit_backups"
     local CODE_FILE = "lifetogether_outfits_backup_code.txt"
     local KEEP_BACKUPS = 10
@@ -13135,26 +11950,18 @@ do
         "Shirt", "Pants", "GraphicTShirt", "Face", "Head", "Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg",
         "ClimbAnimation", "FallAnimation", "IdleAnimation", "JumpAnimation", "RunAnimation", "SwimAnimation", "WalkAnimation",
     }
-
     local function gui_parent()
         local ok, hidden = pcall(function() return gethui and gethui() end)
         return (ok and hidden) or CoreGui
     end
-
     local function can_save()
         return typeof(writefile) == "function" and typeof(readfile) == "function" and typeof(isfile) == "function"
             and typeof(listfiles) == "function" and typeof(makefolder) == "function" and typeof(isfolder) == "function"
     end
-
     local function clean_name(name)
         return (tostring(name or ""):gsub('[\\/:%*%?"<>|]', ""):gsub("^%s+", ""):gsub("%s+$", ""))
     end
-
     local function file_name(path) return path:match("([^/\\]+)%.json$") end
-
-    ---------------------------------------------------------------- storage
-
-    -- [[ { [name] = outfit } for every saved outfit ]] --
     local function read_all()
         local all = {}
         if not can_save() or not isfolder(FOLDER) then return all end
@@ -13167,8 +11974,6 @@ do
         end
         return all
     end
-
-    -- [[ a dated copy of every outfit under this account's user id; the newest few are kept ]] --
     local function backup_now()
         if not can_save() then return end
         local all = read_all()
@@ -13187,21 +11992,17 @@ do
             if typeof(delfile) == "function" then pcall(delfile, mine[i].path) end
         end
     end
-
     local function write_outfit(name, data)
         if not can_save() then return false end
         if not isfolder(FOLDER) then makefolder(FOLDER) end
         return pcall(writefile, FOLDER .. "/" .. name .. ".json", HttpService:JSONEncode(data))
     end
-
     local function free_name(name, taken)
         if not taken[name] then return name end
         local n = 2
         while taken[name .. " (" .. n .. ")"] do n += 1 end
         return name .. " (" .. n .. ")"
     end
-
-    -- [[ what you're wearing now, in the Outfits Manager's format plus the exact outfit (Desc) ]] --
     local function snapshot()
         local desc = g.lt_get_desc(LocalPlayer)
         if not desc then return nil end
@@ -13230,8 +12031,6 @@ do
         desc:Destroy()
         return outfit
     end
-
-    -- [[ the outfit in the game's format, from a save (older saves are rebuilt from their fields) ]] --
     local function payload_of(data)
         if type(data.Desc) == "table" then return HttpService:JSONDecode(HttpService:JSONEncode(data.Desc)) end
         local accessories, order = {}, 1
@@ -13255,12 +12054,10 @@ do
         properties.WidthScale = tonumber(data.WidthScale) or 1
         return { accessories = accessories, makeups = {}, properties = properties }
     end
-
     local function skin_of(data)
         local t = data.SkinTone
         return type(t) == "table" and Color3.new(tonumber(t[1]) or 1, tonumber(t[2]) or 1, tonumber(t[3]) or 1) or nil
     end
-
     g.lt_wear_saved_outfit = function(name)
         local data = read_all()[name]
         if not data then g.notify("Error", "No saved outfit called " .. tostring(name), 4); return false end
@@ -13269,7 +12066,6 @@ do
         if ok then g.notify("Success", "Wearing " .. name, 3) else g.notify("Error", "Couldn't wear it: " .. tostring(err), 5) end
         return ok
     end
-
     g.lt_save_current_outfit = function(name)
         name = clean_name(name)
         if name == "" then g.notify("Error", "Type a name for the outfit first.", 4); return false end
@@ -13285,11 +12081,7 @@ do
         end
         return ok
     end
-
-    ---------------------------------------------------------------- backup codes
-
     local B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-
     local function to_base64(text)
         local lib = typeof(crypt) == "table" and crypt or nil
         local fast = lib and (lib.base64encode or lib.base64_encode or (type(lib.base64) == "table" and lib.base64.encode))
@@ -13307,7 +12099,6 @@ do
         end
         return table.concat(out)
     end
-
     local function from_base64(text)
         local lib = typeof(crypt) == "table" and crypt or nil
         local fast = lib and (lib.base64decode or lib.base64_decode or (type(lib.base64) == "table" and lib.base64.decode))
@@ -13329,8 +12120,6 @@ do
         end
         return table.concat(out)
     end
-
-    -- [[ outfits squeezed for a code: default values are left out and filled back in on import ]] --
     local function pack_outfit(name, data)
         local payload = payload_of(data)
         local accessories = {}
@@ -13352,7 +12141,6 @@ do
         end
         return { n = name, a = accessories, m = payload.makeups, p = properties, g = data.Age, k = data.SkinTone }
     end
-
     local function unpack_outfit(packed)
         local accessories = {}
         for _, e in ipairs(packed.a or {}) do
@@ -13374,8 +12162,6 @@ do
         outfit.Age, outfit.SkinTone = packed.g, packed.k
         return outfit
     end
-
-    -- [[ a code for some outfits (all of them when names is nil) ]] --
     g.lt_outfit_code = function(names)
         local all, list = read_all(), {}
         for name, data in pairs(all) do
@@ -13384,8 +12170,6 @@ do
         if #list == 0 then return nil end
         return CODE_PREFIX .. to_base64(HttpService:JSONEncode({ v = 1, u = LocalPlayer.UserId, o = list }))
     end
-
-    -- [[ adds every outfit in a code; a name you already have gets a number after it ]] --
     g.lt_import_outfit_code = function(code)
         code = tostring(code or ""):gsub("%s", "")
         local start = code:find(CODE_PREFIX, 1, true)
@@ -13403,8 +12187,6 @@ do
         if added > 0 then backup_now() end
         return added
     end
-
-    -- [[ brings back outfits from this account's newest backup that aren't saved anymore ]] --
     g.lt_restore_outfit_backup = function()
         if not can_save() or not isfolder(BACKUP_FOLDER) then return 0, "no backups yet" end
         local uid, newest, newest_t = tostring(LocalPlayer.UserId), nil, -1
@@ -13421,9 +12203,6 @@ do
         end
         return restored
     end
-
-    ---------------------------------------------------------------- avatar previews
-
     local function desc_of(payload)
         local HumDesc = g.lt_require("HumDesc")
         if HumDesc and HumDesc.deserialise_humanoid_description then
@@ -13447,8 +12226,6 @@ do
         pcall(function() desc:SetAccessories(list, true) end)
         return desc
     end
-
-    -- [[ a dressed rig inside the card's viewport, the same way the game's own catalog mannequins are made ]] --
     local function render_preview(viewport, data)
         local world = Instance.new("WorldModel")
         world.Parent = viewport
@@ -13492,9 +12269,6 @@ do
         viewport.CurrentCamera = camera
         return true
     end
-
-    ---------------------------------------------------------------- window
-
     g.lt_open_outfit_saver = function()
         g.lt_outfits_open = true
         if g.lt_outfits_gui and g.lt_outfits_gui.Parent then
@@ -13502,14 +12276,12 @@ do
             g.lt_refresh_popups()
             return
         end
-
         local gui = Instance.new("ScreenGui")
         gui.Name = "FlamesOutfitSaver"
         gui.ResetOnSpawn = false
         gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
         gui.Parent = gui_parent()
         g.lt_outfits_gui = gui
-
         local main = Instance.new("Frame")
         main.Size = UDim2.fromOffset(440, 500)
         main.Position = UDim2.new(0.5, -220, 0.5, -250)
@@ -13521,7 +12293,6 @@ do
         stroke.Color = ACCENT
         stroke.Thickness = 1.5
         stroke.Parent = main
-
         local function label(parent, text, x, y, w, h, size, color, bold)
             local l = Instance.new("TextLabel")
             l.BackgroundTransparency = 1
@@ -13536,7 +12307,6 @@ do
             l.Parent = parent
             return l
         end
-
         local function button(parent, text, x, y, w, h, color)
             local b = Instance.new("TextButton")
             b.Position = UDim2.fromOffset(x, y)
@@ -13552,7 +12322,6 @@ do
             Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
             return b
         end
-
         local function textbox(parent, placeholder, x, y, w, h)
             local t = Instance.new("TextBox")
             t.Position = UDim2.fromOffset(x, y)
@@ -13570,7 +12339,6 @@ do
             Instance.new("UICorner", t).CornerRadius = UDim.new(0, 6)
             return t
         end
-
         local title = label(main, "Outfit Saver", 12, 6, 300, 24, 15, TEXT, true)
         title.Active = true
         local close = button(main, "X", 406, 6, 24, 24)
@@ -13595,13 +12363,11 @@ do
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
             end)
         end
-
         local name_box = textbox(main, "Outfit name...", 10, 38, 280, 28)
         local save_btn = button(main, "Save Current", 296, 38, 134, 28, ACCENT)
         local export_btn = button(main, "Backup Code (all)", 10, 72, 140, 26)
         local import_btn = button(main, "Import Code", 156, 72, 130, 26)
         local restore_btn = button(main, "Restore Backup", 292, 72, 138, 26)
-
         local import_box = textbox(main, "Paste a backup or outfit code here...", 10, 104, 330, 44)
         import_box.TextWrapped = true
         import_box.MultiLine = true
@@ -13610,7 +12376,6 @@ do
         import_box.Visible = false
         local import_go = button(main, "Add", 346, 104, 84, 44, ACCENT)
         import_go.Visible = false
-
         local grid_frame = Instance.new("ScrollingFrame")
         grid_frame.Position = UDim2.fromOffset(10, 106)
         grid_frame.Size = UDim2.fromOffset(420, 364)
@@ -13626,15 +12391,12 @@ do
         grid.CellPadding = UDim2.fromOffset(8, 8)
         grid.SortOrder = Enum.SortOrder.LayoutOrder
         grid.Parent = grid_frame
-
         local status = label(main, "", 12, 474, 416, 20, 12, DIM)
-
         local function show_import(on)
             import_box.Visible, import_go.Visible = on, on
             grid_frame.Position = UDim2.fromOffset(10, on and 154 or 106)
             grid_frame.Size = UDim2.fromOffset(420, on and 316 or 364)
         end
-
         local preview_queue = {}
         local preview_running = false
         local function run_previews()
@@ -13649,7 +12411,6 @@ do
                 preview_running = false
             end)
         end
-
         local cards = {}
         g.lt_outfits_refresh = function()
             for _, c in ipairs(cards) do c:Destroy() end
@@ -13676,7 +12437,6 @@ do
                 card.Parent = grid_frame
                 Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
                 table.insert(cards, card)
-
                 local viewport = Instance.new("ViewportFrame")
                 viewport.Position = UDim2.fromOffset(4, 4)
                 viewport.Size = UDim2.fromOffset(122, 122)
@@ -13687,17 +12447,14 @@ do
                 viewport.Parent = card
                 Instance.new("UICorner", viewport).CornerRadius = UDim.new(0, 6)
                 table.insert(preview_queue, { viewport = viewport, data = data })
-
                 local title_label = label(card, name, 6, 128, 118, 18, 12, TEXT, true)
                 title_label.TextTruncate = Enum.TextTruncate.AtEnd
                 title_label.TextWrapped = false
-
                 local wear = button(card, "Wear", 4, 150, 56, 26, ACCENT)
                 local share = button(card, "Code", 64, 150, 34, 26)
                 share.TextSize = 10
                 local delete = button(card, "Del", 100, 150, 26, 26, Color3.fromRGB(110, 30, 34))
                 delete.TextSize = 10
-
                 wear.MouseButton1Click:Connect(function() task.spawn(g.lt_wear_saved_outfit, name) end)
                 share.MouseButton1Click:Connect(function()
                     local code = g.lt_outfit_code({ name })
@@ -13719,7 +12476,7 @@ do
                         end)
                         return
                     end
-                    backup_now() -- [[ a backup right before deleting, so Restore Backup can bring it back ]] --
+                    backup_now()
                     if typeof(delfile) == "function" then pcall(delfile, FOLDER .. "/" .. name .. ".json") end
                     g.notify("Success", "Deleted " .. name .. " (Restore Backup brings it back).", 4)
                     g.lt_outfits_refresh()
@@ -13727,7 +12484,6 @@ do
             end
             run_previews()
         end
-
         save_btn.MouseButton1Click:Connect(function()
             if g.lt_save_current_outfit(name_box.Text) then
                 name_box.Text = ""
@@ -13764,13 +12520,9 @@ do
                 g.notify("Info", err or "Nothing to restore, every outfit in your newest backup is already here.", 5)
             end
         end)
-
         g.lt_outfits_refresh()
         g.lt_refresh_popups()
     end
-
-    ---------------------------------------------------------------- more accessories than the game's limit
-
     local ACCESSORY_TYPE_OF_ASSET = {
         Hat = "Hat", HairAccessory = "Hair", FaceAccessory = "Face", NeckAccessory = "Neck", ShoulderAccessory = "Shoulder",
         FrontAccessory = "Front", BackAccessory = "Back", WaistAccessory = "Waist", EyebrowAccessory = "Eyebrow",
@@ -13780,10 +12532,6 @@ do
     }
     local LAYERED_TYPES = { TShirt = true, Shirt = true, Pants = true, Jacket = true, Sweater = true, Shorts = true, LeftShoe = true, RightShoe = true, DressSkirt = true }
     g.lt_accessory_type_of_asset, g.lt_layered_types = ACCESSORY_TYPE_OF_ASSET, LAYERED_TYPES
-
-    -- [[ puts an accessory on by sending your whole outfit with it added, which isn't held to the phone's "max items" ]] --
-    -- [[ limit (only to the game's real one, once the wipe guard has learned it). ]] --
-    -- [[ accessory_type is looked up from the catalog when it isn't given. ]] --
     g.lt_add_accessory = function(id, accessory_type)
         id = tonumber(id)
         if not id then error("that isn't an item id", 0) end
@@ -13815,10 +12563,6 @@ do
         pcall(g.lt_send, "wear_outfit_from_desc", payload)
         return true
     end
-
-    -- [[ when the phone's wear button refuses a new accessory (its "max items" limit), it's put on by sending your ]] --
-    -- [[ whole outfit with it added. The game has a real limit too: going past that wipes the outfit, so the wipe ]] --
-    -- [[ guard in g.lt_send puts it back and remembers the limit, and later adds past it are refused. ]] --
     g.lt_no_item_limit = g.lt_no_item_limit ~= false
     do
         local function wearing(id)
@@ -13835,7 +12579,6 @@ do
             return found
         end
         local Net = g.lt_require("Net")
-        -- [[ a wrapper left by an earlier run is taken off first, so it's never wrapped twice ]] --
         if Net and g.lt_net_get_original then Net.get = g.lt_net_get_original end
         g.lt_net_get_original = nil
         if Net and type(Net.get) == "function" then
@@ -13860,13 +12603,7 @@ do
             end
         end
     end
-
-    ---------------------------------------------------------------- body size
-
-    -- [[ height / width / depth as multipliers (1 = normal). Applied once you stop dragging, keeps accessory ]] --
-    -- [[ adjustments, makeup and colors, and puts you back where you were if a big size drops you through the floor. ]] --
     local pending_size, last_size_change, size_waiting = {}, 0, false
-    -- [[ the height / width you picked, kept per account so a respawn or rejoin doesn't undo it ]] --
     local SIZE_FILE = "lifetogether_body_size.json"
     if g.lt_size_wanted == nil then
         g.lt_size_wanted = false
@@ -13887,8 +12624,6 @@ do
             writefile(SIZE_FILE, HttpService:JSONEncode(saved))
         end)
     end
-
-    -- [[ forget = true for resets: the size is applied but not remembered ]] --
     g.lt_set_body_size = function(changes, forget)
         for k, v in pairs(changes) do
             if tonumber(v) then pending_size[k] = math.max(0.05, tonumber(v)) end
@@ -13934,7 +12669,6 @@ do
             end
         end)
     end
-    -- [[ one small step up or down from your current size, no upper limit; press again to keep going ]] --
     g.lt_size_step = g.lt_size_step or 0.02
     g.lt_nudge_body_size = function(prop, direction)
         local current = pending_size[prop]
@@ -13948,11 +12682,9 @@ do
         g.lt_set_body_size({ [prop] = new_value })
         g.notify("Info", ("%s: %d%%"):format(prop == "HeightScale" and "Height" or "Width", math.floor(new_value * 100 + 0.5)), 1)
     end
-    -- [[ the older size buttons go through the same safe path ]] --
     g.height_func_setter = function(height) g.lt_set_body_size({ HeightScale = height }) end
     g.width_func_setter = function(width) g.lt_set_body_size({ WidthScale = width }) end
     g.size_func_setter = function(width, depth) g.lt_set_body_size({ WidthScale = width, DepthScale = depth }) end
-    -- [[ a worn or copied outfit's size becomes the one kept after a respawn ]] --
     g.lt_remember_body_size = function(properties)
         local keep = {}
         for _, k in ipairs({ "HeightScale", "WidthScale", "DepthScale" }) do
@@ -13965,9 +12697,6 @@ do
         g.lt_set_body_size(g.lt_size_original or { HeightScale = 1, WidthScale = 1, DepthScale = 1 }, true)
     end
     g.reset_to_original_height = g.lt_reset_body_size
-
-    -- [[ after a respawn the game dresses you from its own saved size; once it's done, your size goes back on ]] --
-    -- [[ (checked a few times, in case the game sets it again) ]] --
     local function size_is_wanted()
         if not g.lt_size_wanted then return true end
         local desc = g.lt_get_desc(LocalPlayer)
@@ -13994,9 +12723,6 @@ do
         restore_size(3)
     end)
     if g.lt_size_wanted then task.spawn(restore_size, 2) end
-
-    ---------------------------------------------------------------- command bar
-
     if g.lt_commands then
         g.lt_commands.outfits = function() g.lt_open_outfit_saver() end
         g.lt_commands.save = function(args) g.lt_save_current_outfit(args) end
@@ -14020,20 +12746,12 @@ do
         for _, help in ipairs({ "save <name>", "wear <name>", "backup (copy a backup code)", "add <item id>" }) do table.insert(g.lt_command_help, help) end
     end
 end
-
--- [[ ========================================================================================== ]] --
 print("[Flames] loading: catalog")
--- [[ Catalog Browser: search the Roblox catalog by creator (and keyword), see every item with   ]] --
--- [[ its picture, and wear it. Wearing goes through the full-outfit call, so everyone sees it.  ]] --
--- [[ Items Roblox has deleted or moderated can't be loaded by anyone, so those can't be worn.   ]] --
--- [[ Limited / collectible items are left out, and the game's own banned-item list is kept.     ]] --
--- [[ ========================================================================================== ]] --
 do
     local AvatarEditorService = game:GetService("AvatarEditorService")
     local MarketplaceService = game:GetService("MarketplaceService")
     local ACCENT = Color3.fromRGB(21, 103, 251)
     local BG, PANEL, CARD, TEXT, DIM = Color3.fromRGB(16, 16, 21), Color3.fromRGB(28, 28, 36), Color3.fromRGB(22, 22, 30), Color3.fromRGB(235, 235, 240), Color3.fromRGB(150, 150, 165)
-    -- [[ catalog asset type -> the outfit property it sets (for things that aren't accessories) ]] --
     local PROPERTY_OF_ASSET = {
         Shirt = "Shirt", Pants = "Pants", TShirt = "GraphicTShirt", Face = "Face", Head = "Head", DynamicHead = "Head",
         Torso = "Torso", LeftArm = "LeftArm", RightArm = "RightArm", LeftLeg = "LeftLeg", RightLeg = "RightLeg",
@@ -14049,12 +12767,10 @@ do
         { name = "Bodies", bundles = { "BodyParts", "Shoes" } },
         { name = "Animations", bundles = { "Animations" } },
     }
-
     local function gui_parent()
         local ok, hidden = pcall(function() return gethui and gethui() end)
         return (ok and hidden) or CoreGui
     end
-
     local banned_module
     local function game_bans()
         if banned_module == nil then
@@ -14066,16 +12782,12 @@ do
         end
         return banned_module or nil
     end
-
     local function is_limited(restrictions)
         for _, r in ipairs(type(restrictions) == "table" and restrictions or {}) do
             if r == "Limited" or r == "LimitedUnique" or r == "Collectible" then return true end
         end
         return false
     end
-
-    -- [[ puts on a list of parts { id, asset_type } in one full-outfit send: accessories are added (no item limit), ]] --
-    -- [[ clothes, body parts, heads, faces and animations replace what you have in that slot. ]] --
     g.lt_wear_parts = function(parts)
         local desc = g.lt_get_desc(LocalPlayer)
         if not desc then error("your character isn't loaded", 0) end
@@ -14118,8 +12830,6 @@ do
         pcall(g.lt_send, "wear_outfit_from_desc", payload)
         return changed
     end
-
-    -- [[ the wearable parts of a catalog item: itself, or everything inside a bundle ]] --
     local function parts_of(item)
         if item.ItemType == "Bundle" then
             local ok, details = pcall(function() return AvatarEditorService:GetItemDetails(item.Id, Enum.AvatarItemType.Bundle) end)
@@ -14131,7 +12841,6 @@ do
         end
         return { { id = item.Id, asset_type = item.AssetType } }
     end
-
     g.lt_wear_catalog_item = function(item)
         local ok, result = pcall(function() return g.lt_wear_parts(parts_of(item)) end)
         if ok then
@@ -14141,8 +12850,6 @@ do
         end
         return ok
     end
-
-    -- [[ wear from an id, or a link copied from the catalog / creator store (bundle links work too) ]] --
     g.lt_wear_by_id = function(text)
         text = tostring(text or "")
         local id = tonumber(text:match("/(%d+)") or text:match("%d+"))
@@ -14172,9 +12879,6 @@ do
         end
         return g.lt_wear_catalog_item({ Id = id, ItemType = "Asset", AssetType = asset_type, Name = info.Name })
     end
-
-    ---------------------------------------------------------------- search
-
     local function search_pages(creator, keyword, category)
         local params = CatalogSearchParams.new()
         params.SearchKeyword = keyword or ""
@@ -14197,8 +12901,6 @@ do
         if not ok then return nil, tostring(pages) end
         return pages
     end
-
-    -- [[ drops limited / collectible items and the game's own banned items, like the game's catalog does ]] --
     local function keep(items, keyword_search)
         local bans = game_bans()
         local out = {}
@@ -14212,9 +12914,6 @@ do
         end
         return out
     end
-
-    ---------------------------------------------------------------- window
-
     g.lt_open_catalog = function(creator)
         g.lt_catalog_open = true
         if g.lt_catalog_gui and g.lt_catalog_gui.Parent then
@@ -14222,14 +12921,12 @@ do
             g.lt_refresh_popups()
             return
         end
-
         local gui = Instance.new("ScreenGui")
         gui.Name = "FlamesCatalogBrowser"
         gui.ResetOnSpawn = false
         gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
         gui.Parent = gui_parent()
         g.lt_catalog_gui = gui
-
         local main = Instance.new("Frame")
         main.Size = UDim2.fromOffset(540, 540)
         main.Position = UDim2.new(0.5, -270, 0.5, -270)
@@ -14241,7 +12938,6 @@ do
         stroke.Color = ACCENT
         stroke.Thickness = 1.5
         stroke.Parent = main
-
         local function label(parent, text, x, y, w, h, size, color, bold)
             local l = Instance.new("TextLabel")
             l.BackgroundTransparency = 1
@@ -14288,7 +12984,6 @@ do
             Instance.new("UICorner", t).CornerRadius = UDim.new(0, 6)
             return t
         end
-
         local title = label(main, "Catalog Browser", 12, 6, 400, 24, 15, TEXT, true)
         title.Active = true
         local close = button(main, "X", 506, 6, 24, 24)
@@ -14313,13 +13008,11 @@ do
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
             end)
         end
-
         local creator_box = textbox("Creator username or group name", 10, 38, 200, 28)
         local keyword_box = textbox("Keyword (optional)", 216, 38, 180, 28)
         local search_btn = button(main, "Search", 402, 38, 128, 28, ACCENT)
         local id_box = textbox("Or paste an item id / catalog link to wear it", 10, 72, 386, 26)
         local id_btn = button(main, "Wear ID", 402, 72, 128, 26)
-
         local category_index = 1
         local tabs = {}
         for i, cat in ipairs(CATEGORIES) do
@@ -14327,7 +13020,6 @@ do
             b.TextSize = 11
             tabs[i] = b
         end
-
         local grid_frame = Instance.new("ScrollingFrame")
         grid_frame.Position = UDim2.fromOffset(10, 134)
         grid_frame.Size = UDim2.fromOffset(520, 366)
@@ -14343,13 +13035,10 @@ do
         grid.CellPadding = UDim2.fromOffset(9, 9)
         grid.SortOrder = Enum.SortOrder.LayoutOrder
         grid.Parent = grid_frame
-
         local status = label(main, "Type a creator's username and press Search.", 12, 506, 380, 26, 12, DIM)
         local more_btn = button(main, "Load More", 402, 506, 128, 26)
         more_btn.Visible = false
-
         local current_pages, keyword_search, shown, searching = nil, false, 0, false
-
         local function card_for(item)
             shown += 1
             local card = Instance.new("Frame")
@@ -14379,7 +13068,6 @@ do
                 end)
             end)
         end
-
         local function show_page()
             if not current_pages then return end
             local ok, items = pcall(function() return current_pages:GetCurrentPage() end)
@@ -14387,7 +13075,6 @@ do
             more_btn.Visible = not current_pages.IsFinished
             status.Text = shown == 0 and "Nothing found (deleted, moderated and limited items don't show)." or (shown .. " items. Press Wear to put one on.")
         end
-
         g.lt_catalog_search = function(creator)
             if searching then return end
             if creator then creator_box.Text = creator end
@@ -14411,7 +13098,6 @@ do
                 show_page()
             end)
         end
-
         local function select_tab(i)
             category_index = i
             for k, b in ipairs(tabs) do b.BackgroundColor3 = (k == i) and ACCENT or PANEL end
@@ -14423,7 +13109,6 @@ do
             end)
         end
         select_tab(1)
-
         search_btn.MouseButton1Click:Connect(function() g.lt_catalog_search() end)
         creator_box.FocusLost:Connect(function(enter) if enter then g.lt_catalog_search() end end)
         keyword_box.FocusLost:Connect(function(enter) if enter then g.lt_catalog_search() end end)
@@ -14439,13 +13124,9 @@ do
                 show_page()
             end)
         end)
-
         if creator then g.lt_catalog_search(creator) end
         g.lt_refresh_popups()
     end
-
-    ---------------------------------------------------------------- command bar
-
     if g.lt_commands then
         g.lt_commands.add = function(args) task.spawn(g.lt_wear_by_id, args) end
         g.lt_commands.wearid = g.lt_commands.add
@@ -14455,19 +13136,10 @@ do
         for _, help in ipairs({ "wearid <id or link>", "catalog <creator>" }) do table.insert(g.lt_command_help, help) end
     end
 end
-
--- [[ ========================================================================================== ]] --
 print("[Flames] loading: animator")
--- [[ Animator: play any animation on yourself and hold it on a frame (arm-only ones keep your idle and walk), rotate  ]] --
--- [[ single limbs into your own pose, and save them to switch between. It knows if you're on your own, carrying       ]] --
--- [[ someone or being carried, and each has its own saved list. While carrying or carried you start on your idle,    ]] --
--- [[ and every change is saved for that person and goes back on next time. Animations from the lists are seen by     ]] --
--- [[ everyone; limb poses are built into an animation on your side, so whether others see them is for a test to show.]] --
--- [[ ========================================================================================== ]] --
 do
     local function lt_carry_setup()
         if g.lt_carry_stop then pcall(g.lt_carry_stop) end
-
         local KSP = game:GetService("KeyframeSequenceProvider")
         local ContentProvider = game:GetService("ContentProvider")
         local FILE = "lifetogether_carry_poses_" .. tostring(LocalPlayer.UserId) .. ".json"
@@ -14477,7 +13149,6 @@ do
         local ARMS = { RightUpperArm = true, RightLowerArm = true, RightHand = true, LeftUpperArm = true, LeftLowerArm = true, LeftHand = true }
         local BASE = { [Enum.AnimationPriority.Core] = true, [Enum.AnimationPriority.Idle] = true, [Enum.AnimationPriority.Movement] = true }
         local TABS = { "Saved", "Limbs", "Roblox", "Game", "Packs", "Seen" }
-        -- [[ where you sit on someone you ride, from their root part: up on their right shoulder ]] --
         local RIDE_DEFAULT = CFrame.new(1.2, 2.4, 0.3)
         local RIDE_PRESETS = {
             { "Shoulder", RIDE_DEFAULT }, { "Head", CFrame.new(0, 4.2, 0) },
@@ -14490,7 +13161,6 @@ do
             { "RightUpperLeg", "Right upper leg" }, { "RightLowerLeg", "Right lower leg" }, { "RightFoot", "Right foot" },
             { "LeftUpperLeg", "Left upper leg" }, { "LeftLowerLeg", "Left lower leg" }, { "LeftFoot", "Left foot" },
         }
-        -- [[ the R15 joint tree an animation is built on, below HumanoidRootPart ]] --
         local RIG = {
             LowerTorso = {
                 UpperTorso = {
@@ -14529,17 +13199,15 @@ do
                 { "Confident idle", 1069977950 }, { "Patrol idle", 1149612882 }, { "Old school idle", 5319828216 },
             },
         }
-
         local C = {
             alive = true, conns = {}, ui_conns = {}, ours = setmetatable({}, { __mode = "k" }),
             mirrors = {}, mirror_state = setmetatable({}, { __mode = "k" }), parts = {}, seen = {}, seen_list = {}, token = 0,
-            role = false, -- [[ false until the first check, so your own animation goes back on at load ]] --
+            role = false,
             defaults = setmetatable({}, { __mode = "k" }), collide = {},
         }
         g.lt_carry = C
         if g.lt_carry_auto_menu == nil then g.lt_carry_auto_menu = true end
         g.lt_carry_shown = false
-
         local data = {}
         pcall(function()
             if typeof(isfile) == "function" and isfile(FILE) then
@@ -14548,12 +13216,11 @@ do
             end
         end)
         if type(data.poses) ~= "table" then data.poses = {} end
-        if type(data.saved) ~= "table" then data.saved = {} end -- [[ { name, role, pose, c0 } you saved to switch between ]] --
+        if type(data.saved) ~= "table" then data.saved = {} end
         if type(data.spots) ~= "table" then data.spots = {} end
         local function save_data()
             if typeof(writefile) == "function" then pcall(writefile, FILE, HttpService:JSONEncode(data)) end
         end
-
         local function asset(id)
             local n = tostring(id or ""):match("%d+")
             return n and ("rbxassetid://" .. n) or nil
@@ -14569,13 +13236,10 @@ do
             local p = id and Players:GetPlayerByUserId(id)
             return p and p.DisplayName or ("user " .. tostring(id))
         end
-        -- [[ which side you're on: "solo" (nobody), "carrying" or "carried". Each side has its own animations. ]] --
         local function side() return C.role or "solo" end
         local function session_key()
             return C.role and (C.role .. ":" .. tostring(C.kind) .. ":" .. tostring(C.partner)) or "solo"
         end
-
-        -- [[ which body parts an animation moves, read from the animation itself (false when it can't be read) ]] --
         local function parts_moved(id)
             id = asset(id)
             if not id then return false end
@@ -14614,10 +13278,6 @@ do
             local d = describe(set)
             return d == "both arms" or d == "right arm" or d == "left arm" or d == "upper body"
         end
-
-        ---------------------------------------------------------------- your pose
-
-        -- [[ a limb pose becomes a one-frame animation: rotated limbs move, every other joint is left to your idle ]] --
         local function register_custom(custom)
             local ok, id = pcall(function()
                 local kfs = Instance.new("KeyframeSequence")
@@ -14642,7 +13302,6 @@ do
             end)
             return ok and id or nil
         end
-
         local function stop_layer(fade)
             C.token += 1
             local track = C.layer
@@ -14655,10 +13314,6 @@ do
                 C.mirrors[original] = nil
             end
         end
-
-        -- [[ puts the pose on your character above everything else and holds it on the chosen frame. It plays up ]] --
-        -- [[ to that frame first and then stops, so everyone else's copy stops on the same frame as yours. The    ]] --
-        -- [[ old pose fades out only once the new one is playing, so switching never flashes back to idle.        ]] --
         local function apply_layer(pose)
             C.token += 1
             local token = C.token
@@ -14719,7 +13374,6 @@ do
             if C.refresh then pcall(C.refresh) end
             return true
         end
-
         local function idle_id(char)
             local animate = char and char:FindFirstChild("Animate")
             local idle = animate and animate:FindFirstChild("idle")
@@ -14731,10 +13385,6 @@ do
             C.own_idle, C.own_idle_animator = nil, nil
             if track then pcall(function() track:Stop(0.2) end) end
         end
-
-        -- [[ while you carry, copies of your own idle and walk play above the game's carry animation, so you stay on ]] --
-        -- [[ your normal idle. While you're carried, the game stops your idle, so it's played above its carry pose.  ]] --
-        -- [[ A pose sits on top of either and only holds the parts it moves.                                        ]] --
         local function sync_mirrors()
             local animator = my_animator()
             local base_on = animator and C.role and (not C.layer or (C.pose and C.pose.keep_base ~= false))
@@ -14794,7 +13444,6 @@ do
                 end
             end
         end
-
         local function save_pose()
             data.poses[session_key()] = copy(C.pose)
             save_data()
@@ -14805,14 +13454,10 @@ do
             save_pose()
             if C.refresh then pcall(C.refresh) end
         end
-
-        ---------------------------------------------------------------- limbs
-
         local function limb_part()
             local char = LocalPlayer.Character
             return char and C.limb and char:FindFirstChild(C.limb)
         end
-        -- [[ the joint that turns a body part, and where that joint sits ]] --
         local function joint_of(part)
             for _, d in ipairs(part and part:GetChildren() or {}) do
                 if d:IsA("AnimationConstraint") and d.Attachment1 and d.Attachment1.Parent == part and d.Attachment0 then return d end
@@ -14842,14 +13487,10 @@ do
             end
             save_pose()
         end
-
-        ---------------------------------------------------------------- where the carried person sits
-
         local function partner_char()
             local p = C.partner and Players:GetPlayerByUserId(C.partner)
             return p and p.Character
         end
-        -- [[ the game's joint between the carrier's upper body and the carried person's root, found from either side ]] --
         local function find_weld()
             if C.weld and C.weld.Parent then return C.weld end
             C.weld = nil
@@ -14874,8 +13515,6 @@ do
             if type(saved) == "table" and #saved == 12 then return CFrame.new(table.unpack(saved)) end
             return nil
         end
-        -- [[ the part the carried person is placed against, their root, and the starting spot. Riding: their root part ]] --
-        -- [[ and yours. A game carry: the game's joint between the carrier's upper body and the carried root.         ]] --
         local function spot_pair()
             if riding() then
                 local t = C.ride_player
@@ -14888,8 +13527,6 @@ do
             if w and w.Part0 and w.Part1 then return w.Part0, w.Part1, C.defaults[w] end
             return nil
         end
-        -- [[ a game carry: moves the game's joint on this screen only (the other account's window kept the game's spot). ]] --
-        -- [[ Riding needs nothing here: the ride loop puts you at the spot every frame.                                   ]] --
         local function apply_spot()
             if riding() then return end
             local weld = find_weld()
@@ -14906,11 +13543,6 @@ do
             save_data()
             if C.refresh then pcall(C.refresh) end
         end
-
-        ---------------------------------------------------------------- handles
-
-        -- [[ Studio-style handles: Move / Turn on the carried person during a carry, or rotate rings on a limb picked ]] --
-        -- [[ in the Limbs tab. Only one set shows at a time. Letting go saves.                                       ]] --
         local function clear_handles()
             if C.handle_folder then pcall(function() C.handle_folder:Destroy() end) end
             if C.proxy then pcall(function() C.proxy:Destroy() end) end
@@ -15036,10 +13668,6 @@ do
                 C.handle_sig = sig
             end
         end
-
-        ---------------------------------------------------------------- carry start / end
-
-        -- [[ who you're carrying or being carried by, from the attributes the game sets ]] --
         local function current_session()
             if C.ride_player and C.ride_player.Parent == Players then return "carried", C.ride_player.UserId, "Ride" end
             local carrying = LocalPlayer:GetAttribute("Carrying")
@@ -15049,7 +13677,6 @@ do
             if carrying == true and typeof(by) == "number" then return "carried", by, kind end
             return nil, nil, nil
         end
-
         local build_panel
         g.lt_carry_open = function()
             g.lt_carry_shown = true
@@ -15063,7 +13690,6 @@ do
             clear_handles()
             if g.lt_refresh_popups then g.lt_refresh_popups() elseif g.lt_carry_gui then g.lt_carry_gui.Enabled = false end
         end
-
         local function update_session()
             if not C.alive then return end
             local role, partner, kind = current_session()
@@ -15074,7 +13700,6 @@ do
             C.c0 = spot_c0()
             stop_layer(0.2)
             C.pose = nil
-            -- [[ a carry starts on idle unless something is saved for that person; after a carry, your own animation is back ]] --
             local saved = data.poses[session_key()]
             if saved then
                 C.pose = copy(saved)
@@ -15092,11 +13717,6 @@ do
             end
             if C.refresh then pcall(C.refresh) end
         end
-
-        ---------------------------------------------------------------- riding someone
-
-        -- [[ Ride: you sit on someone by putting your own root at your spot on them every frame. Your game runs your ]] --
-        -- [[ own physics, so everyone sees you there (the way headsit / stand scripts work), unlike a game carry.     ]] --
         local function find_player(text)
             text = (tostring(text or ""):lower():gsub("^@", ""):gsub("^%s+", ""):gsub("%s+$", ""))
             if text == "" then return nil end
@@ -15150,8 +13770,6 @@ do
             end)
             task.defer(update_session)
         end
-
-        -- [[ every animation played near you is remembered for the Seen tab (tool holds, emotes, poses) ]] --
         local function remember(p, track)
             if C.ours[track] or #C.seen_list >= 300 then return end
             local id = track.Animation and asset(track.Animation.AnimationId)
@@ -15171,9 +13789,6 @@ do
             if p.Character then task.spawn(watch_character, p, p.Character) end
             table.insert(C.conns, p.CharacterAdded:Connect(function(char) watch_character(p, char) end))
         end
-
-        ---------------------------------------------------------------- window
-
         build_panel = function()
             local W, H = 320, 470
             local gui = Instance.new("ScreenGui")
@@ -15184,7 +13799,6 @@ do
             local ok, hidden = pcall(function() return gethui and gethui() end)
             gui.Parent = (ok and hidden) or CoreGui
             g.lt_carry_gui = gui
-
             local main = Instance.new("Frame")
             main.Size = UDim2.fromOffset(W, H)
             main.Position = UDim2.new(0, 30, 0.5, -H / 2)
@@ -15197,7 +13811,6 @@ do
             stroke.Color = ACCENT
             stroke.Thickness = 1.5
             stroke.Parent = main
-
             local refresh, show_tab, choose, show_time, box, use
             local function label(text, x, y, w, h, size, color, parent)
                 local l = Instance.new("TextLabel")
@@ -15256,12 +13869,10 @@ do
                 Instance.new("UICorner", x).CornerRadius = UDim.new(0, 5)
                 return x
             end
-
             local title = label("Animator", 12, 9, 240, 22, 15)
             title.Active = true
             local close = button("X", W - 34, 6, 24, 24)
             close.MouseButton1Click:Connect(g.lt_carry_close)
-            -- [[ drag by the title ]] --
             do
                 local dragging, start, start_pos
                 title.InputBegan:Connect(function(input)
@@ -15282,10 +13893,7 @@ do
                     end
                 end))
             end
-
             local status = label("", 12, 34, W - 24, 32, 12, DIM)
-
-            -- [[ ride someone: sit on them in a way everyone sees ]] --
             label("Ride someone (everyone sees it)", 12, 72, W - 24, 16, 12, ACCENT)
             local ride_box = Instance.new("TextBox")
             ride_box.Position = UDim2.fromOffset(12, 90)
@@ -15306,8 +13914,6 @@ do
             ride_pad.PaddingLeft = UDim.new(0, 8)
             ride_pad.Parent = ride_box
             local ride_b = button("Ride", 250, 90, 58, 26, ACCENT)
-
-            -- [[ where the carried person sits: only while riding or carrying ]] --
             local spot_title = label("", 12, 122, W - 24, 16, 12, ACCENT)
             local move_b = button("Move", 12, 140, 70, 26)
             local turn_b = button("Turn", 86, 140, 70, 26)
@@ -15319,8 +13925,6 @@ do
                 end
                 return "your own"
             end
-
-            -- [[ your pose: sits below the carry buttons during a carry, and moves up when they're hidden ]] --
             local lower = Instance.new("Frame")
             lower.BackgroundTransparency = 1
             lower.Position = UDim2.fromOffset(0, 122)
@@ -15328,7 +13932,6 @@ do
             lower.Parent = main
             label("Your pose", 12, 0, W - 24, 16, 12, ACCENT, lower)
             local reset_b = button("Reset to idle", 12, 18, W - 24, 26, ACCENT, lower)
-
             local tab_buttons = {}
             for i, name in ipairs(TABS) do
                 local b = button(name, 12 + (i - 1) * 50, 50, 46, 24, nil, lower)
@@ -15336,7 +13939,6 @@ do
                 tab_buttons[name] = b
                 b.MouseButton1Click:Connect(function() show_tab(name) end)
             end
-
             local list = Instance.new("ScrollingFrame")
             list.Position = UDim2.fromOffset(12, 80)
             list.Size = UDim2.fromOffset(W - 24, 128)
@@ -15354,7 +13956,6 @@ do
             local pad = Instance.new("UIPadding")
             pad.PaddingTop, pad.PaddingLeft, pad.PaddingRight = UDim.new(0, 3), UDim.new(0, 3), UDim.new(0, 9)
             pad.Parent = list
-
             local rows, current_tab = {}, nil
             local function note(text, order, h)
                 local l = label(text, 8, 0, W - 50, h or 30, 11, DIM, list)
@@ -15373,8 +13974,6 @@ do
                 row.tag.Text = (d ~= "" and (d .. "   ") or "") .. short(row.id)
                 row.tag.TextColor3 = (set and arm_pose(set)) and GOOD or DIM
             end
-
-            -- [[ a saved animation is the pose you had on; clicking one switches to it ]] --
             local function apply_saved(entry)
                 C.pose = copy(entry.pose)
                 save_pose()
@@ -15387,8 +13986,6 @@ do
                 g.notify("Success", "Switched to " .. tostring(entry.name) .. ".", 2)
                 refresh()
             end
-            -- [[ each saved animation belongs to one side: on your own, carrying someone, or being carried. Only the list ]] --
-            -- [[ for the side you're on right now shows, so they never mix.                                                ]] --
             local SIDE_NAMES = { solo = "Animation ", carrying = "Carrying ", carried = "Carried " }
             local function saved_role(entry)
                 return (entry.role == "solo" or entry.role == "carried") and entry.role or "carrying"
@@ -15469,7 +14066,6 @@ do
                     table.insert(rows, { button = b })
                 end
             end
-
             show_tab = function(tab)
                 current_tab = tab
                 C.tab = tab
@@ -15496,7 +14092,6 @@ do
                     if C.parts[id] == nil then table.insert(pending, row) end
                 end
                 paint_rows()
-                -- [[ reads what each animation moves, one at a time, while this tab stays open ]] --
                 task.spawn(function()
                     for _, row in ipairs(pending) do
                         if current_tab ~= tab or not gui.Parent then return end
@@ -15506,7 +14101,6 @@ do
                     if refresh then refresh() end
                 end)
             end
-
             box = Instance.new("TextBox")
             box.Position = UDim2.fromOffset(12, 214)
             box.Size = UDim2.fromOffset(232, 26)
@@ -15526,9 +14120,7 @@ do
             box_pad.PaddingLeft = UDim.new(0, 8)
             box_pad.Parent = box
             use = button("Use", 250, 214, 58, 26, ACCENT, lower)
-
             local pose_label = label("", 12, 246, W - 24, 30, 11, TEXT, lower)
-
             local bar = Instance.new("Frame")
             bar.Position = UDim2.fromOffset(12, 286)
             bar.Size = UDim2.fromOffset(234, 10)
@@ -15554,10 +14146,8 @@ do
             local back = button("<", 252, 280, 26, 22, nil, lower)
             local fwd = button(">", 282, 280, 26, 22, nil, lower)
             local frame_label = label("", 12, 306, W - 24, 16, 11, DIM, lower)
-
             local keep = button("", 12, 328, W - 24, 24, nil, lower)
             local forget = button("", 12, 362, W - 24, 28, nil, lower)
-
             local function length() return (C.layer and C.pose and not C.pose.custom) and C.layer.Length or 0 end
             show_time = function()
                 local len = length()
@@ -15575,7 +14165,6 @@ do
                     frame_label.Text = ("Frame %.2fs of %.2fs (drag, or click < >)"):format(t, len)
                 end
             end
-
             refresh = function()
                 if not gui.Parent then return end
                 local who = C.partner and player_name(C.partner)
@@ -15630,7 +14219,6 @@ do
                 pcall(sync_handles)
             end
             C.refresh = refresh
-
             choose = function(id, name)
                 C.pose = { id = id, name = name, time = 0, keep_base = not (C.pose and C.pose.keep_base == false) }
                 save_pose()
@@ -15648,7 +14236,6 @@ do
                     if gui.Parent then refresh() end
                 end)
             end
-
             local function use_box()
                 if current_tab == "Saved" then
                     save_current(box.Text)
@@ -15662,8 +14249,6 @@ do
             end
             use.MouseButton1Click:Connect(use_box)
             box.FocusLost:Connect(function(enter) if enter then use_box() end end)
-
-            -- [[ dragging shows the frame on your screen straight away; letting go plays it to that frame for everyone ]] --
             local scrubbing = false
             local function preview(t)
                 if not C.pose or C.pose.custom then return end
@@ -15713,7 +14298,6 @@ do
             end
             back.MouseButton1Click:Connect(function() nudge(-1) end)
             fwd.MouseButton1Click:Connect(function() nudge(1) end)
-
             move_b.MouseButton1Click:Connect(function()
                 C.spot_mode = C.spot_mode ~= "Move" and "Move" or nil
                 refresh()
@@ -15724,7 +14308,6 @@ do
             end)
             default_b.MouseButton1Click:Connect(function()
                 if riding() then
-                    -- [[ steps through the ride spots: shoulder, head, back, beside ]] --
                     local at = 0
                     for i, preset in ipairs(RIDE_PRESETS) do
                         if C.c0 == preset[2] or (not C.c0 and i == 1) then at = i end
@@ -15764,13 +14347,11 @@ do
                 g.notify("Info", "Forgot what's saved for " .. player_name(C.partner) .. ".", 4)
                 refresh()
             end)
-
             local has_saved = false
             for _, entry in ipairs(data.saved) do if saved_role(entry) == side() then has_saved = true end end
             show_tab(has_saved and "Saved" or (C.role == "carrying" and "Seen" or "Roblox"))
             refresh()
         end
-
         g.lt_carry_stop = function()
             stop_ride()
             C.alive = false
@@ -15786,7 +14367,6 @@ do
             if g.lt_carry_gui then pcall(function() g.lt_carry_gui:Destroy() end) end
             g.lt_carry_gui, g.lt_carry_shown, C.refresh = nil, false, nil
         end
-
         for _, p in ipairs(Players:GetPlayers()) do watch_player(p) end
         table.insert(C.conns, Players.PlayerAdded:Connect(watch_player))
         table.insert(C.conns, LocalPlayer.CharacterAdded:Connect(function()
@@ -15808,7 +14388,6 @@ do
             while C.alive do
                 task.wait(0.1)
                 pcall(sync_mirrors)
-                -- [[ riding: stop if they left; keep your body from bumping into theirs ]] --
                 if C.ride_player then
                     if C.ride_player.Parent ~= Players then
                         g.notify("Info", "The person you were riding left.", 4)
@@ -15822,7 +14401,6 @@ do
                         end
                     end
                 end
-                -- [[ the game adds its joint a moment after the carry starts; the saved spot goes on once it's there ]] --
                 if C.role and not riding() then
                     local weld = find_weld()
                     if weld ~= C.applied_weld then
@@ -15831,7 +14409,6 @@ do
                         if C.refresh then pcall(C.refresh) end
                     end
                 end
-                -- [[ a limb pose being dragged is rebuilt at most 10 times a second ]] --
                 if C.limb_dirty and C.pose and C.pose.custom and not C.building then
                     C.limb_dirty = false
                     C.building = true
@@ -15844,7 +14421,6 @@ do
             end
         end)
         task.defer(update_session)
-
         g.lt_ride = function(text)
             if text == nil or text == "" then
                 if C.ride_player then stop_ride() return end
@@ -15869,7 +14445,6 @@ do
     end
     lt_carry_setup()
 end
-
 print("[Flames] loading: menu library")
 local Atlas = loadstring(prefetched.__atlas or g.http_get(prefetched.atlas_url, true))()
 local UI = Atlas.new({
@@ -15880,7 +14455,6 @@ local UI = Atlas.new({
     Bind = "X",
 })
 task.wait()
--- [[ builds each element straight away (it used to wait a frame per element, ~150 frames at load). ]] --
 g.create_ui_element = function(element_type, parent, config, global_name, flag)
     local creators = {
         Tab         = function() return parent:CreatePage(config) end,
@@ -15894,7 +14468,6 @@ g.create_ui_element = function(element_type, parent, config, global_name, flag)
         Label       = function() return parent:CreateParagraph(config) end,
         Paragraph   = function() return parent:CreateParagraph(config) end,
     }
-
     local creator = creators[element_type]
     if not creator then return g.notify("Error", "Unknown element type: " .. tostring(element_type), 1) end
     local ok, element = pcall(creator)
@@ -15931,10 +14504,9 @@ Flag = "Command_Bar_Input_UI",
 SavingDisabled = true,
 ClearTextOnFocus = true,
 Callback = function(text, enter_pressed)
-    if not enter_pressed then return end -- [[ only on Enter, not when you click away ]] --
+    if not enter_pressed then return end
     g.lt_run_command(text)
 end}, "Command_Bar_Input_UI")
-
 g.create_ui_element("Toggle", Avatar_Section, {
 Name = "Accessory Editor (FE)",
 Default = false,
@@ -15943,28 +14515,24 @@ SavingDisabled = true,
 Callback = function(state)
     g.lt_editor_toggle(state)
 end}, "Accessory_Editor_Toggle_UI")
-
 g.create_ui_element("Button", Avatar_Section, {
 Name = "Move Tool (Accessory Editor)",
 Callback = function()
     if not g.lt_editor.enabled then g.lt_editor_toggle(true) end
     g.lt_editor_set_mode("Move")
 end,})
-
 g.create_ui_element("Button", Avatar_Section, {
 Name = "Rotate Tool (Accessory Editor)",
 Callback = function()
     if not g.lt_editor.enabled then g.lt_editor_toggle(true) end
     g.lt_editor_set_mode("Rotate")
 end,})
-
 g.create_ui_element("Button", Avatar_Section, {
 Name = "Scale Tool (Accessory Editor)",
 Callback = function()
     if not g.lt_editor.enabled then g.lt_editor_toggle(true) end
     g.lt_editor_set_mode("Scale")
 end,})
-
 g.create_ui_element("Toggle", Avatar_Section, {
 Name = "Scale All Sides Together",
 Default = false,
@@ -15972,7 +14540,6 @@ Flag = "Accessory_Editor_Uniform_Toggle_UI",
 Callback = function(state)
     g.lt_editor.uniform = state
 end}, "Accessory_Editor_Uniform_Toggle_UI")
-
 g.create_ui_element("Slider", Avatar_Section, {
 Name = "Move Snap (x0.01 studs, 0 = free)",
 Min = 0,
@@ -15982,7 +14549,6 @@ Flag = "Accessory_Editor_Move_Snap_UI",
 Callback = function(val)
     g.lt_editor.snap_move = val / 100
 end}, "Accessory_Editor_Move_Snap_UI")
-
 g.create_ui_element("Slider", Avatar_Section, {
 Name = "Rotate Snap (degrees, 0 = free)",
 Min = 0,
@@ -15992,7 +14558,6 @@ Flag = "Accessory_Editor_Rotate_Snap_UI",
 Callback = function(val)
     g.lt_editor.snap_rotate = val
 end}, "Accessory_Editor_Rotate_Snap_UI")
-
 g.create_ui_element("Slider", Avatar_Section, {
 Name = "Scale Snap (x0.01, 0 = free)",
 Min = 0,
@@ -16002,25 +14567,21 @@ Flag = "Accessory_Editor_Scale_Snap_UI",
 Callback = function(val)
     g.lt_editor.snap_scale = val / 100
 end}, "Accessory_Editor_Scale_Snap_UI")
-
 g.create_ui_element("Button", Avatar_Section, {
 Name = "Reset Selected Accessories (FE)",
 Callback = function()
     g.lt_reset_adjustments(false)
 end,})
-
 g.create_ui_element("Button", Avatar_Section, {
 Name = "Reset All Accessories (FE)",
 Callback = function()
     g.lt_reset_adjustments(true)
 end,})
-
 g.create_ui_element("Button", Avatar_Section, {
 Name = "Skin Tone Picker (FE)",
 Callback = function()
     g.lt_open_skin_picker()
 end,})
-
 g.create_ui_element("ColorPicker", Avatar_Section, {
 Name = "Quick Skin Tone (FE)",
 Default = Color3.fromRGB(224, 156, 107),
@@ -16030,19 +14591,16 @@ Callback = function(color)
     if os.clock() - (g.lt_last_skin_send or 0) < 0.35 then return end
     g.lt_set_skin(color, true)
 end}, "Quick_Skin_Tone_Picker_UI")
-
 g.create_ui_element("Button", Avatar_Section, {
 Name = "Outfit Saver (previews + backups)",
 Callback = function()
     g.lt_open_outfit_saver()
 end,})
-
 g.create_ui_element("Button", Avatar_Section, {
 Name = "Catalog Browser (search creators, wear items)",
 Callback = function()
     g.lt_open_catalog()
 end,})
-
 g.create_ui_element("Input", Avatar_Section, {
 Name = "Wear Item by ID or Link (FE)",
 PlaceholderText = "item id or catalog link...",
@@ -16053,7 +14611,6 @@ Callback = function(text, enter_pressed)
     if not enter_pressed then return end
     task.spawn(g.lt_wear_by_id, text)
 end}, "Add_Accessory_Input_UI")
-
 g.create_ui_element("Toggle", Avatar_Section, {
 Name = "No Accessory Limit (FE)",
 Default = g.lt_no_item_limit ~= false,
@@ -16061,7 +14618,6 @@ Flag = "No_Accessory_Limit_Toggle_UI",
 Callback = function(state)
     g.lt_no_item_limit = state
 end}, "No_Accessory_Limit_Toggle_UI")
-
 g.create_ui_element("Slider", Avatar_Section, {
 Name = "Copy Outfit Speed (x0.05s per piece)",
 Min = 1,
@@ -16071,7 +14627,6 @@ Flag = "Copy_Outfit_Step_Slider_UI",
 Callback = function(val)
     g.lt_copy_step = val * 0.05
 end}, "Copy_Outfit_Step_Slider_UI")
-
 g.create_ui_element("Paragraph", Credits_Section, { Content = "Flames Hub | Life Together RP " .. tostring(g.Script_Version) })
 g.create_ui_element("Paragraph", Credits_Section, { Content = "Made by: " .. tostring(g.Script_Creator or "Flames Hub") })
 g.create_ui_element("Paragraph", Credits_Section, { Content = "Press X to hide or show this menu. Type cmds in the Command Bar for every command." })
@@ -16104,7 +14659,6 @@ Callback = function()
         if g.notify then g.notify("Success", "Successfully copied Discord server link to your Clipboard.", 5) end
     end
 end,})
-
 g.create_ui_element("Toggle", Home_Section, {
 Name = "Survey Spam (FE)",
 Default = g.Spam_And_Spoof_Survey_Submissions or false,
@@ -16112,7 +14666,6 @@ Flag = "Survey_Spammer_Toggle_UI",
 Callback = function(state)
     g.Spam_Survey_Completions(state)
 end}, "Survey_Spammer_Toggle_UI")
-
 g.create_ui_element("Toggle", Home_Section, {
 Name = "Hide DAISE Area",
 Default = g.DAISE_Area_Hidden or false,
@@ -16120,7 +14673,6 @@ Flag = "Hide_DAISE_Area_Toggle_UI",
 Callback = function(state)
     g.Hide_DAISE_Area(state)
 end}, "Hide_DAISE_Area_Toggle_UI")
-
 g.create_ui_element("Toggle", Home_Section, {
 Name = "Anti Tent Spawn",
 Default = g.Anti_Tent_Spawning_Currently_Active or false,
@@ -16128,7 +14680,6 @@ Flag = "Anti_Tent_Spawning_Toggled_UI",
 Callback = function(state)
     g.Anti_Tent_Spawning(state)
 end}, "Anti_Tent_Spawning_Toggled_UI")
-
 g.create_ui_element("Toggle", Players_Section, {
 Name = "Anti Invisible Players",
 Default = g.Anti_Invisible_Players_Currently_Active or false,
@@ -16136,19 +14687,16 @@ Flag = "No_Player_Invisible_Toggle_UI",
 Callback = function(state)
     g.Anti_Invisible_Players(state)
 end}, "No_Player_Invisible_Toggle_UI")
-
 g.create_ui_element("Button", Home_Section, {
 Name = "Open Mini-Games GUI (Fun)",
 Callback = function()
     g.open_minigame_menu()
 end,})
-
 g.create_ui_element("Button", LocalPlayer_Section, {
 Name = "Animator (FE)",
 Callback = function()
     if g.lt_carry_open then g.lt_carry_open() end
 end,})
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Open Animator When Carrying",
 Default = g.lt_carry_auto_menu ~= false,
@@ -16156,9 +14704,7 @@ Flag = "Carry_Pose_Auto_Menu_Toggle_UI",
 Callback = function(state)
     g.lt_carry_auto_menu = state
 end}, "Carry_Pose_Auto_Menu_Toggle_UI")
-
 print("[Flames] loading: kill script")
--- [[ stops everything this script runs and clears its "already loaded" flags, so it can be run again without rejoining ]] --
 g.lt_kill_script = function()
     pcall(function() if g.lt_editor_toggle then g.lt_editor_toggle(false) end end)
     pcall(function() if g.lt_carry_stop then g.lt_carry_stop() end end)
@@ -16189,13 +14735,11 @@ g.lt_kill_script = function()
 end
 if g.lt_commands then g.lt_commands.kill = function() g.lt_kill_script() end end
 if g.lt_command_help then table.insert(g.lt_command_help, "kill (stop the script to run it again)") end
-
 g.create_ui_element("Button", Home_Section, {
 Name = "Kill Script (run it again without rejoining)",
 Callback = function()
     g.lt_kill_script()
 end,})
-
 g.create_ui_element("Toggle", Home_Section, {
 Name = "Anti Hashtags (FE) BETA!",
 Default = (FlamesLibrary.modules and FlamesLibrary.modules.chat_filter_override.enabled) or false,
@@ -16203,7 +14747,6 @@ Flag = "Anti_Hashtags_Toggle_UI",
 Callback = function(state)
     if FlamesLibrary.modules then FlamesLibrary.modules.chat_filter_override:toggle(state) end
 end}, "Anti_Hashtags_Toggle_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Job Spammer (FE)",
 Default = g.Every_Job or false,
@@ -16211,7 +14754,6 @@ Flag = "Job_Spammer_Toggled_UI",
 Callback = function(state)
     g.job_spammer(state)
 end}, "Job_Spammer_Toggled_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Anti Clothing Ban (FE)",
 Default = false,
@@ -16219,7 +14761,6 @@ Flag = "Anti_Clothes_Ban_Roblox_Bypass_Toggle_UI",
 Callback = function(state)
     g.toggle_anti_clothing_ban_system(state)
 end}, "Anti_Clothes_Ban_Roblox_Bypass_Toggle_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Glitch Outfit (FE)",
 Default = g.Glitching_Outfit or false,
@@ -16227,7 +14768,6 @@ Flag = "Glitch_Outfit_Toggle_UI",
 Callback = function(state)
     g.glitch_outfit(state)
 end}, "Glitch_Outfit_Toggle_UI")
-
 g.create_ui_element("Slider", LocalPlayer_Section, {
 Name = "Side To Side Speed",
 Min = 1,
@@ -16237,7 +14777,6 @@ Flag = "Side_To_Side_Speed_Slider_UI",
 Callback = function(val)
     g.SideGlitch_Speed = val
 end}, "Side_To_Side_Speed_Slider_UI")
-
 g.create_ui_element("Slider", LocalPlayer_Section, {
 Name = "Side To Side Distance",
 Min = 1,
@@ -16247,7 +14786,6 @@ Flag = "Side_To_Side_Distance_Slider_UI",
 Callback = function(val)
     g.SideGlitch_Distance = val
 end}, "Side_To_Side_Distance_Slider_UI")
-
 g.create_ui_element("Slider", LocalPlayer_Section, {
 Name = "Side To Side Smoothness",
 Min = 0.1,
@@ -16257,7 +14795,6 @@ Flag = "Side_To_Side_Smoothness_UI_Slider",
 Callback = function(val)
     g.SideGlitch_Smooth = val
 end}, "Side_To_Side_Smoothness_UI_Slider")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Side To Side Glitch (FE)",
 Default = g.SideGlitch_Enabled or false,
@@ -16269,7 +14806,6 @@ Callback = function(state)
         g.stop_glitch_script()
     end
 end}, "Side_To_Side_Glitch_Not_Smooth_Toggle_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Smooth Side To Side Glitch (FE)",
 Default = g.SideGlitch_Enabled or false,
@@ -16281,7 +14817,6 @@ Callback = function(state)
         g.stop_glitch_script()
     end
 end}, "Side_To_Side_Glitch_Smooth_Toggle_UI")
-
 g.create_ui_element("Button", Vehicle_Section, {
 Name = "Despawn Vehicle (FE)",
 Callback = function()
@@ -16292,7 +14827,6 @@ Callback = function()
         g.spawn_any_vehicle(tostring(Current_Car.Name))
     end
 end,})
-
 g.create_ui_element("Toggle", Vehicle_Section, {
 Name = "Rainbow Vehicle (FE)",
 Default = g.Rainbow_Vehicle or false,
@@ -16300,7 +14834,6 @@ Flag = "Rainbow_Vehicle_Toggle_UI",
 Callback = function(state)
     g.RGB_Vehicle(state)
 end}, "Rainbow_Vehicle_Toggle_UI")
-
 g.create_ui_element("Toggle", Vehicle_Section, {
 Name = "Two Tone Vehicle (FE)",
 Default = g.two_tone_vehicle_colors_changing or false,
@@ -16308,7 +14841,6 @@ Flag = "Two_Tone_Car_Toggle_UI",
 Callback = function(state)
     g.two_color_switcher_FE_func(state)
 end}, "Two_Tone_Car_Toggle_UI")
-
 g.create_ui_element("Toggle", Phone_Section, {
 Name = "Rainbow Phone (FE)",
 Default = g.RGB_Rainbow_Phone or false,
@@ -16316,7 +14848,6 @@ Flag = "Rainbow_Phone_Toggle_UI",
 Callback = function(state)
     g.RGB_Phone(state)
 end}, "Rainbow_Phone_Toggle_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Free Premium (FE)",
 Default = g.Has_Free_LifePremium or false,
@@ -16324,7 +14855,6 @@ Flag = "Free_Premium_Toggle_UI",
 Callback = function(state)
     g.FreePayFuncToggle(state)
 end}, "Free_Premium_Toggle_UI")
-
 g.create_ui_element("Input", Vehicle_Section, {
 Name = "Spawn Vehicle (FE, Any)",
 PlaceholderText = "Enter vehicle name...",
@@ -16341,7 +14871,6 @@ Callback = function(split)
         g.notify("Success", "Spawning requested vehicle: Magic Carpet.", 3)
         return
     end
-
     for car_key, full_name in pairs(CarMap) do
         local cleanKey = car_key:lower():gsub("%s+", "")
         if cleanKey:find(input, 1, true) then
@@ -16351,10 +14880,8 @@ Callback = function(split)
             break
         end
     end
-
     if not matched then g.notify("Error", tostring(input) .. " did not match any existing Vehicles.", 15) end
 end}, "Spawn_Vehicle_Input_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Teleport To Player",
 PlaceholderText = "user or display...",
@@ -16377,7 +14904,6 @@ Callback = function(text)
     if Char and Char:FindFirstChildOfClass("Humanoid") then Char:PivotTo(Pivot * CFrame.new(0, 5, 0)) end
     g.notify("Success", "Teleported to "..Target.Name, 3)
 end}, "Teleport_Player_Input_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "View Player",
 PlaceholderText = "Username or displayname...",
@@ -16393,7 +14919,6 @@ Callback = function(split)
     g.Viewing_A_Player = true
     workspace.CurrentCamera.CameraSubject = target_human or target_char or g.Character
 end}, "View_Player_Input_UI")
-
 g.create_ui_element("Button", Players_Section, {
 Name = "Unview Player",
 Callback = function()
@@ -16401,7 +14926,6 @@ Callback = function()
     g.Viewing_A_Player = false
     workspace.CurrentCamera.CameraSubject = g.Humanoid or g.Character or g.LocalPlayer.Character or g.get_char(LocalPlayer, 10)
 end})
-
 g.main_vehicle_fly_UI_toggle = g.create_ui_element("Toggle", Vehicle_Section, {
 Name = "Vehicle Fly (FE)",
 Default = g.vehicle_fly or false,
@@ -16409,7 +14933,6 @@ Flag = "Vehicle_Fly_Toggle_UI",
 Callback = function(state)
     g.toggle_vehicle_fly(state)
 end}, "Vehicle_Fly_Toggle_UI")
-
 g.create_ui_element("Slider", Vehicle_Section, {
 Name = "Vehicle Fly Speed",
 Min = 1,
@@ -16419,7 +14942,6 @@ Flag = "Vehicle_Fly_Speed",
 Callback = function(val)
     if g.vehicle_fly then g.vehicle_fly_speed = val end
 end}, "Vehicle_Fly_Speed")
-
 g.create_ui_element("Toggle", Vehicle_Section, {
 Name = "Anti Car Fling (FE)",
 Default = g.VehicleDestroyer_Enabled or false,
@@ -16427,7 +14949,6 @@ Flag = "Anti_Car_Fling_Toggle_UI",
 Callback = function(state)
     g.anti_car_fling(state)
 end}, "Anti_Car_Fling_Toggle_UI")
-
 g.create_ui_element("Toggle", Vehicle_Section, {
 Name = "Auto Lock Car (FE)",
 Default = g.AutoLockOn or false,
@@ -16435,7 +14956,6 @@ Flag = "Auto_Lock_Car_Toggle_UI",
 Callback = function(state)
     if g.ToggleAutoLock then g.ToggleAutoLock(state) end
 end}, "Auto_Lock_Car_Toggle_UI")
-
 g.create_ui_element("Button", Vehicle_Section, {
 Name = "Lock Car (FE)",
 Callback = function()
@@ -16445,7 +14965,6 @@ Callback = function()
     g.lock_vehicle(g.get_vehicle())
     g.notify("Success", "Locked vehicle: " .. tostring(Current_Car), 5)
 end,})
-
 g.create_ui_element("Button", Vehicle_Section, {
 Name = "Unlock Car (FE)",
 Callback = function()
@@ -16455,7 +14974,6 @@ Callback = function()
     g.lock_vehicle(g.get_vehicle())
     g.notify("Success", "Unlocked vehicle: " .. tostring(Current_Car), 5)
 end,})
-
 g.create_ui_element("Toggle", Vehicle_Section, {
 Name = "Trailer (FE)",
 Default = g.trailer_enabled or false,
@@ -16470,7 +14988,6 @@ Callback = function(state)
     end
     g.water_skie_trailer(state, g.get_vehicle())
 end}, "Trailer_Toggle_UI")
-
 g.create_ui_element("Toggle", Vehicle_Section, {
 Name = "View Car (FE)",
 Default = g.viewing_car or false,
@@ -16524,7 +15041,6 @@ Callback = function(state)
         g.viewing_car = false
     end
 end}, "View_Car_Toggle_UI")
-
 g.create_ui_element("Button", Vehicle_Section, {
 Name = "Bring Vehicle To Me (FE)",
 Callback = function()
@@ -16559,7 +15075,6 @@ Callback = function()
     if tween then tween.Completed:Wait() end
     g.notify("Success", "Brought your Vehicle to you!", 5)
 end,})
-
 g.create_ui_element("Button", Vehicle_Section, {
 Name = "Go To Vehicle (FE)",
 Callback = function()
@@ -16569,7 +15084,6 @@ Callback = function()
         g.Character:PivotTo(g.get_vehicle():GetPivot() * CFrame.new(0, 5, 0))
     end
 end,})
-
 g.create_ui_element("Input", Vehicle_Section, {
 Name = "Teleport Car To Player (FE)",
 PlaceholderText = "Username or displayname...",
@@ -16585,7 +15099,6 @@ Callback = function(split)
         if not Target_Char then return end
         local Target_CFrame = Target_Char and Target_Char:GetPivot() * CFrame.new(0, 5, 0)
         local myVehicle = nil
-
         for _, v in ipairs(g.Workspace.Vehicles:GetChildren()) do
             if v:IsA("Model") and v:FindFirstChild("owner") and v.owner.Value == g.LocalPlayer then
                 if v:FindFirstChild("VehicleSeat") then
@@ -16594,7 +15107,6 @@ Callback = function(split)
                 end
             end
         end
-
         if not myVehicle then g.notify("Error", "No owned vehicle found.", 5); return end
         local seat = myVehicle:FindFirstChild("VehicleSeat")
         if seat and g.Humanoid then
@@ -16612,11 +15124,9 @@ Callback = function(split)
         else
             g.HumanoidRootPart.CFrame = Old_CFrame_TP_Car
         end
-
         g.notify("Success", "Teleported vehicle to target player: " .. tostring(Goto_Player), 5)
     end
 end}, "TP_Car_To_Player_Input_UI")
-
 g.create_ui_element("Input", Vehicle_Section, {
 Name = "Steal Car (FE)",
 PlaceholderText = "Username or displayname...",
@@ -16632,7 +15142,6 @@ Callback = function(split)
     fw(0.2)
     g.steal_car_functionality(take_vehicle_target_plr)
 end}, "Steal_Car_Input_UI")
-
 g.create_ui_element("Toggle", Vehicle_Section, {
 Name = "Vehicle ESP",
 Default = g.vehicle_esp_enabled or false,
@@ -16640,7 +15149,6 @@ Flag = "Vehicle_ESP_Toggle_UI",
 Callback = function(state)
     g.vehicle_esp_toggle(state)
 end}, "Vehicle_ESP_Toggle_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Orbit Player (FE)",
 PlaceholderText = "User or Display...",
@@ -16653,7 +15161,6 @@ Callback = function(split)
     local distance = g.Orbit_Distance_Value or 5
     g.start_orbit_plr(Target, speed, distance)
 end}, "Orbit_Player_Input_UI")
-
 g.create_ui_element("Slider", Players_Section, {
 Name = "Orbit Speed",
 Min = 1,
@@ -16666,7 +15173,6 @@ Callback = function(val)
         g.set_orbit_speed(val)
     end
 end}, "Orbit_Speed_Slider_UI")
-
 g.create_ui_element("Slider", Players_Section, {
 Name = "Orbit Distance",
 Min = 1,
@@ -16676,7 +15182,6 @@ Flag = "Orbit_Distance_Slider_UI",
 Callback = function(val)
     g.Orbit_Distance_Value = val
 end}, "Orbit_Distance_Slider_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Annoy Player (FE)",
 PlaceholderText = "Username or displayname...",
@@ -16691,10 +15196,9 @@ Callback = function(split)
             return
         else
             g.notify("Error", "You are already annoying a Player!", 5)
-            return 
+            return
         end
     end
-
     local target_userid = Target.UserId
     local rejoin_limit = 60
     g.Currently_Annoying_Player = Target.Name
@@ -16721,46 +15225,40 @@ Callback = function(split)
                         fw(1)
                         elapsed_time += 1
                     end
-
                     if elapsed_time >= rejoin_limit then
                         g.annoy_active = false
                         g.Currently_Annoying_Player = nil
                         g.Currently_Running_Annoy_Loop = nil
                         g.notify("Warning", "Target did not rejoin within 60 seconds, loop disabled.", 10)
-                        return 
+                        return
                     end
                 end
-
                 g.Send("request_carry", Target)
                 fw(0)
                 g.Send("request_call", Target)
                 fw(0)
                 g.Send("end_call", Target)
             end)
-
             if not success then
                 g.annoy_active = false
                 g.Currently_Annoying_Player = nil
                 g.Currently_Running_Annoy_Loop = nil
             end
         end
-
         g.Currently_Annoying_Player = nil
         g.Currently_Running_Annoy_Loop = nil
     end)
     g.Currently_Running_Annoy_Loop = Annoy_Thread
 end}, "Annoy_Player_Input_UI")
-
 g.create_ui_element("Button", Players_Section, {
 Name = "UnAnnoy Player",
-Callback = function() 
+Callback = function()
     if not g.annoy_active then g.notify("Warning", "Annoy Player is not running.", 5); return end
     g.annoy_active = false
     if g.Currently_Annoying_Player then g.Currently_Annoying_Player = nil end
     if g.Currently_Running_Annoy_Loop then g.Currently_Running_Annoy_Loop = nil end
     g.notify("Success", "Annoy loop disabled.", 5)
 end,})
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Loop Fling Player",
 PlaceholderText = "Username or displayname...",
@@ -16772,19 +15270,16 @@ Callback = function(split)
         g.start_loopfling(loop_fling_victim)
     end
 end}, "Loop_Fling_Input_UI")
-
 g.create_ui_element("Button", Players_Section, {
 Name = "UnLoopfling Player",
 Callback = function()
     g.stop_loopfling()
 end,})
-
 g.create_ui_element("Button", Extras_Section, {
 Name = "Tools Menu (Pistol + Laser) (FE)",
 Callback = function()
     g.tools_menu_for_life_together_flames_hub()
 end,})
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Bring Player (FE)",
 PlaceholderText = "Username or displayname...",
@@ -16806,14 +15301,12 @@ Callback = function(split)
         end
         return nil
     end
-
     local Vehicle = g.get_vehicle()
     if not Vehicle or Vehicle.Name ~= "SchoolBus" then
         g.spawn_any_vehicle("SchoolBus")
         fw(0.5)
         Vehicle = wait_for_bus(5)
     end
-
     if Vehicle and Vehicle.Name == "SchoolBus" then
         g.vehicle_bring_player(target)
         g.notify("Success", "Bringing player: " .. target.Name, 3)
@@ -16821,7 +15314,6 @@ Callback = function(split)
         g.notify("Error", "Failed to spawn/find SchoolBus.", 3)
     end
 end}, "Bring_Player_Input_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Kill Player (FE)",
 PlaceholderText = "Username or displayname...",
@@ -16843,14 +15335,12 @@ Callback = function(split)
         end
         return nil
     end
-
     local Vehicle = g.get_vehicle()
     if not Vehicle or Vehicle.Name ~= "SchoolBus" then
         g.spawn_any_vehicle("SchoolBus")
         fw(0.5)
         Vehicle = wait_for_bus(5)
     end
-
     if Vehicle and Vehicle.Name == "SchoolBus" then
         g.vehicle_kill_player(target)
         g.notify("Success", "Killing player: "..tostring(target.Name), 3)
@@ -16858,7 +15348,6 @@ Callback = function(split)
         g.notify("Error", "Failed to spawn/find SchoolBus.", 3)
     end
 end}, "Kill_Player_Input_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Void Player (FE)",
 PlaceholderText = "Username or displayname...",
@@ -16880,14 +15369,12 @@ Callback = function(split)
         end
         return nil
     end
-
     local Vehicle = g.get_vehicle()
     if not Vehicle or Vehicle.Name ~= "SchoolBus" then
         g.spawn_any_vehicle("SchoolBus")
         fw(0.5)
         Vehicle = wait_for_bus(5)
     end
-
     if Vehicle and Vehicle.Name == "SchoolBus" then
         g.vehicle_void_player(target)
         g.notify("Success", "Sending player to the Void | player: " .. target.Name, 3)
@@ -16895,7 +15382,6 @@ Callback = function(split)
         g.notify("Error", "Failed to spawn/find SchoolBus.", 3)
     end
 end}, "Void_Player_Input_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Skydive Player (FE)",
 PlaceholderText = "Username or displayname...",
@@ -16917,14 +15403,12 @@ Callback = function(split)
         end
         return nil
     end
-
     local Vehicle = g.get_vehicle()
     if not Vehicle or Vehicle.Name ~= "SchoolBus" then
         g.spawn_any_vehicle("SchoolBus")
         fw(0.5)
         Vehicle = wait_for_bus(5)
     end
-
     if Vehicle and Vehicle.Name == "SchoolBus" then
         g.vehicle_skydive_player(target)
         g.notify("Success", "Skydiving player: " .. target.Name, 3)
@@ -16932,7 +15416,6 @@ Callback = function(split)
         g.notify("Error", "Failed to spawn/find SchoolBus.", 3)
     end
 end}, "Skydive_Player_Input_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Copy Avatar (FE)",
 Description = "Copies the target players entire avatar (FE).",
@@ -16945,7 +15428,6 @@ Callback = function(split)
     if Target.Name == "CIippedByAura" or Target.Name == "L0CKED_1N1" then g.notify("Error", "You can't copy this player's avatar!", 5); return end
     g.copy_plr_avatar(Target)
 end}, "Copy_Avatar_Input_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Copy Player Emote (FE)",
 PlaceholderText = "Username or displayname...",
@@ -16955,7 +15437,6 @@ Callback = function(split)
     if not target_plr then g.notify("Error", "Player not found or does not exist.", 5); return end
     g.copy_emote_plr(target_plr)
 end}, "Copy_Emote_Input_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Check Premium",
 PlaceholderText = "Username or displayname...",
@@ -16972,7 +15453,6 @@ Callback = function(split)
         g.notify("Error", "Something unexpectedly happened while checking Player.", 5); return
     end
 end}, "Check_Premium_Input_UI")
-
 g.create_ui_element("Input", LocalPlayer_Section, {
 Name = "WalkSpeed (FE)",
 PlaceholderText = "Enter walkspeed...",
@@ -16984,7 +15464,6 @@ Callback = function(split)
     g.change_property("WalkSpeed", New_Val)
     g.notify("Success", "Updated WalkSpeed to: " .. tostring(New_Val), 5)
 end}, "Speed_Input_UI")
-
 g.create_ui_element("Input", LocalPlayer_Section, {
 Name = "Jump Height (FE)",
 PlaceholderText = "Enter jump height...",
@@ -16996,7 +15475,6 @@ Callback = function(split)
     g.change_property("JumpHeight", New_ValJP)
     g.notify("Success", "Updated JumpHeight to: " .. tostring(New_ValJP), 5)
 end}, "Jump_Height_Input_UI")
-
 g.create_ui_element("Input", LocalPlayer_Section, {
 Name = "Gravity (FE)",
 PlaceholderText = "Enter gravity value...",
@@ -17007,7 +15485,6 @@ Callback = function(split)
     g.change_gravity_val(New_Grav)
     g.notify("Success", "Updated Gravity to: "..tostring(New_Grav), 5)
 end}, "Gravity_Input_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Noclip (FE)",
 Default = g.Noclip_Enabled or false,
@@ -17021,7 +15498,6 @@ Callback = function(state)
         g.Toggleable_Noclip(false)
     end
 end}, "Noclip_Toggle_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Invisible (FE)",
 Default = g.is_invisible_script_toggled or false,
@@ -17035,7 +15511,6 @@ Callback = function(state)
         g.set_invisible(false)
     end
 end}, "Invisible_Toggle_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Float (FE)",
 Default = g.Float_Running_In_Flames_Hub or false,
@@ -17047,7 +15522,6 @@ Callback = function(state)
         g.stop_flames_float()
     end
 end}, "Float_Toggle_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Spin (FE)",
 Default = g.already_spinning_localplr or false,
@@ -17060,7 +15534,6 @@ Callback = function(state)
         g.spin_plr(false)
     end
 end}, "Spin_Toggle_UI")
-
 g.create_ui_element("Slider", LocalPlayer_Section, {
 Name = "Spin Speed",
 Min = 1,
@@ -17071,20 +15544,16 @@ Callback = function(val)
     g.Spin_Speed_Value = val
     if g.already_spinning_localplr then g.change_spin_speed(val) end
 end}, "Spin_Speed_Slider_UI")
-
 g.create_ui_element("Button", LocalPlayer_Section, {
 Name = "Cover Map With Your Avatar (FE)",
 Callback = function()
     g.size_func_setter(85, 85)
 end,})
-
 g.create_ui_element("Button", LocalPlayer_Section, {
 Name = "Reset Size (FE)",
 Callback = function()
     g.lt_reset_body_size()
 end,})
-
--- [[ height / width in small steps per press, no upper limit; applied once you stop pressing ]] --
 g.create_ui_element("Slider", LocalPlayer_Section, {
 Name = "Size Step (% per press)",
 Min = 1,
@@ -17094,38 +15563,32 @@ Flag = "Size_Step_Slider_UI",
 Callback = function(val)
     g.lt_size_step = val / 100
 end}, "Size_Step_Slider_UI")
-
 g.create_ui_element("Button", LocalPlayer_Section, {
 Name = "Height + (FE)",
 Callback = function()
     g.lt_nudge_body_size("HeightScale", 1)
 end,})
-
 g.create_ui_element("Button", LocalPlayer_Section, {
 Name = "Height - (FE)",
 Callback = function()
     g.lt_nudge_body_size("HeightScale", -1)
 end,})
-
 g.create_ui_element("Button", LocalPlayer_Section, {
 Name = "Width + (FE)",
 Callback = function()
     g.lt_nudge_body_size("WidthScale", 1)
 end,})
-
 g.create_ui_element("Button", LocalPlayer_Section, {
 Name = "Width - (FE)",
 Callback = function()
     g.lt_nudge_body_size("WidthScale", -1)
 end,})
-
 g.create_ui_element("Button", LocalPlayer_Section, {
 Name = "Normal Size (FE)",
 Callback = function()
     if not g.reset_to_original_height or typeof(g.reset_to_original_height) ~= "function" then return end
     pcall(function() g.reset_to_original_height() end)
 end}, "Normal_Size_Button_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Flash Name (FE)",
 Default = g.Flashing_Name_Title or false,
@@ -17141,7 +15604,6 @@ Callback = function(state)
         g.notify("Success", "Flash Name is now disabled.", 5)
     end
 end}, "Flash_Name_Toggle_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Flash Invisible (FE)",
 Default = g.Invisible_Flash or false,
@@ -17168,7 +15630,6 @@ Callback = function(state)
         FlamesLibrary.disconnect("flames_flash_invis")
     end
 end}, "Flash_Invis_Toggle_UI")
-
 g.create_ui_element("Toggle", Extras_Section, {
 Name = "Night Vision",
 Default = g.NightVisionEnabled or false,
@@ -17176,7 +15637,6 @@ Flag = "Night_Vision_Toggle_UI",
 Callback = function(state)
     g.night_vision(state)
 end}, "Night_Vision_Toggle_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Anti Fling",
 Default = g.afEnabled or false,
@@ -17194,7 +15654,6 @@ Callback = function(state)
         g.ToggleNoclip(false)
     end
 end}, "Anti_Fling_Toggle_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Anti Void",
 Default = g.Anti_Void_Enabled_Bool or false,
@@ -17202,13 +15661,11 @@ Flag = "Anti_Void_Toggle_UI",
 Callback = function(state)
     g.anti_void(state)
 end}, "Anti_Void_Toggle_UI")
-
 g.create_ui_element("Button", Houses_Section, {
 Name = "Delete House (FE)",
 Callback = function()
     g.Delete_House()
 end,})
-
 g.create_ui_element("Toggle", Houses_Section, {
 Name = "Anti House Ban (FE)",
 Default = g.never_banned_houses or false,
@@ -17283,19 +15740,16 @@ Callback = function(state)
         g.notify("Success", "Flames Hub | Anti-House-Ban V2 is now disabled.", 7)
     end
 end}, "Anti_House_Ban_Toggle_UI")
-
 g.create_ui_element("Button", LocalPlayer_Section, {
 Name = "Set SpawnPoint",
 Callback = function()
     g.set_spawnpoint(0.1)
 end}, "Set_Spawnpoint_Button_UI")
-
 g.create_ui_element("Button", LocalPlayer_Section, {
 Name = "Clear SpawnPoint",
 Callback = function()
     g.clear_spawnpoint()
 end}, "Clear_Spawnpoint_Button_UI")
-
 g.create_ui_element("Button", Extras_Section, {
 Name = "Rejoin",
 Callback = function()
@@ -17321,13 +15775,11 @@ Callback = function()
     end
     safe_teleport()
 end}, "Rejoin_Button_UI")
-
 g.create_ui_element("Button", Extras_Section, {
 Name = "YouTube Music Player (MIGHT CRASH/FREEZE YOU!)",
 Callback = function()
     g.load_youtube_music_player_func()
 end})
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Anti Sit",
 Default = g.Not_Ever_Sitting or false,
@@ -17335,7 +15787,6 @@ Flag = "Anti_Sit_Toggle_UI",
 Callback = function(state)
     g.anti_sit_func(state)
 end}, "Anti_Sit_Toggle_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Walk Fling (FE)",
 Default = g.walkflinging or false,
@@ -17349,7 +15800,6 @@ Callback = function(state)
         fn()
     end
 end}, "Walk_Fling_Toggle_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Name Spam (FE, Slow!)",
 Default = g.Name_Spammer_Currently_Enabled or false,
@@ -17357,7 +15807,6 @@ Flag = "Name_Spam_Toggle_UI",
 Callback = function(state)
     g.name_changer_premium(state)
 end}, "Name_Spam_Toggle_UI")
-
 g.create_ui_element("Toggle", Phone_Section, {
 Name = "Block Calls (FE)",
 Default = g.Auto_Calls_Blocker_V3_Is_Enabled_Boolean_Flag or false,
@@ -17410,7 +15859,6 @@ Callback = function(state)
         g.notify("Success", "Calls_Blocker_V3 has been disabled.", 5)
     end
 end}, "Block_Calls_Toggle_UI")
-
 g.create_ui_element("Slider", LocalPlayer_Section, {
 Name = "Fly Speed",
 Min = 1,
@@ -17420,7 +15868,6 @@ Flag = "Fly_Speed_Slider_UI",
 Callback = function(val)
     g.Fly_Speed_Value = val
 end}, "Fly_Speed_Slider_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Fly (FE)",
 Default = g.FlyEnabled or false,
@@ -17436,7 +15883,6 @@ Callback = function(state)
         g.DisableFly()
     end
 end}, "Fly_Toggle_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Fly 2 - Magic Carpet (FE)",
 Default = g.Enabled_Flying or false,
@@ -17452,7 +15898,6 @@ Callback = function(state)
         g.DisableFly2()
     end
 end}, "Fly2_Toggle_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Fly 3 - Adonis (FE)",
 Default = g.AdonisAdminFlyEnabled or false,
@@ -17469,7 +15914,6 @@ Callback = function(state)
         g.Stop_Fly_3_Function()
     end
 end}, "Fly3_Toggle_UI")
-
 g.create_ui_element("Input", Vehicle_Section, {
 Name = "Car Max Speed (FE)",
 PlaceholderText = "Enter number...",
@@ -17490,7 +15934,6 @@ Callback = function(split)
     end
     g.notify("Error", "No car or humanoid vehicle found.", 5)
 end}, "Car_Speed_Input_UI")
-
 g.create_ui_element("Input", Vehicle_Section, {
 Name = "Car Max Accel (FE)",
 PlaceholderText = "Enter number...",
@@ -17509,7 +15952,6 @@ Callback = function(split)
         g.notify("Error", "Could not find car or humanoid vehicle.", 10)
     end
 end}, "Car_Accel_Input_UI")
-
 g.create_ui_element("Input", Vehicle_Section, {
 Name = "Car Accel 0-60 (FE)",
 PlaceholderText = "Enter number...",
@@ -17528,7 +15970,6 @@ Callback = function(split)
         g.notify("Error", "Could not find car or humanoid vehicle.", 10)
     end
 end}, "Car_Accel_060_Input_UI")
-
 g.create_ui_element("Input", Vehicle_Section, {
 Name = "Car Turn Angle (FE)",
 PlaceholderText = "Enter number...",
@@ -17547,7 +15988,6 @@ Callback = function(split)
         g.notify("Error", "Could not find car or humanoid vehicle.", 10)
     end
 end}, "Car_Turn_Angle_Input_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Rainbow Car (Friend, FE)",
 PlaceholderText = "Username or displayname...",
@@ -17587,7 +16027,6 @@ Callback = function(split)
     end)
     g.notify("Success", "Rainbow car enabled for: " .. Player_To_RGB_Car.Name, 5)
 end}, "Rainbow_Car_Friend_Input_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Stop Rainbow Car (Friend, FE)",
 PlaceholderText = "Username or displayname...",
@@ -17604,14 +16043,13 @@ Callback = function(split)
     g.disable_rgb_for(Player_To_RGB_Car_Stop)
     g.notify("Success", "Disabled Rainbow Vehicle for: " .. Player_To_RGB_Car_Stop.Name, 5)
 end}, "Stop_Rainbow_Car_Friend_Input_UI")
-
 g.create_ui_element("Button", Houses_Section, {
 Name = "Lock Home (FE)",
 Callback = function()
     local is_locked = g.is_home_locked(g.LocalPlayer)
     if is_locked == true then
         g.notify("Warning", "Your home is already locked.", 5)
-        return 
+        return
     elseif is_locked == false then
         g.toggle_house_lock(g.LocalPlayer)
         g.notify("Success", "Locked your home.", 5)
@@ -17619,14 +16057,13 @@ Callback = function()
         g.notify("Error", "Something unexpected happened while checking if House is locked.", 10)
     end
 end}, "Lock_Home_Button_UI")
-
 g.create_ui_element("Button", Houses_Section, {
 Name = "Unlock Home (FE)",
 Callback = function()
     local is_locked = g.is_home_locked(g.LocalPlayer)
     if is_locked == false then
         g.notify("Warning", "Your home is not locked.", 5)
-        return 
+        return
     elseif is_locked == true then
         g.toggle_house_lock(g.LocalPlayer)
         g.notify("Success", "Unlocked your home.", 5)
@@ -17634,7 +16071,6 @@ Callback = function()
         g.notify("Error", "Something unexpected happened while checking if House is locked.", 10)
     end
 end}, "Unlock_Home_Button_UI")
-
 g.create_ui_element("Toggle", Houses_Section, {
 Name = "Auto Lock Home (FE)",
 Default = g.LockHomeLoop or false,
@@ -17642,7 +16078,6 @@ Flag = "Auto_Lock_Home_Toggle_UI",
 Callback = function(state)
     g.keep_home_locked(state)
 end}, "Auto_Lock_Home_Toggle_UI")
-
 g.create_ui_element("Input", Houses_Section, {
 Name = "Lock Player Home (FE)",
 PlaceholderText = "Username or displayname...",
@@ -17654,7 +16089,7 @@ Callback = function(split)
     local is_locked = g.is_home_locked(plr_to_lock)
     if is_locked == true then
         g.notify("Warning", tostring(plr_to_lock) .. "'s home is already locked.", 5)
-        return 
+        return
     elseif is_locked == false then
         g.toggle_house_lock(plr_to_lock)
         g.notify("Success", "Locked: " .. tostring(plr_to_lock) .. "'s home.", 5)
@@ -17662,7 +16097,6 @@ Callback = function(split)
         g.notify("Error", "Something happened while trying to lock: " .. tostring(plr_to_lock) .. "'s home!", 10)
     end
 end}, "Lock_Player_Home_Input_UI")
-
 g.create_ui_element("Input", Houses_Section, {
 Name = "Unlock Player Home (FE)",
 PlaceholderText = "Username or displayname...",
@@ -17682,7 +16116,6 @@ Callback = function(split)
         g.notify("Error", "Something happened while trying to unlock: " .. tostring(plr_to_unlock) .. "'s home!", 10)
     end
 end}, "Unlock_Player_Home_Input_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Friend Player",
 PlaceholderText = "Username or displayname...",
@@ -17692,7 +16125,6 @@ Callback = function(split)
     if not target_friend_plr then g.notify("Error", "That player does not exist or has left the game.", 6); return end
     g.friend_user_async_function(target_friend_plr)
 end}, "Friend_Player_Input_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Unfriend Player",
 PlaceholderText = "Username or displayname...",
@@ -17702,7 +16134,6 @@ Callback = function(split)
     if not target_unfriend_plr then g.notify("Error", "That player does not exist or has left the game.", 6); return end
     g.unfriend_user_async(target_unfriend_plr)
 end}, "Unfriend_Player_Input_UI")
-
 if executor_contains("delta") then
     g.create_ui_element("Toggle", Home_Section, {
     Name = "Toggle Delta Icon",
@@ -17712,7 +16143,6 @@ if executor_contains("delta") then
         g.toggle_delta_image_button_flames_hub(not state)
     end}, "Hide_Delta_Toggle_UI")
 end
-
 g.create_ui_element("Toggle", Phone_Section, {
 Name = "Anti RGB Phone",
 Default = g.HidePhoneModels or false,
@@ -17728,7 +16158,6 @@ Callback = function(state)
         g.TogglePhoneModelHider(false)
     end
 end}, "Anti_RGB_Phone_Toggle_UI")
-
 g.create_ui_element("Toggle", Extras_Section, {
 Name = "FPS Boost",
 Default = g.ultimate_lag_reducer or false,
@@ -17736,7 +16165,6 @@ Flag = "FPS_Boost_Toggle_UI",
 Callback = function(state)
     g.FlamesLagReducerFunc(state)
 end}, "FPS_Boost_Toggle_UI")
-
 g.create_ui_element("Toggle", Extras_Section, {
 Name = "Always Show Titles",
 Default = g.always_show_title_above_head or false,
@@ -17744,7 +16172,6 @@ Flag = "Always_Show_Titles_Toggle_UI",
 Callback = function(state)
     g.always_show_title_of_player_regardless_of_chats(state)
 end}, "Always_Show_Titles_Toggle_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "RGB Skin (FE)",
 Default = g.rainbow_skintone_currently_enabled or false,
@@ -17752,7 +16179,6 @@ Flag = "RGB_Skin_Toggle_UI",
 Callback = function(state)
     g.rainbow_skin(state)
 end}, "RGB_Skin_Toggle_UI")
-
 g.create_ui_element("Toggle", Extras_Section, {
 Name = "RGB Tool (FE)",
 Default = g.Rainbow_Tools_FE or false,
@@ -17766,7 +16192,6 @@ Callback = function(state)
         g.rainbow_tool(false)
     end
 end}, "RGB_Tool_Toggle_UI")
-
 g.create_ui_element("Toggle", Extras_Section, {
 Name = "Anti Fire",
 Default = g.firehidden or false,
@@ -17783,7 +16208,6 @@ Callback = function(state)
         g.set_fire_state(false)
     end
 end}, "Anti_Fire_Toggle_UI")
-
 if priv_server_is_in == true then
     g.create_ui_element("Toggle", PrivServer_Section, {
     Name = "Stop Time (FE)",
@@ -17792,7 +16216,6 @@ if priv_server_is_in == true then
     Callback = function(state)
         g.stop_time_toggle(state)
     end}, "Stop_Time_Toggle_UI")
-
     g.create_ui_element("Toggle", PrivServer_Section, {
     Name = "Flash Time (FE)",
     Default = g.flashing_time_fe_toggle or false,
@@ -17800,7 +16223,6 @@ if priv_server_is_in == true then
     Callback = function(state)
         g.flash_time_toggle(state)
     end}, "Flash_Time_Toggle_UI")
-
     g.create_ui_element("Toggle", PrivServer_Section, {
     Name = "Flash Weather (FE)",
     Default = g.changing_weather_on_repeat or false,
@@ -17808,7 +16230,6 @@ if priv_server_is_in == true then
     Callback = function(state)
         g.weather_flasher_loop(state)
     end}, "Flash_Weather_Toggle_UI")
-
     g.create_ui_element("Toggle", PrivServer_Section, {
     Name = "Server Lock (FE)",
     Default = g.server_lock_enabled or false,
@@ -17816,13 +16237,11 @@ if priv_server_is_in == true then
     Callback = function(state)
         g.server_lock_toggle(state)
     end}, "Server_Lock_Toggle_UI")
-
     g.create_ui_element("Button", PrivServer_Section, {
     Name = "Server Lock Manager",
     Callback = function()
         g.server_lock_whitelist_gui()
     end}, "Server_Lock_Manager_Button_UI")
-
     g.create_ui_element("Input", PrivServer_Section, {
     Name = "Kick Player (FE)",
     PlaceholderText = "Username or displayname...",
@@ -17835,7 +16254,6 @@ if priv_server_is_in == true then
         g.kick_plr(target_plr)
         g.notify("Success", "Kicked Player: " .. tostring(target_plr), 5)
     end}, "Kick_Player_Input_UI")
-
     g.create_ui_element("Input", PrivServer_Section, {
     Name = "Ban Player (FE)",
     PlaceholderText = "Username or displayname...",
@@ -17855,7 +16273,6 @@ if priv_server_is_in == true then
             g.notify("Error", "Failed to ban target.", 6)
         end
     end}, "Ban_Player_Input_UI")
-
     g.create_ui_element("Input", PrivServer_Section, {
     Name = "Unban Player (FE)",
     PlaceholderText = "Username or displayname...",
@@ -17876,7 +16293,6 @@ if priv_server_is_in == true then
         end
     end}, "Unban_Player_Input_UI")
 end
-
 g.create_ui_element("Toggle", Extras_Section, {
 Name = "RGB Street Lights",
 Default = g.RGB_Street_Lights_NightTime_Loop or false,
@@ -17884,7 +16300,6 @@ Flag = "RGB_Street_Lights_Toggle_UI",
 Callback = function(state)
     g.toggle_rgb_streetlights(state)
 end}, "RGB_Street_Lights_Toggle_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Admin Player (FE)",
 PlaceholderText = "Username or displayname...",
@@ -17898,7 +16313,6 @@ Callback = function(split)
     fw(0.5)
     g.notify("Success", "Added " .. tostring(Player.Name) .. " to the admin's table!", 3)
 end}, "Admin_Player_Input_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "UnAdmin Player (FE)",
 PlaceholderText = "Username or displayname...",
@@ -17921,7 +16335,6 @@ Callback = function(split)
         g.notify("Error", "Player's admin abilities were not removed.", 5)
     end
 end}, "Unadmin_Player_Input_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Blacklist Player (FE)",
 PlaceholderText = "Username or displayname...",
@@ -17943,7 +16356,6 @@ Callback = function(split)
     if g.Rainbow_Tasks[Name] then g.Rainbow_Tasks[Name] = nil end
     g.notify("Success", "Blacklisted: " .. tostring(Name), 5)
 end}, "Blacklist_Player_Input_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Unblacklist Player (FE)",
 PlaceholderText = "Username or displayname...",
@@ -17961,7 +16373,6 @@ Callback = function(split)
         end
     end
 end}, "Unblacklist_Player_Input_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Rainbow Time (Friend, FE)",
 PlaceholderText = "Username number (e.g. PlayerName 1)...",
@@ -17977,7 +16388,6 @@ Callback = function(split)
     fw(0.2)
     g.notify("Success", "Set rainbow delay for " .. Player.Name .. " to " .. new_delay, 5)
 end}, "Rainbow_Time_Input_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Walk Fling Whitelist",
 PlaceholderText = "Username or displayname...",
@@ -17987,7 +16397,6 @@ Callback = function(split)
     if typeof(plr) ~= "Instance" or not plr:IsA("Player") then g.notify("Error", "Player not found in game.", 3); return end
     g.AddToWalkFlingWhitelist(plr)
 end}, "Walk_Fling_Whitelist_Input_UI")
-
 g.create_ui_element("Input", Players_Section, {
 Name = "Walk Fling Unwhitelist",
 PlaceholderText = "Username or displayname...",
@@ -17997,56 +16406,46 @@ Callback = function(split)
     if typeof(plr) ~= "Instance" or not plr:IsA("Player") then g.notify("Error", "Player not found in game.", 5); return end
     g.RemoveFromWalkFlingWhitelist(plr)
 end}, "Walk_Fling_Unwhitelist_Input_UI")
-
 g.create_ui_element("Button", Home_Section, {
 Name = "Get Priv Server Owner",
 Callback = function()
     g.notify_priv_server_owner()
 end,})
-
-
 g.create_ui_element("Button", Extras_Section, {
 Name = "Streamer Mode",
 Callback = function()
     g.streamer_mode_script()
 end,})
-
 g.create_ui_element("Button", Extras_Section, {
 Name = "Annoyer GUI",
 Callback = function()
     g.annoyance_GUI()
 end,})
-
 g.create_ui_element("Button", Vehicle_Section, {
 Name = "Car Stats GUI",
 Callback = function()
     g.vehicle_stats_viewer_GUI()
 end,})
-
 g.create_ui_element("Button", Vehicle_Section, {
 Name = "All Cars GUI",
 Callback = function()
     g.car_listing_gui()
 end,})
-
 g.create_ui_element("Button", Extras_Section, {
 Name = "Free Emotes GUI",
 Callback = function()
     loadstring(g.http_get("https://pastebin.com/raw/RCj6RJtc"))()
 end,})
-
 g.create_ui_element("Button", Phone_Section, {
 Name = "Message GUI",
 Callback = function()
     g.send_msg_menu()
 end,})
-
 g.create_ui_element("Button", Extras_Section, {
 Name = "Workspace Editor",
 Callback = function()
     g.workspace_editor_script_GUI()
 end,})
-
 g.create_ui_element("Button", Extras_Section, {
 Name = "Debugger",
 Callback = function()
@@ -18056,43 +16455,36 @@ Callback = function()
         g.notify("Error", "Flames Debugger function not found or was not created at runtime.", 10)
     end
 end,})
-
 g.create_ui_element("Button", LocalPlayer_Section, {
 Name = "Outfit Saver (Save outfits GUI)",
 Callback = function()
     g.lt_open_outfit_saver()
 end,})
-
 g.create_ui_element("Button", Extras_Section, {
 Name = "Chat Bypass",
 Callback = function()
     g.load_workaround_script()
 end,})
-
 g.create_ui_element("Button", LocalPlayer_Section, {
 Name = "Save Emote",
 Callback = function()
     g.save_copied_plrs_emote()
 end,})
-
 g.create_ui_element("Button", Extras_Section, {
 Name = "Infinite Yield",
 Callback = function()
     g.infinite_yield()
 end,})
-
 g.create_ui_element("Button", Extras_Section, {
 Name = "Infinite Premium",
 Callback = function()
     g.infinite_premium()
 end,})
-
 g.create_ui_element("Button", Extras_Section, {
 Name = "Nameless Admin",
 Callback = function()
     g.flames_nameless_admin_ver()
 end,})
-
 g.Toggle_Fire_Spam = g.create_ui_element("Toggle", Extras_Section, {
 Name = "Flames (FE)",
 Default = g.spamming_all_that_fire or false,
@@ -18117,7 +16509,6 @@ Callback = function(state)
         end
     end
 end}, "Flames_Toggle_UI")
-
 g.create_ui_element("Input", Extras_Section, {
 Name = "Spawn Fire (FE)",
 PlaceholderText = "Enter amount...",
@@ -18132,7 +16523,6 @@ Callback = function(split)
     fw(0.2)
     for i = 1, amount do g.Send("request_fire") end
 end}, "Spawn_Fire_Input_UI")
-
 g.create_ui_element("Toggle", Extras_Section, {
 Name = "Sign Spam (FE)",
 Default = g.ToolChanger_FE or false,
@@ -18146,7 +16536,6 @@ Callback = function(state)
         g.spam_sign_text(false)
     end
 end}, "Sign_Spam_Toggle_UI")
-
 g.create_ui_element("Button", Extras_Section, {
 Name = "Collect All NBA Props (FE)",
 Callback = function()
@@ -18155,7 +16544,6 @@ Callback = function()
     if attr ~= "PLAYING" then g.notify("Warning", "Talk to the NPC first and enter before trying this!", 10); return end
     g.collect_all_nba_props()
 end,})
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Anti Outfit Copier (FE)",
 Default = g.anti_outfit_stealer or false,
@@ -18163,7 +16551,6 @@ Flag = "Anti_Outfit_Copier_Toggle_UI",
 Callback = function(state)
     g.anti_outfit_copier(state)
 end}, "Anti_Outfit_Copier_Toggle_UI")
-
 g.create_ui_element("Toggle", Extras_Section, {
 Name = "Mute Tools",
 Default = g.autosilence or false,
@@ -18171,7 +16558,6 @@ Flag = "Mute_Tools_Toggle_UI",
 Callback = function(state)
     g.mute_all_tools(state)
 end}, "Mute_Tools_Toggle_UI")
-
 g.create_ui_element("Dropdown", LocalPlayer_Section, {
 Name = "Emotes",
 Options = {
@@ -18235,13 +16621,11 @@ Callback = function(selected)
 	if not emote then g.notify("Error", "Unknown emote selected.", 2.5); return end
 	g.do_emote(emote)
 end}, "Emotes_Dropdown_UI")
-
 g.create_ui_element("Button", LocalPlayer_Section, {
 Name = "Stop Emoting",
 Callback = function()
     g.disable_emoting_script()
 end}, "No_Emote_Button_UI")
-
 g.create_ui_element("Input", LocalPlayer_Section, {
 Name = "RP Name (FE)",
 PlaceholderText = "Enter new RP name...",
@@ -18254,7 +16638,6 @@ Callback = function(text)
     end
     g.change_RP_Name(text)
 end}, "RP_Name_Input_UI")
-
 g.create_ui_element("Input", LocalPlayer_Section, {
 Name = "RP Bio (FE)",
 PlaceholderText = "Enter new RP bio...",
@@ -18267,13 +16650,11 @@ Callback = function(text)
     end
     g.change_bio(text)
 end}, "RP_Bio_Input_UI")
-
 g.create_ui_element("Button", Extras_Section, {
 Name = "Performance GUI",
 Callback = function()
     g.LoadPerformanceStatsGUI()
 end}, "Stats_GUI_Button_UI")
-
 g.create_ui_element("Toggle", LocalPlayer_Section, {
 Name = "Two Tone Skin (FE)",
 Default = g.Two_Tone_Skin_Tone_Loop_Toggled or false,
@@ -18281,7 +16662,6 @@ Flag = "Two_Tone_Skin_Toggle_UI",
 Callback = function(state)
     g.two_tone_skin(state)
 end}, "Two_Tone_Skin_Toggle_UI")
-
 g.create_ui_element("ColorPicker", Vehicle_Section, {
 Name = "Car Color (FE)",
 Default = Color3.fromRGB(255, 0, 0),
@@ -18291,7 +16671,6 @@ Callback = function(color)
     if not vehicle then g.notify("Error", "You do not have a vehicle spawned!", 0.75); return end
     g.change_vehicle_color(color, vehicle)
 end}, "Car_Color_Picker_UI")
-
 g.create_ui_element("Toggle", Players_Section, {
 Name = "Player ESP",
 Default = g.Flames_Hub_Player_ESP_Core_Has_Been_Enabled or false,
@@ -18303,7 +16682,6 @@ Callback = function(state)
         g.disable_player_esp()
     end
 end}, "Player_ESP_Toggle_UI")
-
 g.create_ui_element("Toggle", Players_Section, {
 Name = "Tracer ESP",
 Default = g.tracer_esp_currently_running_flag_Flames_Hub or false,
@@ -18315,7 +16693,6 @@ Callback = function(state)
         g.disable_tracers()
     end
 end}, "Tracer_ESP_Toggle_UI")
-
 g.print_bytes = function(label, s)
     local bytes = {}
     for i = 1, #s do
@@ -18336,7 +16713,6 @@ local function ws_get_version()
             Headers = { ["Content-Type"] = "application/json" }
         })
     end)
-
     if not ok or not result or result.StatusCode ~= 200 then return nil end
     local ok2, data = pcall(function() return g.HttpService:JSONDecode(result.Body) end)
     if not ok2 or type(data) ~= "table" then return nil end
@@ -18344,14 +16720,12 @@ local function ws_get_version()
     if not version then return nil end
     return tostring(version):gsub("%s+", "")
 end
-
 local function Notify(msg, dur)
     dur = dur or 5
     local gui = Instance.new("ScreenGui")
     gui.Name = "CustomNotifyGui"
     gui.ResetOnSpawn = false
     gui.Parent = CoreGui
-
     local frame = Instance.new("Frame")
     frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     frame.BackgroundTransparency = 1
@@ -18359,7 +16733,6 @@ local function Notify(msg, dur)
     frame.Size = UDim2.new(0, 500, 0, 120)
     frame.Position = UDim2.new(0, 20, 0, 100)
     frame.Parent = gui
-
     local icon = Instance.new("ImageLabel")
     icon.BackgroundTransparency = 1
     icon.Position = UDim2.new(0, 15, 0.5, -25)
@@ -18367,7 +16740,6 @@ local function Notify(msg, dur)
     icon.Image = "rbxasset://textures/ui/Emotes/ErrorIcon.png"
     icon.ImageTransparency = 1
     icon.Parent = frame
-
     local label = Instance.new("TextLabel")
     label.BackgroundTransparency = 1
     label.Position = UDim2.new(0, 80, 0, 10)
@@ -18381,12 +16753,10 @@ local function Notify(msg, dur)
     label.TextYAlignment = Enum.TextYAlignment.Top
     label.TextTransparency = 1
     label.Parent = frame
-
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
     g.TweenService:Create(frame, TweenInfo.new(0.3), { BackgroundTransparency = 0.3 }):Play()
     g.TweenService:Create(icon, TweenInfo.new(0.3), { ImageTransparency = 0 }):Play()
     g.TweenService:Create(label, TweenInfo.new(0.3), { TextTransparency = 0 }):Play()
-
     task.delay(dur, function()
         if not frame.Parent then return end
         g.TweenService:Create(frame, TweenInfo.new(0.3), { BackgroundTransparency = 1 }):Play()
@@ -18396,12 +16766,9 @@ local function Notify(msg, dur)
         if gui and gui:IsA("ScreenGui") then gui:Destroy() end
     end)
 end
-
 g.lta_updater_running = g.lta_updater_running or false
 g.lta_updater_thread_id = (g.lta_updater_thread_id or 0) + 1
 local thread_id = g.lta_updater_thread_id
--- [[ this copy has its own changes, so it doesn't swap itself for the upstream Flames Hub script when their version ]] --
--- [[ changes. Set getgenv().Allow_Upstream_Updates = true before running it to bring that back. ]] --
 if not g.lta_updater_running and g.Allow_Upstream_Updates then
     g.lta_updater_running = true
     task.spawn(function()
