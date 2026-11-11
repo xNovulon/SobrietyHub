@@ -10,6 +10,7 @@ local GAMES = {
     { name = "FERAL Animal Survival",  path = "scripts/feral.lua",       file = "feral.lua",      game = 10771881861, places = { 108901361810209 } },
     { name = "Throw Food For Animals", path = "scripts/throw_food.lua",  file = "throw_food.lua",  game = 10766972131, places = { 120219252362013 } },
     { name = "Mog to Steal an Egg",    path = "scripts/mog_helper.lua",  file = "mog_helper.lua",  game = 10769299214, places = { 77922212238973 } },
+    { name = "Life Together RP",      path = "scripts/life_together.lua", file = "life_together.lua", places = { 13967668166, 99644611200703, 99154507657228 } },
 }
 
 local function notify(text)
